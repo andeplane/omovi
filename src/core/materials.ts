@@ -54,11 +54,20 @@ const createMaterial = (
   }
 
   const material = new Material(type, { color: 0xff0000 })
+  material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
+  material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
 
   material.onBeforeCompile = (shader: THREE.Shader) => {
+    Object.assign(shader.uniforms, material.uniforms)
+    material.uniforms = shader.uniforms
+
     shader.vertexShader = vertexShader
     shader.fragmentShader = fragmentShader
   }
+
+  // Necessary because of a bug in THREE.JS
+  // https://github.com/mrdoob/three.js/issues/15948
+  material.onBeforeCompile.toString = () => type
 
   materialMap[type] = material
   return material

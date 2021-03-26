@@ -63,11 +63,11 @@ export default class Visualizer {
   }
 
   add = (object: THREE.Mesh) => {
-    // const material = object.material as Material
-    // const materialType = material.type
-    // if (this.materials[materialType] == null) {
-    //   this.materials[materialType] = material
-    // }
+    const material = object.material as Material
+    const materialType = material.type
+    if (this.materials[materialType] == null) {
+      this.materials[materialType] = material
+    }
 
     this.object.add(object)
   }
@@ -121,6 +121,7 @@ export default class Visualizer {
     this.updateUniforms(this.camera)
     this.renderer.render(this.scene, this.camera)
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
+    // console.log(this.camera.position.clone())
   }
 
   resizeIfNeeded = () => {

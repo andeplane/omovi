@@ -50,14 +50,19 @@ class Particles {
   getGeometry = () => {
     const baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
     const geometry = new THREE.InstancedBufferGeometry()
+
     geometry.instanceCount = this.numParticles
     geometry.setIndex(baseGeometry.getIndex())
     geometry.setAttribute('position', baseGeometry.getAttribute('position'))
-    geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
+    console.log('geometry: ', geometry)
 
     geometry.setAttribute(
       'particlePosition',
       new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
+    )
+    geometry.setAttribute(
+      'particleRadius',
+      new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
     )
     return geometry
   }
