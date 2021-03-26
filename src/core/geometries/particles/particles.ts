@@ -58,23 +58,22 @@ class Particles {
     geometry.setAttribute(
       'particlePosition',
       new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
-    );
+    )
     return geometry
   }
 
   getMesh = () => {
-    
     const geometry = this.getGeometry()
-    const material = createMaterial('particle', vertexShader, fragmentShader);
+    const material = createMaterial('particle', vertexShader, fragmentShader)
     const mesh = new THREE.InstancedMesh(geometry, material, this.numParticles)
 
-    const matrix = new THREE.Matrix4();
+    const matrix = new THREE.Matrix4()
     for (let i = 0; i < this.numParticles; i++) {
-      mesh.setMatrixAt( i, matrix );
-      mesh.setColorAt( i, new THREE.Color("red") );
+      mesh.setMatrixAt(i, matrix)
+      mesh.setColorAt(i, new THREE.Color('red'))
     }
-		mesh.frustumCulled = false
-   
+    mesh.frustumCulled = false
+
     return mesh
   }
 }

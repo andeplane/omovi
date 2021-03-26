@@ -1,5 +1,11 @@
 import * as THREE from 'three'
 import ComboControls from '@cognite/three-combo-controls'
+import { Material } from './materials'
+
+const inverseModelMatrix = new THREE.Matrix4()
+const modelViewMatrix = new THREE.Matrix4()
+const normalMatrix = new THREE.Matrix3()
+const inverseNormalMatrix = new THREE.Matrix3()
 
 const adjustCamera = (
   camera: THREE.PerspectiveCamera,
@@ -22,6 +28,9 @@ export default class Visualizer {
   private controls: ComboControls
   private clock: THREE.Clock
   private domElement: HTMLElement
+  private object: THREE.Object3D
+  private materials: { [key: string]: Material }
+
   // @ts-ignore
   private latestRequestId?: number
 
@@ -45,7 +54,22 @@ export default class Visualizer {
 
     this.latestRequestId = undefined
     this.clock = new THREE.Clock()
+    this.object = new THREE.Object3D()
+    this.scene.add(this.object)
+
+    this.materials = {}
+
     this.animate()
+  }
+
+  add = (object: THREE.Mesh) => {
+    // const material = object.material as Material
+    // const materialType = material.type
+    // if (this.materials[materialType] == null) {
+    //   this.materials[materialType] = material
+    // }
+
+    this.object.add(object)
   }
 
   setupLights = (
@@ -73,9 +97,28 @@ export default class Visualizer {
     camera.lookAt(new THREE.Vector3(0, 0, 0))
   }
 
+  updateUniforms = (camera: THREE.PerspectiveCamera) => {
+    this.object.matrixWorld.copy(this.object.matrixWorld).invert()
+    modelViewMatrix
+      .copy(camera.matrixWorldInverse)
+      .multiply(this.object.matrixWorld)
+    normalMatrix.getNormalMatrix(modelViewMatrix)
+    inverseNormalMatrix.copy(normalMatrix).invert()
+
+    Object.values(this.materials).forEach((material) => {
+      if (material.uniforms.inverseModelMatrix != null) {
+        material.uniforms.inverseModelMatrix.value.copy(inverseModelMatrix)
+      }
+      if (material.uniforms.inverseNormalMatrix != null) {
+        material.uniforms.inverseNormalMatrix.value.copy(inverseNormalMatrix)
+      }
+    })
+  }
+
   animate = () => {
     this.resizeIfNeeded()
     this.controls.update(this.clock.getDelta())
+    this.updateUniforms(this.camera)
     this.renderer.render(this.scene, this.camera)
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
   }

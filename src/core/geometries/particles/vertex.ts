@@ -1,6 +1,5 @@
 export default /* glsl */ `
 #define PHONG
-
 varying vec3 vViewPosition;
 
 #ifndef FLAT_SHADED
@@ -50,6 +49,9 @@ void main() {
     vec4 mvPosition = vec4( transformed, 1.0 );
 
     #ifdef USE_INSTANCING
+
+	// vec3 rayOrigin = (inverseModelMatrix * vec4(cameraPosition, 1.0)).xyz;
+  	// vec3 objectToCameraModelSpace = rayOrigin - particlePosition;
 
     mvPosition = instanceMatrix * mvPosition;
     mvPosition += vec4(particlePosition, 0.0);
