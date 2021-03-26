@@ -1,3 +1,4 @@
 import OMOVIVisualizer from './OMOVIVisualizer'
+import Particles from './core/particles'
 
-export { OMOVIVisualizer }
+export { OMOVIVisualizer, Particles }

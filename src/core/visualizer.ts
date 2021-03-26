@@ -15,7 +15,7 @@ const adjustCamera = (
 export default class Visualizer {
   private renderer: THREE.WebGLRenderer
   private canvas: HTMLCanvasElement
-  private scene: THREE.Scene
+  public scene: THREE.Scene
   private camera: THREE.PerspectiveCamera
   private ambientLight: THREE.AmbientLight
   private directionalLight: THREE.DirectionalLight
@@ -43,11 +43,6 @@ export default class Visualizer {
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
 
-    const geometry = new THREE.SphereGeometry(5, 32, 32)
-    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    const sphere = new THREE.Mesh(geometry, material)
-    this.scene.add(sphere)
-
     this.latestRequestId = undefined
     this.clock = new THREE.Clock()
     this.animate()
@@ -58,8 +53,8 @@ export default class Visualizer {
     directionalLight: THREE.DirectionalLight,
     scene: THREE.Scene
   ) => {
-    ambientLight.intensity = 1.0
-    directionalLight.intensity = 1.0
+    ambientLight.intensity = 0.7
+    directionalLight.intensity = 0.7
     scene.add(directionalLight)
     scene.add(ambientLight)
   }

@@ -1,9 +1,11 @@
+import * as THREE from 'three'
 import React, { useEffect, useState, useRef } from 'react'
 import Visualizer from './core/visualizer'
+import Particles from './core/particles'
 
 let newVisualizer: Visualizer | undefined
 
-const OMOVIVisualizer = () => {
+const OMOVIVisualizer = ({ particles }: { particles: Particles }) => {
   const domElement = useRef<HTMLDivElement | null>(null)
   const [visualizer, setVisualizer] = useState<Visualizer | undefined>(
     undefined
@@ -13,6 +15,19 @@ const OMOVIVisualizer = () => {
     if (domElement.current && !newVisualizer) {
       newVisualizer = new Visualizer(domElement.current)
       setVisualizer(newVisualizer)
+
+      for (let i = 0; i < particles.numParticles; i++) {
+        const geometry = new THREE.SphereGeometry(
+          particles.getRadius(i),
+          32,
+          32
+        )
+        const material = new THREE.MeshPhongMaterial({ color: 0xff0000 })
+        const sphere = new THREE.Mesh(geometry, material)
+        const position = particles.getPosition(i)
+        sphere.position.set(position.x, position.y, position.z)
+        newVisualizer.scene.add(sphere)
+      }
     }
   }, [domElement, visualizer])
 
