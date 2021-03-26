@@ -59,5 +59,9 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "@types/three": "^0.126.2",
+    "three": "^0.126.1"
+  }
 }
