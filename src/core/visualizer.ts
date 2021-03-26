@@ -79,7 +79,7 @@ export default class Visualizer {
     directionalLight: THREE.DirectionalLight,
     scene: THREE.Scene
   ) => {
-    ambientLight.intensity = 0.7
+    ambientLight.intensity = 0.3
     directionalLight.intensity = 0.7
     scene.add(directionalLight)
     scene.add(ambientLight)
