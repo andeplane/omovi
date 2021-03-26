@@ -77,8 +77,9 @@ void main() {
     vec3 up = cross(right, view);
 	
 	// Factor 2.0 is because geometry is 0.5x
-	vec3 displacement = 2.2*particleRadius*(position.x * right + position.y * up);
-	transformed = particlePosition + displacement;
+	vec3 displacement = 2.0*particleRadius*(position.x * right + position.y * up);
+	// particlePosition + displacement is the current vertex, also move closer to camera so billboard covers the sphere
+	transformed = particlePosition + displacement - particleRadius * view;
 	
 	vSurfacePoint = mul3(modelViewMatrix, transformed);
     vCenter = mul3(modelViewMatrix, particlePosition);
