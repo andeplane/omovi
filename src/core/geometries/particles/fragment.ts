@@ -1,4 +1,4 @@
-export default /* glsl */`
+export default /* glsl */ `
 #define PHONG
 
 uniform vec3 diffuse;
@@ -6,6 +6,10 @@ uniform vec3 emissive;
 uniform vec3 specular;
 uniform float shininess;
 uniform float opacity;
+
+varying vec3 vSurfacePoint;
+varying vec3 vCenter;
+varying float vRadius;
 
 #include <common>
 #include <packing>
@@ -48,6 +52,45 @@ void main() {
 	#include <specularmap_fragment>
 	#include <normal_fragment_begin>
 	#include <normal_fragment_maps>
+
+	vec3 rayTarget = vSurfacePoint;
+	vec3 rayDirection = normalize(rayTarget); // rayOrigin is (0,0,0) in camera space
+
+	vec3 diff = rayTarget - vCenter.xyz;
+    vec3 E = diff;
+    vec3 D = rayDirection;
+
+    float a = dot(D, D);
+    float b = dot(E, D);
+    float c = dot(E, E) - vRadius*vRadius;
+
+    // discriminant of sphere equation (factor 2 removed from b above)
+    float d = b*b - a*c;
+    if(d < 0.0)
+        discard;
+	
+    float sqrtd = sqrt(d);
+    float dist1 = (-b - sqrtd)/a;
+    float dist2 = (-b + sqrtd)/a;
+
+    // Make sure dist1 is the smaller one
+    if (dist2 < dist1) {
+        float tmp = dist1;
+        dist1 = dist2;
+        dist2 = tmp;
+    }
+
+    float dist = dist1;
+    float intersectionPointZ = E.z + dist*D.z;
+	vec3 p = rayTarget + dist*rayDirection;
+
+	// Find normal vector in local space
+    normal = vec3(p - vCenter.xyz);
+    // Transform into camera space
+    if (dot(normal, rayDirection) >  0.) {
+        normal = -normal;
+    }
+
 	#include <emissivemap_fragment>
 
 	// accumulation
@@ -72,4 +115,4 @@ void main() {
 	#include <dithering_fragment>
 
 }
-`;
+`
