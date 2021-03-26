@@ -9,6 +9,7 @@ class Particles {
   radii: Float32Array
   numParticles: number
   capacity: number
+  mesh?: THREE.InstancedMesh
 
   constructor(capacity: number) {
     this.positions = new Float32Array(3 * capacity)
@@ -16,6 +17,7 @@ class Particles {
     this.radii = new Float32Array(capacity)
     this.numParticles = 0
     this.capacity = capacity
+    this.mesh = undefined
   }
 
   addParticle(x: number, y: number, z: number, radius: number) {
@@ -55,7 +57,6 @@ class Particles {
     geometry.setIndex(baseGeometry.getIndex())
     geometry.setAttribute('position', baseGeometry.getAttribute('position'))
     geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
-    console.log('geometry: ', geometry)
 
     geometry.setAttribute(
       'particlePosition',
@@ -69,18 +70,21 @@ class Particles {
   }
 
   getMesh = () => {
+    if (this.mesh != null) {
+      return this.mesh
+    }
     const geometry = this.getGeometry()
     const material = createMaterial('particle', vertexShader, fragmentShader)
-    const mesh = new THREE.InstancedMesh(geometry, material, this.numParticles)
+    this.mesh = new THREE.InstancedMesh(geometry, material, this.numParticles)
 
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < this.numParticles; i++) {
-      mesh.setMatrixAt(i, matrix)
-      mesh.setColorAt(i, new THREE.Color('red'))
+      this.mesh.setMatrixAt(i, matrix)
+      this.mesh.setColorAt(i, new THREE.Color('red'))
     }
-    mesh.frustumCulled = false
+    this.mesh.frustumCulled = false
 
-    return mesh
+    return this.mesh
   }
 }
 

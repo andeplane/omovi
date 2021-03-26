@@ -14,9 +14,25 @@ const OMOVIVisualizer = ({ particles }: { particles: Particles }) => {
     if (domElement.current && !newVisualizer) {
       newVisualizer = new Visualizer(domElement.current)
       setVisualizer(newVisualizer)
-      newVisualizer.add(particles.getMesh())
     }
   }, [domElement, visualizer])
+
+  const prevParticlesRef = useRef<Particles>()
+  useEffect(() => {
+    prevParticlesRef.current = particles
+  })
+  const prevParticles = prevParticlesRef.current
+
+  useEffect(() => {
+    if (!visualizer) {
+      return
+    }
+
+    if (prevParticles) {
+      visualizer.remove(prevParticles.getMesh())
+    }
+    visualizer.add(particles.getMesh())
+  }, [particles, visualizer])
 
   return (
     <div style={{ height: '100%', width: '100%' }}>

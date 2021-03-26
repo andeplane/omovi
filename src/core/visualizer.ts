@@ -58,7 +58,6 @@ export default class Visualizer {
     this.scene.add(this.object)
 
     this.materials = {}
-
     this.animate()
   }
 
@@ -72,6 +71,10 @@ export default class Visualizer {
     }
 
     this.object.add(object)
+  }
+
+  remove = (object: THREE.Mesh) => {
+    this.object.remove(object)
   }
 
   setupLights = (
