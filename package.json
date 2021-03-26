@@ -61,6 +61,7 @@
     "dist"
   ],
   "dependencies": {
+    "@cognite/three-combo-controls": "^1.4.3",
     "@types/three": "^0.126.2",
     "three": "^0.126.1"
   }
