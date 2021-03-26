@@ -85,7 +85,7 @@ void main() {
 	vec3 p = rayTarget + dist*rayDirection;
 
 	// Find normal vector in local space
-    normal = vec3(p - vCenter.xyz);
+    normal = normalize(vec3(p - vCenter.xyz));
     // Transform into camera space
     if (dot(normal, rayDirection) >  0.) {
         normal = -normal;

@@ -4,9 +4,16 @@ import { OMOVIVisualizer, Particles } from 'omovi'
 import 'omovi/dist/index.css'
 
 const App = () => {
-  const particles = new Particles(2);
-  particles.addParticle(-3.0, 0, 0, 1.0)
-  particles.addParticle(1.5, 0, 0, 0.5)
+  const N = 200000;
+  const particles = new Particles(N);
+
+  for (let i = 0; i < N; i++) {
+    const x = 1000 * (Math.random() - 0.5);
+    const y = 1000 * (Math.random() - 0.5);
+    const z = 1000 * (Math.random() - 0.5);
+    const r = 0.5 + Math.random();
+    particles.addParticle(x,y,z,r)
+  }
 
   return <OMOVIVisualizer particles={particles} />
 }

@@ -77,7 +77,7 @@ void main() {
     vec3 up = cross(right, view);
 	
 	// Factor 2.0 is because geometry is 0.5x
-	vec3 displacement = 2.0*particleRadius*(position.x * right + position.y * up);
+	vec3 displacement = 2.2*particleRadius*(position.x * right + position.y * up);
 	transformed = particlePosition + displacement;
 	
 	vSurfacePoint = mul3(modelViewMatrix, transformed);
