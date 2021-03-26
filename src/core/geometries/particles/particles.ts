@@ -47,9 +47,8 @@ class Particles {
     )
   }
 
-  getMesh = () => {
+  getGeometry = () => {
     const baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
-    
     const geometry = new THREE.InstancedBufferGeometry()
     geometry.instanceCount = this.numParticles
     geometry.setIndex(baseGeometry.getIndex())
@@ -60,7 +59,12 @@ class Particles {
       'particlePosition',
       new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
     );
+    return geometry
+  }
 
+  getMesh = () => {
+    
+    const geometry = this.getGeometry()
     const material = createMaterial('particle', vertexShader, fragmentShader);
     const mesh = new THREE.InstancedMesh(geometry, material, this.numParticles)
 
