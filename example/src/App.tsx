@@ -6,7 +6,7 @@ import 'omovi/dist/index.css'
 const App = () => {
   const particles = new Particles(2);
   particles.addParticle(-3.0, 0, 0, 1.0)
-  particles.addParticle(1.5, 0, 0, 1.0)
+  particles.addParticle(1.5, 0, 0, 0.5)
 
   return <OMOVIVisualizer particles={particles} />
 }

@@ -54,6 +54,7 @@ class Particles {
     geometry.instanceCount = this.numParticles
     geometry.setIndex(baseGeometry.getIndex())
     geometry.setAttribute('position', baseGeometry.getAttribute('position'))
+    geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
     console.log('geometry: ', geometry)
 
     geometry.setAttribute(
