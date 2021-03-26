@@ -63,10 +63,12 @@ export default class Visualizer {
   }
 
   add = (object: THREE.Mesh) => {
-    const material = object.material as Material
-    const materialType = material.type
-    if (this.materials[materialType] == null) {
-      this.materials[materialType] = material
+    if (object.material instanceof Material) {
+      const material = object.material as Material
+      const materialType = material.type
+      if (this.materials[materialType] == null) {
+        this.materials[materialType] = material
+      }
     }
 
     this.object.add(object)
