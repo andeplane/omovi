@@ -8,9 +8,9 @@ const App = () => {
   const particles = new Particles(N);
 
   for (let i = 0; i < N; i++) {
-    const x = 1000 * (Math.random() - 0.5);
-    const y = 1000 * (Math.random() - 0.5);
-    const z = 1000 * (Math.random() - 0.5);
+    const x = 500 * (Math.random() - 0.5);
+    const y = 500 * (Math.random() - 0.5);
+    const z = 500 * (Math.random() - 0.5);
     const r = 0.5 + Math.random();
     particles.addParticle(x,y,z,r)
   }
