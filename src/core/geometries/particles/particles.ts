@@ -27,7 +27,7 @@ class Particles {
     y: number,
     z: number,
     radius: number,
-    r: number = 1.0,
+    r: number = 255.0,
     g: number = 0.0,
     b: number = 0.0
   ) {

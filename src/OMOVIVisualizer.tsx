@@ -1,10 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react'
 import Visualizer from './core/visualizer'
 import Particles from './core/geometries/particles/particles'
+import Bonds from './core/geometries/bonds/bonds'
 
 let newVisualizer: Visualizer | undefined
 
-const OMOVIVisualizer = ({ particles }: { particles: Particles }) => {
+const OMOVIVisualizer = ({
+  particles,
+  bonds
+}: {
+  particles: Particles
+  bonds: Bonds
+}) => {
   const domElement = useRef<HTMLDivElement | null>(null)
   const [visualizer, setVisualizer] = useState<Visualizer | undefined>(
     undefined
@@ -23,6 +30,12 @@ const OMOVIVisualizer = ({ particles }: { particles: Particles }) => {
   })
   const prevParticles = prevParticlesRef.current
 
+  const prevBondsRef = useRef<Bonds>()
+  useEffect(() => {
+    prevBondsRef.current = bonds
+  })
+  const prevBonds = prevBondsRef.current
+
   useEffect(() => {
     if (!visualizer) {
       return
@@ -32,7 +45,12 @@ const OMOVIVisualizer = ({ particles }: { particles: Particles }) => {
       visualizer.remove(prevParticles.getMesh())
     }
     visualizer.add(particles.getMesh())
-  }, [particles, visualizer])
+
+    if (prevBonds) {
+      visualizer.remove(prevBonds.getMesh())
+    }
+    visualizer.add(bonds.getMesh())
+  }, [particles, bonds, visualizer])
 
   return (
     <div style={{ height: '100%', width: '100%' }}>
