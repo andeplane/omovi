@@ -1,8 +1,10 @@
 import Particles from 'core/geometries/particles/particles'
 import AtomTypes from 'core/atomtypes'
+import SimulationData from 'core/simulationdata/simulationdata'
+import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
 
-function addParticlesToFrame(lines: string[], i: number, frame: Particles) {
-  for (let j = 0; j < frame.capacity; j++) {
+function addParticlesToFrame(lines: string[], i: number, particles: Particles) {
+  for (let j = 0; j < particles.capacity; j++) {
     const lineData = lines[i + j].split(/\s+/).filter(Boolean)
     const element = lineData[0]
 
@@ -17,13 +19,13 @@ function addParticlesToFrame(lines: string[], i: number, frame: Particles) {
     const y = parseFloat(lineData[2])
     const z = parseFloat(lineData[3])
 
-    frame.add(x, y, z, radius, color.r, color.g, color.b)
+    particles.add(x, y, z, radius, color.r, color.g, color.b)
   }
 }
 
-const parseXyz = (data: string): Particles[] => {
-  let currentFrame: Particles | undefined
-  const frames: Particles[] = []
+const parseXyz = (data: string): SimulationData => {
+  let particles: Particles | undefined
+  const frames: SimulationDataFrame[] = []
 
   const lines = data.split('\n')
   const numLines = lines.length
@@ -44,24 +46,29 @@ const parseXyz = (data: string): Particles[] => {
 
       if (isNaN(numParticles)) {
         console.log('Warning, got NaN as numParticles')
-        return frames
+        break
       }
 
-      currentFrame = new Particles(numParticles)
+      particles = new Particles(numParticles)
       readNumParticles = false
       skipNextLine = true
     } else {
-      if (currentFrame) {
-        addParticlesToFrame(lines, i, currentFrame)
-        frames.push(currentFrame)
-        i += currentFrame.count - 1
+      if (particles) {
+        addParticlesToFrame(lines, i, particles)
+        const frame = new SimulationDataFrame(particles)
+        frames.push(frame)
+        i += particles.count - 1
         readNumParticles = true
       }
     }
 
     i++
   }
-  return frames
+
+  const simulationData = new SimulationData()
+  simulationData.frames = frames
+
+  return simulationData
 }
 
 export default parseXyz
