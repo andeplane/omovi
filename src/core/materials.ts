@@ -78,7 +78,7 @@ const createMaterial = (
     return materialMap[type]
   }
 
-  const material = new Material(type, { color: 0xff0000 })
+  const material = new Material(type, { color: 0xffffff })
   material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
   material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
 
