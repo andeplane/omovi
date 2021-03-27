@@ -7,6 +7,7 @@ class Particles {
   positions: Float32Array
   indices: Float32Array
   radii: Float32Array
+  colors: THREE.Color[]
   numParticles: number
   capacity: number
   mesh?: THREE.InstancedMesh
@@ -15,12 +16,21 @@ class Particles {
     this.positions = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)
     this.radii = new Float32Array(capacity)
+    this.colors = []
     this.numParticles = 0
     this.capacity = capacity
     this.mesh = undefined
   }
 
-  addParticle(x: number, y: number, z: number, radius: number) {
+  addParticle(
+    x: number,
+    y: number,
+    z: number,
+    radius: number,
+    r: number = 1.0,
+    g: number = 0.0,
+    b: number = 0.0
+  ) {
     if (this.numParticles === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
       return
@@ -31,7 +41,8 @@ class Particles {
     this.positions[3 * index + 0] = x
     this.positions[3 * index + 1] = y
     this.positions[3 * index + 2] = z
-    this.radii[index] = radius
+    this.colors.push(new THREE.Color(r / 255, g / 255, b / 255))
+    this.radii[index] = radius * 0.25
     this.indices[index] = index
 
     this.numParticles += 1
@@ -80,7 +91,7 @@ class Particles {
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < this.numParticles; i++) {
       this.mesh.setMatrixAt(i, matrix)
-      this.mesh.setColorAt(i, new THREE.Color('red'))
+      this.mesh.setColorAt(i, this.colors[i])
     }
     this.mesh.frustumCulled = false
 
