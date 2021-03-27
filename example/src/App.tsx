@@ -2,28 +2,7 @@ import React, {useEffect, useState} from 'react'
 import * as THREE from 'three'
 
 import { OMOVIVisualizer, Particles, Bonds, Kdtree, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
-//@ts-ignore
-// import {kdTree} from 'kd-tree-javascript'
 import 'omovi/dist/index.css'
-
-// const particles = new Particles(2)
-// particles.add(-1, 0, 0, 0.5);
-// particles.add(1, 0, 0, 0.5);
-
-// const bonds = new Bonds(1)
-// bonds.add(-1, 0, 0, 1, 0, 0, 0.1)
-
-const positions: THREE.Vector3[] = []
-const positionsArray: Float32Array = new Float32Array(30000)
-for (let i = 0; i < 10000; i++) {
-  const x = Math.random() * 100
-  const y = Math.random() * 100
-  const z = Math.random() * 100
-  positions.push(new THREE.Vector3(x,y,z))
-  positionsArray[3 * i + 0] = x
-  positionsArray[3 * i + 1] = y
-  positionsArray[3 * i + 2] = z
-}
 
 const generateBonds = (frame: SimulationDataFrame) => {
   const radius = 0.5
