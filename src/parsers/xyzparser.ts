@@ -17,7 +17,7 @@ function addParticlesToFrame(lines: string[], i: number, frame: Particles) {
     const y = parseFloat(lineData[2])
     const z = parseFloat(lineData[3])
 
-    frame.addParticle(x, y, z, radius, color.r, color.g, color.b)
+    frame.add(x, y, z, radius, color.r, color.g, color.b)
   }
 }
 
@@ -54,7 +54,7 @@ const parseXyz = (data: string): Particles[] => {
       if (currentFrame) {
         addParticlesToFrame(lines, i, currentFrame)
         frames.push(currentFrame)
-        i += currentFrame.numParticles - 1
+        i += currentFrame.count - 1
         readNumParticles = true
       }
     }

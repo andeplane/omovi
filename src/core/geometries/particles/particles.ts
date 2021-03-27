@@ -8,7 +8,7 @@ class Particles {
   indices: Float32Array
   radii: Float32Array
   colors: THREE.Color[]
-  numParticles: number
+  count: number
   capacity: number
   mesh?: THREE.InstancedMesh
 
@@ -17,12 +17,12 @@ class Particles {
     this.indices = new Float32Array(capacity)
     this.radii = new Float32Array(capacity)
     this.colors = []
-    this.numParticles = 0
+    this.count = 0
     this.capacity = capacity
     this.mesh = undefined
   }
 
-  addParticle(
+  add(
     x: number,
     y: number,
     z: number,
@@ -31,12 +31,12 @@ class Particles {
     g: number = 0.0,
     b: number = 0.0
   ) {
-    if (this.numParticles === this.capacity) {
+    if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
       return
     }
 
-    const index = this.numParticles
+    const index = this.count
 
     this.positions[3 * index + 0] = x
     this.positions[3 * index + 1] = y
@@ -45,7 +45,7 @@ class Particles {
     this.radii[index] = radius * 0.25
     this.indices[index] = index
 
-    this.numParticles += 1
+    this.count += 1
   }
 
   getRadius = (index: number) => {
@@ -64,7 +64,7 @@ class Particles {
     const baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
     const geometry = new THREE.InstancedBufferGeometry()
 
-    geometry.instanceCount = this.numParticles
+    geometry.instanceCount = this.count
     geometry.setIndex(baseGeometry.getIndex())
     geometry.setAttribute('position', baseGeometry.getAttribute('position'))
     geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
@@ -86,10 +86,10 @@ class Particles {
     }
     const geometry = this.getGeometry()
     const material = createMaterial('particle', vertexShader, fragmentShader)
-    this.mesh = new THREE.InstancedMesh(geometry, material, this.numParticles)
+    this.mesh = new THREE.InstancedMesh(geometry, material, this.count)
 
     const matrix = new THREE.Matrix4()
-    for (let i = 0; i < this.numParticles; i++) {
+    for (let i = 0; i < this.count; i++) {
       this.mesh.setMatrixAt(i, matrix)
       this.mesh.setColorAt(i, this.colors[i])
     }
