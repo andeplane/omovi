@@ -1,11 +1,23 @@
 import SimulationDataFrame from './simulationdataframe'
+import Bonds from 'core/geometries/bonds/bonds'
 
 export default class SimulationData {
   frames: SimulationDataFrame[]
-  currentFrame: number
+  generateBondsFunction?: (frame: SimulationDataFrame) => Bonds
   constructor() {
     this.frames = []
-    this.currentFrame = 0
+  }
+
+  getFrame = (index: number) => {
+    const frame = this.frames[index]
+    if (this.generateBondsFunction && frame.bonds == null) {
+      const bonds = this.generateBondsFunction(frame)
+      if (bonds.count > 0) {
+        frame.bonds = bonds
+      }
+    }
+
+    return frame
   }
 
   getNumFrames = () => {

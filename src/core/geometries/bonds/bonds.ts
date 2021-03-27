@@ -118,6 +118,10 @@ class Bonds {
       return this.mesh
     }
 
+    if (this.count === 0) {
+      return null
+    }
+
     const geometry = this.getGeometry()
     const material = createMaterial('bonds', vertexShader, fragmentShader)
     this.mesh = new THREE.InstancedMesh(geometry, material, this.count)

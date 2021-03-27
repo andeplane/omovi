@@ -62,6 +62,10 @@ export default class Visualizer {
   }
 
   add = (object: THREE.Mesh) => {
+    if (object == null) {
+      return
+    }
+
     if (object.material instanceof Material) {
       const material = object.material as Material
       const materialType = material.type

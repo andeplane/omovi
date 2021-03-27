@@ -3,5 +3,16 @@ import Particles from './core/geometries/particles/particles'
 import Bonds from './core/geometries/bonds/bonds'
 import parseXyz from './parsers/xyzparser'
 import SimulationData from './core/simulationdata/simulationdata'
+import SimulationDataFrame from './core/simulationdata/simulationdataframe'
 
-export { OMOVIVisualizer, Bonds, Particles, parseXyz, SimulationData }
+import Kdtree from './utils/kdtree/kdtree'
+
+export {
+  OMOVIVisualizer,
+  Bonds,
+  Particles,
+  parseXyz,
+  SimulationData,
+  SimulationDataFrame,
+  Kdtree
+}
