@@ -1,52 +1,8 @@
 import React, {useEffect, useState} from 'react'
 import * as THREE from 'three'
 
-import { OMOVIVisualizer, Particles, Bonds, Kdtree, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
+import { OMOVIVisualizer, Particles, Bonds, createBondsByDistance, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
 import 'omovi/dist/index.css'
-
-const generateBonds = (frame: SimulationDataFrame) => {
-  const radius = 0.5
-  const particles = frame.particles
-  const distance = (a: Float32Array, b: Float32Array) => {
-    return Math.pow(a[0]-b[0], 2) + Math.pow(a[1]-b[1], 2) + Math.pow(a[2]-b[2], 2);
-  }
-  
-  const pairs: {[key: string]: boolean} = {}
-
-  var tree = new Kdtree(particles.positions.subarray(0, 3 * particles.count), distance);
-
-  const position1: THREE.Vector3[] = []
-  const position2: THREE.Vector3[] = []
-
-  let maxDistance = 0
-  for (let i = 0; i < particles.count; i++) {
-    const nearest = tree.nearest(particles.positions.subarray(3 * i, 3 * (i+1)), 4, 1.4);
-    for (let j = 0; j < nearest.length; j++) {
-      const nodeIndex = nearest[j][0]
-      const index = tree.indices[ tree.nodes[ nodeIndex ] ]
-      const distance = nearest[j][1]
-      if (index === i) {
-        // Skip ourselves, as we always will find that with distance zero
-        continue
-      }
-      const pairKey = index < i ? `${index}-${i}` : `${i}-${index}`
-      maxDistance = Math.max(maxDistance, distance);
-      
-      if (pairs[pairKey] == null) {
-        position1.push(particles.getPosition(i))
-        position2.push(particles.getPosition(index))
-        pairs[pairKey] = true
-      }
-    }
-  }
-
-  const bonds = new Bonds(position1.length)
-  for (let i = 0; i < position1.length; i++) {
-    bonds.add(position1[i].x, position1[i].y, position1[i].z, position2[i].x, position2[i].y, position2[i].z, radius)
-  }
-
-  return bonds
-}
 
 const App = () => {
   const [data, setData] = useState<SimulationData>()
@@ -56,7 +12,7 @@ const App = () => {
     const downloadData = async () => {
       const xyzFile = await fetch("https://raw.githubusercontent.com/andeplane/simulations/main/water.xyz")
       const simulationData = parseXyz(await xyzFile.text())
-      simulationData.generateBondsFunction = generateBonds
+      simulationData.generateBondsFunction = createBondsByDistance({radius: 0.5, pairDistances: [{type1: 'H', type2: 'O', distance: 1.4}]})
       setData(simulationData)
     }
     downloadData()

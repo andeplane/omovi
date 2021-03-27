@@ -4,6 +4,7 @@ import vertexShader from './vertex'
 import createMaterial from 'core/materials'
 
 class Particles {
+  types: string[]
   positions: Float32Array
   indices: Float32Array
   radii: Float32Array
@@ -13,6 +14,7 @@ class Particles {
   mesh?: THREE.InstancedMesh
 
   constructor(capacity: number) {
+    this.types = []
     this.positions = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)
     this.radii = new Float32Array(capacity)
@@ -22,15 +24,25 @@ class Particles {
     this.mesh = undefined
   }
 
-  add(
-    x: number,
-    y: number,
-    z: number,
-    radius: number,
-    r: number = 255.0,
-    g: number = 0.0,
-    b: number = 0.0
-  ) {
+  add({
+    x,
+    y,
+    z,
+    radius,
+    type = 'H',
+    r = 255.0,
+    g = 0.0,
+    b = 0.0
+  }: {
+    x: number
+    y: number
+    z: number
+    radius: number
+    type: string
+    r: number
+    g: number
+    b: number
+  }) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
       return
@@ -44,6 +56,7 @@ class Particles {
     this.colors.push(new THREE.Color(r / 255, g / 255, b / 255))
     this.radii[index] = radius * 0.25
     this.indices[index] = index
+    this.types.push(type)
 
     this.count += 1
   }
@@ -58,6 +71,10 @@ class Particles {
       this.positions[3 * index + 1],
       this.positions[3 * index + 2]
     )
+  }
+
+  getType = (index: number) => {
+    return this.types[index]
   }
 
   getGeometry = () => {
