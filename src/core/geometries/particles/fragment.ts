@@ -7,6 +7,7 @@ uniform vec3 specular;
 uniform float shininess;
 uniform float opacity;
 
+uniform mat4 projectionMatrix;
 varying vec3 vSurfacePoint;
 varying vec3 vCenter;
 varying float vRadius;
@@ -90,6 +91,10 @@ void main() {
     if (dot(normal, rayDirection) >  0.) {
         normal = -normal;
     }
+
+	float projectedIntersection_z = projectionMatrix[0][2]*p.x + projectionMatrix[1][2]*p.y + projectionMatrix[2][2]*p.z + projectionMatrix[3][2];
+	float projectedIntersection_w = projectionMatrix[0][3]*p.x + projectionMatrix[1][3]*p.y + projectionMatrix[2][3]*p.z + projectionMatrix[3][3];
+	gl_FragDepthEXT = ((gl_DepthRange.diff * (projectedIntersection_z / projectedIntersection_w)) + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
 
 	#include <emissivemap_fragment>
 

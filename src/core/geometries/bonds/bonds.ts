@@ -93,12 +93,12 @@ class Bonds {
     geometry.setAttribute('normal', positionBufferAttribute)
 
     geometry.setAttribute(
-      'particle1Position',
+      'position1',
       new THREE.InstancedBufferAttribute(this.positions1, 3, false, 1)
     )
 
     geometry.setAttribute(
-      'particle2Position',
+      'position2',
       new THREE.InstancedBufferAttribute(this.positions2, 3, false, 1)
     )
 

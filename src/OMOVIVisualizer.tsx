@@ -9,8 +9,8 @@ const OMOVIVisualizer = ({
   particles,
   bonds
 }: {
-  particles: Particles
-  bonds: Bonds
+  particles?: Particles
+  bonds?: Bonds
 }) => {
   const domElement = useRef<HTMLDivElement | null>(null)
   const [visualizer, setVisualizer] = useState<Visualizer | undefined>(
@@ -44,12 +44,16 @@ const OMOVIVisualizer = ({
     if (prevParticles) {
       visualizer.remove(prevParticles.getMesh())
     }
-    visualizer.add(particles.getMesh())
+    if (particles) {
+      visualizer.add(particles.getMesh())
+    }
 
     if (prevBonds) {
       visualizer.remove(prevBonds.getMesh())
     }
-    visualizer.add(bonds.getMesh())
+    if (bonds) {
+      visualizer.add(bonds.getMesh())
+    }
   }, [particles, bonds, visualizer])
 
   return (

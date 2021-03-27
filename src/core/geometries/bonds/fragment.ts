@@ -7,6 +7,14 @@ uniform vec3 specular;
 uniform float shininess;
 uniform float opacity;
 
+uniform mat4 projectionMatrix;
+varying vec4 v_position1;
+varying vec4 v_position2;
+varying vec4 U;
+varying vec4 V;
+varying vec4 axis;
+varying float height;
+
 #include <common>
 #include <packing>
 #include <dithering_pars_fragment>
@@ -48,6 +56,86 @@ void main() {
 	#include <specularmap_fragment>
 	#include <normal_fragment_begin>
 	#include <normal_fragment_maps>
+
+	mat3 basis = mat3(U.xyz, V.xyz, axis.xyz);
+    vec3 surfacePoint = vec3(U.w, V.w, axis.w);
+    vec3 rayTarget = surfacePoint;
+	vec3 rayDirection = normalize(rayTarget); // rayOrigin is (0,0,0) in camera space
+
+	vec3 diff = rayTarget - v_position2.xyz;
+    vec3 E = diff * basis;
+    float L = height;
+    vec3 D = rayDirection * basis;
+
+    float R1 = v_position1.w;
+    float R2 = v_position2.w;
+    float dR = R2 - R1;
+
+    float a = dot(D.xy, D.xy);
+    float b = dot(E.xy, D.xy);
+    float c = dot(E.xy, E.xy)-R1*R1;
+    float L2Inv = 1.0/(L*L);
+
+	// Calculate a dicriminant of the above quadratic equation (factor 2 removed from all b-terms above)
+    float d = b*b - a*c;
+
+    // d < 0.0 means the ray hits outside an infinitely long eccentric cone
+    if (d < 0.0) {
+		discard;
+    }
+
+	float sqrtd = sqrt(d);
+    float dist1 = (-b - sqrtd)/a;
+    float dist2 = (-b + sqrtd)/a;
+
+    // Make sure dist1 is the smaller one
+    if (dist2 < dist1) {
+      float tmp = dist1;
+      dist1 = dist2;
+      dist2 = tmp;
+    }
+
+	// Check the smallest root, it is closest camera. Only test if the z-component is outside the truncated eccentric cone
+    float dist = dist1;
+    float intersectionPointZ = E.z + dist*D.z;
+    // Intersection point in camera space
+    vec3 p = rayTarget + dist*rayDirection;
+    bool isInner = false;
+
+    if (intersectionPointZ <= 0.0 ||
+      intersectionPointZ >= L
+      ) {
+      // Either intersection point is behind starting point (happens inside the cone),
+      // or the intersection point is outside the end caps. This is not a valid solution.
+      isInner = true;
+      dist = dist2;
+      intersectionPointZ = E.z + dist*D.z;
+      p = rayTarget + dist*rayDirection;
+
+      if (intersectionPointZ <= 0.0 ||
+        intersectionPointZ >= L
+      ) {
+        // Missed the other point too
+		discard;
+      }
+    }
+
+	// Find normal vector
+    vec3 n = normalize(-axis.xyz);
+    vec3 position1 = v_position1.xyz;
+    vec3 position2 = v_position2.xyz;
+    vec3 A = cross(position1 - p, position2 - p);
+
+    vec3 t = normalize(cross(n, A));
+    vec3 o1 = position1 + R1 * t;
+    vec3 o2 = position2 + R2 * t;
+    vec3 B = o2-o1;
+    normal = normalize(cross(A, B));
+
+	float projectedIntersection_z = projectionMatrix[0][2]*p.x + projectionMatrix[1][2]*p.y + projectionMatrix[2][2]*p.z + projectionMatrix[3][2];
+	float projectedIntersection_w = projectionMatrix[0][3]*p.x + projectionMatrix[1][3]*p.y + projectionMatrix[2][3]*p.z + projectionMatrix[3][3];
+	gl_FragDepthEXT = ((gl_DepthRange.diff * (projectedIntersection_z / projectedIntersection_w)) + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+
 	#include <emissivemap_fragment>
 
 	// accumulation
