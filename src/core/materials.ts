@@ -22,6 +22,7 @@ class Material extends THREE.MeshPhongMaterial {
     this.materialType = materialType
     this.uniforms = {}
     this.extensions = {}
+    this.defines = {}
   }
 
   copy(source: THREE.Material): this {
@@ -29,6 +30,7 @@ class Material extends THREE.MeshPhongMaterial {
     const castedSource = source as Material
     this.type = castedSource.type
     this.defines = { ...castedSource.defines }
+    this.extensions = castedSource.extensions
     this.uniforms = castedSource.uniforms
     this.onBeforeCompile = castedSource.onBeforeCompile
     return this
@@ -43,6 +45,29 @@ class Material extends THREE.MeshPhongMaterial {
 }
 
 const materialMap: { [key: string]: Material } = {}
+let _fragDepthSupported: boolean | undefined
+
+function fragDepthSupported() {
+  if (_fragDepthSupported !== undefined) {
+    return _fragDepthSupported
+  }
+
+  const renderer = new THREE.WebGLRenderer()
+  const gl = renderer.domElement.getContext('webgl')
+
+  if (
+    renderer.capabilities.isWebGL2 ||
+    (gl != null && gl.getExtension('EXT_frag_depth') != null)
+  ) {
+    _fragDepthSupported = true
+  } else {
+    _fragDepthSupported = false
+  }
+
+  renderer.dispose()
+
+  return _fragDepthSupported
+}
 
 const createMaterial = (
   type: string,
@@ -56,6 +81,11 @@ const createMaterial = (
   const material = new Material(type, { color: 0xff0000 })
   material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
   material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
+
+  if (fragDepthSupported()) {
+    material.extensions.fragDepth = true
+    material.defines!.FRAG_DEPTH = 1
+  }
 
   material.onBeforeCompile = (shader: THREE.Shader) => {
     Object.assign(shader.uniforms, material.uniforms)

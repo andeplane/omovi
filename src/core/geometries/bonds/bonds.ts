@@ -18,6 +18,7 @@ class Bonds {
     this.positions2 = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)
     this.radii = new Float32Array(capacity)
+    this.colors = []
     this.count = 0
     this.capacity = capacity
     this.mesh = undefined
@@ -31,9 +32,9 @@ class Bonds {
     y2: number,
     z2: number,
     radius: number,
-    r: number = 1.0,
-    g: number = 0.0,
-    b: number = 0.0
+    r: number = 255.0,
+    g: number = 255.0,
+    b: number = 255.0
   ) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
@@ -48,6 +49,8 @@ class Bonds {
     this.positions2[3 * index + 0] = x2
     this.positions2[3 * index + 1] = y2
     this.positions2[3 * index + 2] = z2
+
+    this.colors.push(new THREE.Color(r / 255, g / 255, b / 255))
 
     this.radii[index] = radius * 0.25
     this.indices[index] = index
@@ -122,7 +125,7 @@ class Bonds {
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < this.count; i++) {
       this.mesh.setMatrixAt(i, matrix)
-      this.mesh.setColorAt(i, new THREE.Color('white'))
+      this.mesh.setColorAt(i, this.colors[i])
     }
     this.mesh.frustumCulled = false
 

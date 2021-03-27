@@ -132,9 +132,11 @@ void main() {
     vec3 B = o2-o1;
     normal = normalize(cross(A, B));
 
+#ifdef FRAG_DEPTH
 	float projectedIntersection_z = projectionMatrix[0][2]*p.x + projectionMatrix[1][2]*p.y + projectionMatrix[2][2]*p.z + projectionMatrix[3][2];
 	float projectedIntersection_w = projectionMatrix[0][3]*p.x + projectionMatrix[1][3]*p.y + projectionMatrix[2][3]*p.z + projectionMatrix[3][3];
 	gl_FragDepthEXT = ((gl_DepthRange.diff * (projectedIntersection_z / projectedIntersection_w)) + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+#endif
 
 	#include <emissivemap_fragment>
 
@@ -158,6 +160,7 @@ void main() {
 	#include <fog_fragment>
 	#include <premultiplied_alpha_fragment>
 	#include <dithering_fragment>
-
+  
 }
+
 `
