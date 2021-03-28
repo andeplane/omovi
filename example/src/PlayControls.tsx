@@ -56,7 +56,7 @@ const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, 
         }
         setFrame(nextFrame)
         onFrameChanged(nextFrame)
-      }, 50);
+      }, 1);
 
       return () => clearInterval(interval);
     }
