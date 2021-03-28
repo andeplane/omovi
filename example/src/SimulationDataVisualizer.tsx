@@ -10,7 +10,9 @@ const createBondsFunction = createBondsByDistance({radius: 0.5, pairDistances: [
 const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulationData?: string}) => {
   const [data, setData] = useState<SimulationData>()
   const [frame, setFrame] = useState<number>(0)
-  
+  const [cameraTarget, setCameraTarget] = useState<THREE.Vector3>()
+  const [cameraPosition, setCameraPosition] = useState<THREE.Vector3>()
+
   useEffect(() => {
     if (url != null) {
       const downloadData = async () => {
@@ -19,6 +21,14 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
         simulationData.generateBondsFunction = createBondsFunction
         setData(simulationData)
         setFrame(0)
+        const simulationCell = simulationData.frames[0].simulationCell
+        const boundingBox = simulationCell.getBoundingBox()
+        const center = simulationCell.getCenter()
+
+        setCameraTarget(center)
+        
+        const position = center.clone().add(boundingBox.max.clone().sub(center).multiplyScalar(2.5))
+        setCameraPosition(position)
       }
       downloadData()
     }
@@ -31,6 +41,7 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
       // simData.generateBondsFunction = createBondsFunction
       setData(simData)
       setFrame(0)
+      setCameraTarget(simData.frames[0].simulationCell.getCenter())
     }
 
   }, [simulationData])
@@ -49,8 +60,8 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
   
   return  (
     <>
-      <OMOVIVisualizer particles={currentFrame.particles} bonds={currentFrame.bonds} />
-      <PlayControls numFrames={data.getNumFrames()} onFrameChanged={onFrameChanged} playing={true} />
+      <OMOVIVisualizer particles={currentFrame.particles} bonds={currentFrame.bonds} cameraTarget={cameraTarget} cameraPosition={cameraPosition} />
+      <PlayControls numFrames={data.getNumFrames()} onFrameChanged={onFrameChanged} playing={false} />
     </>
   )
 }

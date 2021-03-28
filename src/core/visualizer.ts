@@ -137,6 +137,22 @@ export default class Visualizer {
     this.renderer.dispose()
   }
 
+  getCameraPosition = () => {
+    return this.controls.getState().position
+  }
+
+  getCameraTarget = () => {
+    return this.controls.getState().target
+  }
+
+  setCameraPosition = (position: THREE.Vector3) => {
+    this.controls.setState(position, this.getCameraTarget())
+  }
+
+  setCameraTarget = (target: THREE.Vector3) => {
+    this.controls.setState(this.getCameraPosition(), target)
+  }
+
   animate = () => {
     this.stats.begin()
     this.resizeIfNeeded()

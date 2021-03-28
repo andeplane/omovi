@@ -7,10 +7,14 @@ let newVisualizer: Visualizer | undefined
 
 const OMOVIVisualizer = ({
   particles,
-  bonds
+  bonds,
+  cameraTarget,
+  cameraPosition
 }: {
   particles?: Particles
   bonds?: Bonds
+  cameraTarget?: THREE.Vector3
+  cameraPosition?: THREE.Vector3
 }) => {
   const domElement = useRef<HTMLDivElement | null>(null)
   const [visualizer, setVisualizer] = useState<Visualizer | undefined>(
@@ -55,6 +59,22 @@ const OMOVIVisualizer = ({
       visualizer.add(bonds.getMesh()!)
     }
   }, [particles, bonds, visualizer])
+
+  useEffect(() => {
+    if (visualizer) {
+      if (cameraTarget) {
+        visualizer.setCameraTarget(cameraTarget)
+      }
+    }
+  }, [cameraTarget, visualizer])
+
+  useEffect(() => {
+    if (visualizer) {
+      if (cameraPosition) {
+        visualizer.setCameraPosition(cameraPosition)
+      }
+    }
+  }, [cameraPosition, visualizer])
 
   useEffect(() => {
     return () => {
