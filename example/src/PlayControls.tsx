@@ -1,6 +1,15 @@
 import React, {useState, useCallback, useEffect} from 'react'
 import {Drawer, Slider, Row, Col} from 'antd'
 import {CaretRightOutlined, PauseOutlined} from '@ant-design/icons'
+import styled from 'styled-components';
+
+const Container = styled.div`
+.ant-slider-handle {
+  width: 25px;
+  height: 25px;
+  transform: translateY(-25%); !important
+}
+`
 
 const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, playing: boolean, onFrameChanged: (frame: number)=> void}) => {
   const [isPlaying, setIsPlaying] = useState(playing)
@@ -67,12 +76,12 @@ const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, 
               {frame} / {numFrames}
             </Col>
             <Col flex="auto">
-              <div onMouseDown={handleMouseDown} onClick={(e) => {console.log("Clicked")}}>
+              <Container onMouseDown={handleMouseDown} onClick={(e) => {console.log("Clicked")}}>
                 <Slider defaultValue={frame} max={numFrames-1} value={frame} onChange={onFrameChangedCB} />
-              </div>
+              </Container>
             </Col>
-            <Col flex="2em">
-              {isPlaying ? <PauseOutlined onClick={toggleIsPlaying} style={{fontSize: '2em'}} /> : <CaretRightOutlined onClick={toggleIsPlaying} style={{fontSize: '2em'}} />}
+            <Col flex="3em">
+              {isPlaying ? <PauseOutlined onClick={toggleIsPlaying} style={{fontSize: '3em'}} /> : <CaretRightOutlined onClick={toggleIsPlaying} style={{fontSize: '3em'}} />}
               </Col>
           </Row>
         </Drawer>
