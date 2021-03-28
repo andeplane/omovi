@@ -49,12 +49,19 @@ const OMOVIVisualizer = ({
     }
 
     if (prevBonds) {
-      visualizer.remove(prevBonds.getMesh())
+      visualizer.remove(prevBonds.getMesh()!)
     }
     if (bonds) {
-      visualizer.add(bonds.getMesh())
+      visualizer.add(bonds.getMesh()!)
     }
   }, [particles, bonds, visualizer])
+
+  useEffect(() => {
+    return () => {
+      console.log('Should dispose visualizer')
+      // visualizer.dispose()
+    }
+  }, [])
 
   return (
     <div style={{ height: '100%', width: '100%' }}>

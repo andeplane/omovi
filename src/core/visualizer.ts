@@ -124,6 +124,11 @@ export default class Visualizer {
     })
   }
 
+  dispose = () => {
+    this.domElement.removeChild(this.canvas)
+    this.renderer.dispose()
+  }
+
   animate = () => {
     this.resizeIfNeeded()
     this.controls.update(this.clock.getDelta())
