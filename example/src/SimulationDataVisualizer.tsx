@@ -61,7 +61,7 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
   return  (
     <>
       <OMOVIVisualizer particles={currentFrame.particles} bonds={currentFrame.bonds} cameraTarget={cameraTarget} cameraPosition={cameraPosition} />
-      <PlayControls numFrames={data.getNumFrames()} onFrameChanged={onFrameChanged} playing={false} />
+      <PlayControls numFrames={data.getNumFrames()} onFrameChanged={onFrameChanged} playing={true} />
     </>
   )
 }
