@@ -28,7 +28,7 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
   useEffect(() => {
     if (simulationData != null) {
       const simData = parseXyz(simulationData)
-      simData.generateBondsFunction = createBondsFunction
+      // simData.generateBondsFunction = createBondsFunction
       setData(simData)
       setFrame(0)
     }
