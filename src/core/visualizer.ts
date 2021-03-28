@@ -2,6 +2,9 @@ import * as THREE from 'three'
 import ComboControls from '@cognite/three-combo-controls'
 import { Material } from './materials'
 
+// @ts-ignore
+import Stats from 'stats.js'
+
 const inverseModelMatrix = new THREE.Matrix4()
 const modelViewMatrix = new THREE.Matrix4()
 const normalMatrix = new THREE.Matrix3()
@@ -29,6 +32,7 @@ export default class Visualizer {
   private clock: THREE.Clock
   private domElement: HTMLElement
   private object: THREE.Object3D
+  private stats: Stats
   private materials: { [key: string]: Material }
 
   // @ts-ignore
@@ -56,6 +60,10 @@ export default class Visualizer {
     this.clock = new THREE.Clock()
     this.object = new THREE.Object3D()
     this.scene.add(this.object)
+
+    this.stats = new Stats()
+    this.stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(this.stats.dom)
 
     this.materials = {}
     this.animate()
@@ -130,10 +138,14 @@ export default class Visualizer {
   }
 
   animate = () => {
+    this.stats.begin()
     this.resizeIfNeeded()
     this.controls.update(this.clock.getDelta())
+
     this.updateUniforms(this.camera)
     this.renderer.render(this.scene, this.camera)
+    this.stats.end()
+
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
     // console.log(this.camera.position.clone())
   }

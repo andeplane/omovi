@@ -63,7 +63,9 @@
   "dependencies": {
     "@cognite/three-combo-controls": "^1.4.3",
     "@types/three": "^0.126.2",
+    "antd": "^4.14.1",
     "kd-tree-javascript": "^1.0.3",
+    "stats.js": "^0.17.0",
     "three": "^0.126.1"
   }
 }
