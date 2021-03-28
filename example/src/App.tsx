@@ -1,3 +1,4 @@
+import 'antd/dist/antd.css'
 import React, {useEffect, useState} from 'react'
 import * as THREE from 'three'
 
@@ -17,7 +18,7 @@ const App = () => {
   if (simulationData == null) {
     url = "https://raw.githubusercontent.com/andeplane/simulations/main/water.xyz"
   }
-
+  
   return  (
   <>
     <SimulationDataVisualizer simulationData={simulationData} url={url} />

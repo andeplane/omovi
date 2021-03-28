@@ -3,6 +3,7 @@ import * as THREE from 'three'
 
 import { OMOVIVisualizer, Particles, Bonds, createBondsByDistance, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
 import 'omovi/dist/index.css'
+import PlayControls from './PlayControls'
 
 const createBondsFunction = createBondsByDistance({radius: 0.5, pairDistances: [{type1: 'H', type2: 'O', distance: 1.4}]})
 
@@ -34,21 +35,6 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
 
   }, [simulationData])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (data == null) {
-        return
-      }
-  
-      let nextFrame = frame + 1
-      if (nextFrame >= data.getNumFrames()) {
-        nextFrame = 0
-      }
-      setFrame(nextFrame)
-    }, 50);
-    return () => clearInterval(interval);
-  }, [data, frame]);
-  
   if (data == null) {
     return <>Downloading simulation data ...</>
   }
@@ -56,9 +42,16 @@ const SimulationDataVisualizer = ({url, simulationData}: {url?: string, simulati
   if (currentFrame == null) {
     return <>No simulation data ...</>
   }
+
+  const onFrameChanged = (newFrame: number) => {
+    setFrame(newFrame)
+  }
   
   return  (
-    <OMOVIVisualizer particles={currentFrame.particles} bonds={currentFrame.bonds} />
+    <>
+      <OMOVIVisualizer particles={currentFrame.particles} bonds={currentFrame.bonds} />
+      <PlayControls numFrames={data.getNumFrames()} onFrameChanged={onFrameChanged} playing={true} />
+    </>
   )
 }
 
