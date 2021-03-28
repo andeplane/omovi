@@ -16,6 +16,15 @@ const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, 
     setIsPlaying(!isPlaying)
   }, [isPlaying])
 
+  const handleMouseDown = useCallback(() => {
+    setMouseDown(true)
+    const onMouseUp = (ev: MouseEvent) => {
+      setMouseDown(false)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mouseup', onMouseUp)
+  }, [])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.keyCode === 32) {
@@ -58,7 +67,7 @@ const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, 
               {frame} / {numFrames}
             </Col>
             <Col flex="auto">
-              <div onMouseDown={(e) => setMouseDown(true)} onMouseUp={(e)=> setMouseDown(false)} onClick={(e) => {console.log("Clicked")}}>
+              <div onMouseDown={handleMouseDown} onClick={(e) => {console.log("Clicked")}}>
                 <Slider defaultValue={frame} max={numFrames-1} value={frame} onChange={onFrameChangedCB} />
               </div>
             </Col>
