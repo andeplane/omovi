@@ -5,7 +5,6 @@ import * as THREE from 'three'
 import FileUpload from './FileUpload'
 
 import { OMOVIVisualizer, Particles, Bonds, createBondsByDistance, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
-import 'omovi/dist/index.css'
 import SimulationDataVisualizer from './SimulationDataVisualizer'
 
 const App = () => {
