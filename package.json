@@ -1,7 +1,7 @@
 {
   "name": "omovi",
-  "version": "1.0.0",
-  "description": "Made with create-react-library",
+  "version": "0.0.1",
+  "description": "Online Molecular Visualizer",
   "author": "andeplane",
   "license": "GPLv3",
   "repository": "andeplane/omovi",
@@ -21,7 +21,8 @@
     "test:unit": "cross-env CI=1 react-scripts test --env=jsdom",
     "test:watch": "react-scripts test --env=jsdom",
     "predeploy": "cd example && npm install && npm run build",
-    "deploy": "gh-pages -d example/build"
+    "deploy": "gh-pages -d example/build",
+    "publish": ""
   },
   "peerDependencies": {
     "react": "^16.0.0"

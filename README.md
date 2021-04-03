@@ -1,4 +1,4 @@
-# OMOVI (Online MOlecular VIsualizer)
+# OMOVI (Online Molecular Visualizer)
 
 [![Deploy to GitHub pages](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml/badge.svg)](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml)
 
