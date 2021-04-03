@@ -2,7 +2,7 @@ name: PR build
 on:
   pull_request:
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
