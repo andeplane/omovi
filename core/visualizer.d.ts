@@ -1,0 +1,30 @@
+import * as THREE from 'three';
+export default class Visualizer {
+    private renderer;
+    private canvas;
+    scene: THREE.Scene;
+    private camera;
+    private ambientLight;
+    private directionalLight;
+    private controls;
+    private clock;
+    private domElement;
+    private object;
+    private stats;
+    private materials;
+    private latestRequestId?;
+    constructor(domElement: HTMLElement);
+    add: (object: THREE.Mesh) => void;
+    remove: (object: THREE.Mesh) => void;
+    setupLights: (ambientLight: THREE.AmbientLight, directionalLight: THREE.DirectionalLight, scene: THREE.Scene) => void;
+    setupCanvas: (canvas: HTMLCanvasElement) => void;
+    setupCamera: (camera: THREE.PerspectiveCamera) => void;
+    updateUniforms: (camera: THREE.PerspectiveCamera) => void;
+    dispose: () => void;
+    getCameraPosition: () => THREE.Vector3;
+    getCameraTarget: () => THREE.Vector3;
+    setCameraPosition: (position: THREE.Vector3) => void;
+    setCameraTarget: (target: THREE.Vector3) => void;
+    animate: () => void;
+    resizeIfNeeded: () => boolean;
+}
