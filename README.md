@@ -1,6 +1,6 @@
 # OMOVI (Online Molecular Visualizer)
 
-[![Deploy to GitHub pages](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml/badge.svg)](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml)
+[![NPM](https://img.shields.io/npm/v/omovi.svg)](https://www.npmjs.com/package/omovi) [![Deploy to GitHub pages](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml/badge.svg)](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml)
 
 OMOVI is a library and a web application for visualization of molecular dynamics simulations. It is aimed for simplicity and efficiency. See a demo [here](https://andeplane.github.io/omovi).
 
