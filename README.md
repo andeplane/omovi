@@ -1,28 +1,19 @@
-# omovi
+# OMOVI (Online MOlecular VIsualizer)
 
-> Made with create-react-library
+[![Deploy to GitHub pages](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml/badge.svg)](https://github.com/andeplane/omovi/actions/workflows/deploy.yaml)
 
-[![NPM](https://img.shields.io/npm/v/omovi.svg)](https://www.npmjs.com/package/omovi) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+OMOVI is a library and a web application for visualization of molecular dynamics simulations. It is aimed for simplicity and efficiency. See a demo [here](https://andeplane.github.io/omovi).
+
+## Features
+* File formats (xyz, LAMMPS .data, LAMMPS binary)
+* React wrapper
+* User interaction (particle picking)
 
 ## Install
+TODO: publish to NPM.
 
 ```bash
 npm install --save omovi
-```
-
-## Usage
-
-```tsx
-import React, { Component } from 'react'
-
-import MyComponent from 'omovi'
-import 'omovi/dist/index.css'
-
-class Example extends Component {
-  render() {
-    return <MyComponent />
-  }
-}
 ```
 
 ## License
