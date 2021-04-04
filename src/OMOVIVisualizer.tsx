@@ -77,9 +77,9 @@ const OMOVIVisualizer = ({
   }, [cameraPosition, visualizer])
 
   useEffect(() => {
-    console.log('Will create visualizer')
+    // console.log('Will create visualizer')
     return () => {
-      console.log('Should dispose visualizer')
+      // console.log('Should dispose visualizer')
       // visualizer.dispose()
       newVisualizer = undefined
     }

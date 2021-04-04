@@ -68,6 +68,7 @@
     "antd": "^4.14.1",
     "kd-tree-javascript": "^1.0.3",
     "stats.js": "^0.17.0",
+    "strict-uri-encode": "^1.1.0",
     "three": "^0.126.1"
   }
 }
