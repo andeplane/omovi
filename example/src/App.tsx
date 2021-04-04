@@ -1,42 +1,19 @@
 import React, { useEffect, useCallback, useState } from 'react'
 
 import 'antd/dist/antd.css'
-import { Layout, Menu, Upload } from 'antd';
+import { Layout, Menu } from 'antd';
 import {
-  DotChartOutlined,
-  FileOutlined,
-  TeamOutlined,
-  UserOutlined,
+  DotChartOutlined
 } from '@ant-design/icons';
-import * as THREE from 'three'
 
 import FileUpload from './FileUpload'
 
-import { OMOVIVisualizer, Particles, Bonds, createBondsByDistance, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
+import { createBondsByDistance, SimulationData, parseXyz } from 'omovi'
 import SimulationDataVisualizer from './SimulationDataVisualizer'
 
 import { useLoadSimulation } from 'hooks/simulation'
-const { Header, Content, Footer, Sider } = Layout;
+const { Header, Content, Sider } = Layout;
 const { SubMenu } = Menu;
-
-// const App = () => {
-//   const [simulationData, setSimulationData] = useState<string>()
-//   const onFileUploaded = (filename: string, contents: string) => {
-//     setSimulationData(contents)
-//   }
-
-//   let url: string | undefined = undefined
-//   if (simulationData == null) {
-//     url = "https://raw.githubusercontent.com/andeplane/simulations/main/water.xyz"
-//   }
-
-//   return (
-//     <>
-//       <SimulationDataVisualizer simulationData={simulationData} url={url} />
-//       <FileUpload onFileUploaded={onFileUploaded} />
-//     </>
-//   )
-// }
 
 const waterUrl = "https://raw.githubusercontent.com/andeplane/simulations/main/water.xyz"
 const ljUrl = "https://raw.githubusercontent.com/andeplane/simulations/main/lj.xyz"
@@ -66,7 +43,6 @@ const App = () => {
   useEffect(() => {
     if (simulationData == null) {
       loadWater()
-      // loadSimulation(waterUrl, onFileUploaded)
     }
   }, [simulationData, onFileUploaded, loadSimulation, loadWater])
 
@@ -83,10 +59,6 @@ const App = () => {
               LJ liquid
           </Menu.Item>
           </SubMenu>
-          {/* <SubMenu key="sub2" icon={<TeamOutlined />} title="Other menu">
-            <Menu.Item key="6">Menu 1</Menu.Item>
-            <Menu.Item key="8">Menu 2</Menu.Item>
-          </SubMenu> */}
         </Menu>
       </Sider>
       <Layout className="site-layout">

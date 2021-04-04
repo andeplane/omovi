@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import * as THREE from 'three'
 
-import { OMOVIVisualizer, Particles, Bonds, createBondsByDistance, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
+import { OMOVIVisualizer, SimulationData } from 'omovi'
 import PlayControls from './PlayControls'
 
 // const createBondsFunction = createBondsByDistance({radius: 0.5, pairDistances: [{type1: 'H', type2: 'O', distance: 1.4}]})
@@ -12,28 +12,6 @@ const SimulationDataVisualizer = ({ simulationData }: SimulationDataVisualizerPr
   const [frame, setFrame] = useState<number>(0)
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3>()
   const [cameraPosition, setCameraPosition] = useState<THREE.Vector3>()
-
-  // useEffect(() => {
-  //   if (url != null) {
-  //     const downloadData = async () => {
-  //       const xyzFile = await fetch(url)
-  //       const simulationData = parseXyz(await xyzFile.text())
-  //       simulationData.generateBondsFunction = createBondsFunction
-  //       setData(simulationData)
-  //       setFrame(0)
-  //       const simulationCell = simulationData.frames[0].simulationCell
-  //       const boundingBox = simulationCell.getBoundingBox()
-  //       const center = simulationCell.getCenter()
-
-  //       setCameraTarget(center)
-
-  //       const position = center.clone().add(boundingBox.max.clone().sub(center).multiplyScalar(2.5))
-  //       setCameraPosition(position)
-  //     }
-  //     downloadData()
-  //   }
-
-  // }, [url])
 
   useEffect(() => {
     if (simulationData != null) {
@@ -49,8 +27,6 @@ const SimulationDataVisualizer = ({ simulationData }: SimulationDataVisualizerPr
       setCameraPosition(position)
       setCameraTarget(simulationData.frames[0].simulationCell.getCenter())
     }
-    console.log("Changed sim data.")
-
   }, [simulationData])
 
   if (simulationData == null) {

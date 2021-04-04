@@ -1,16 +1,7 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react'
-import {
-    DotChartOutlined,
-    FileOutlined,
-    TeamOutlined,
-    LoadingOutlined,
-    PlusOutlined
-} from '@ant-design/icons';
+import React, { useRef, useEffect, useCallback } from 'react'
 // Based on https://codepen.io/nekobog/pen/JjoZvBm
 
 const FileUpload = ({ onFileUploaded }: { onFileUploaded: (filename: string, contents: string) => void }) => {
-    const [loading, setLoading] = useState(false)
-
     const domElement = useRef<HTMLDivElement | null>(null);
 
     const showDropZone = useCallback(() => {
@@ -63,10 +54,7 @@ const FileUpload = ({ onFileUploaded }: { onFileUploaded: (filename: string, con
     }, [allowDrag, domElement, handleDrop, hideDropZone, showDropZone])
 
     return (
-        <div ref={domElement} className="dropzone" id="dropzone">
-            {loading ? <LoadingOutlined /> : <PlusOutlined />}
-            <div style={{ marginTop: 8 }}>Upload</div>
-        </div>
+        <div ref={domElement} className="dropzone" id="dropzone" />
     )
 }
 
