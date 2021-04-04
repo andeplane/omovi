@@ -53,8 +53,6 @@ const SimulationDataVisualizer = ({ simulationData }: SimulationDataVisualizerPr
 
   }, [simulationData])
 
-  console.log("Frame: ", frame)
-
   if (simulationData == null) {
     return <>Downloading simulation data ...</>
   }

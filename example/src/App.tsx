@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react'
 
 import 'antd/dist/antd.css'
-import { Layout, Menu, Breadcrumb } from 'antd';
+import { Layout, Menu, Upload } from 'antd';
 import {
   DotChartOutlined,
   FileOutlined,
@@ -83,13 +83,10 @@ const App = () => {
               LJ liquid
           </Menu.Item>
           </SubMenu>
-          <SubMenu key="sub2" icon={<TeamOutlined />} title="Team">
-            <Menu.Item key="6">Team 1</Menu.Item>
-            <Menu.Item key="8">Team 2</Menu.Item>
-          </SubMenu>
-          <Menu.Item key="9" icon={<FileOutlined />}>
-            Files
-            </Menu.Item>
+          {/* <SubMenu key="sub2" icon={<TeamOutlined />} title="Other menu">
+            <Menu.Item key="6">Menu 1</Menu.Item>
+            <Menu.Item key="8">Menu 2</Menu.Item>
+          </SubMenu> */}
         </Menu>
       </Sider>
       <Layout className="site-layout">
