@@ -41,8 +41,14 @@ const App = () => {
       setFileName(fileName)
       setSimulationData(simulationData)
     }
+    setUrl(waterUrl)
     loadSimulation(waterUrl, onWaterUploaded)
   }, [loadSimulation])
+
+  const loadLJ = useCallback(() => {
+    setUrl(ljUrl)
+    loadSimulation(ljUrl, onFileUploaded)
+  }, [loadSimulation, onFileUploaded])
 
   const urlParams = new URLSearchParams(window.location.search)
   const simulationUrl = urlParams.get('url')
@@ -89,7 +95,7 @@ const App = () => {
             <Menu.Item key="example1" onClick={() => loadWater()} icon={<DotChartOutlined />}>
               Water molecule
             </Menu.Item>
-            <Menu.Item key="example2" onClick={() => loadSimulation(ljUrl, onFileUploaded)} icon={<DotChartOutlined />}>
+            <Menu.Item key="example2" onClick={() => loadLJ()} icon={<DotChartOutlined />}>
               LJ liquid
           </Menu.Item>
           </SubMenu>
