@@ -231,7 +231,9 @@ var Visualizer = function Visualizer(domElement) {
   };
 
   this.animate = function () {
-    _this.stats.begin();
+    _this.memoryStats.update();
+
+    _this.cpuStats.begin();
 
     _this.resizeIfNeeded();
 
@@ -241,7 +243,7 @@ var Visualizer = function Visualizer(domElement) {
 
     _this.renderer.render(_this.scene, _this.camera);
 
-    _this.stats.end();
+    _this.cpuStats.end();
 
     _this.latestRequestId = requestAnimationFrame(_this.animate.bind(_this));
   };
@@ -290,9 +292,14 @@ var Visualizer = function Visualizer(domElement) {
   this.clock = new THREE.Clock();
   this.object = new THREE.Object3D();
   this.scene.add(this.object);
-  this.stats = new Stats();
-  this.stats.showPanel(0);
-  document.body.appendChild(this.stats.dom);
+  this.cpuStats = new Stats();
+  this.memoryStats = new Stats();
+  this.cpuStats.showPanel(0);
+  this.memoryStats.showPanel(2);
+  document.body.appendChild(this.cpuStats.dom);
+  this.cpuStats.domElement.style.cssText = 'position:absolute;top:0px;right:80px;';
+  this.memoryStats.domElement.style.cssText = 'position:absolute;top:0px;right:0px;';
+  document.body.appendChild(this.memoryStats.dom);
   this.materials = {};
   this.animate();
 };
@@ -362,8 +369,10 @@ var OMOVIVisualizer = function OMOVIVisualizer(_ref) {
     }
   }, [cameraPosition, visualizer]);
   React.useEffect(function () {
+    console.log('Will create visualizer');
     return function () {
       console.log('Should dispose visualizer');
+      newVisualizer = undefined;
     };
   }, []);
   return React__default.createElement("div", {

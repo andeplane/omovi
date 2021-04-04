@@ -11,6 +11,8 @@ export default class Visualizer {
     private domElement;
     private object;
     private stats;
+    private cpuStats;
+    private memoryStats;
     private materials;
     private latestRequestId?;
     constructor(domElement: HTMLElement);
