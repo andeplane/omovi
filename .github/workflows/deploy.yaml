@@ -19,10 +19,10 @@ jobs:
       run: npm install
     - name: Build library
       run: npm run build
-    - name: Deploy app
-      run: npm run predeploy && npm run deploy
-    # - name: Deploy
-    #   uses: peaceiris/actions-gh-pages@v3
-    #   with:
-    #     github_token: ${{ secrets.GITHUB_TOKEN }}
-    #     publish_dir: ./example/build
+    - name: Build app
+      run: npm run predeploy
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./example/build
