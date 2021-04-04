@@ -19,10 +19,8 @@ jobs:
       run: npm install
     - name: Build library
       run: npm run build
-    - name: Build app
-      run: cd example && npm run build
     - name: Deploy app
-      run: npm run deploy
+      run: npm run predeploy && npm run deploy
     # - name: Deploy
     #   uses: peaceiris/actions-gh-pages@v3
     #   with:
