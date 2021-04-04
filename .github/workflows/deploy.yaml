@@ -21,7 +21,7 @@ jobs:
       run: npm run build
     - name: Build app
       run: npm run predeploy
-    - name: Deploy
+    - name: Deploy app
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
