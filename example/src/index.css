@@ -33,7 +33,7 @@ html, body, #root, .App {
 	border-radius: .4rem;
 	background: rgba(#60a7dc,.5);
 }
-/* 
+
 .dropzone {
 	box-sizing: border-box;
 	display: none;
@@ -46,7 +46,7 @@ html, body, #root, .App {
 
 	background: rgba(#60a7dc,.8);
 	border: 11px dashed #60a7dc;
-} */
+}
 
 #components-layout-demo-side .logo {
   height: 32px;
