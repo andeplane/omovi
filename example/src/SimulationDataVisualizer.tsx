@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import * as THREE from 'three'
 
-import { OMOVIVisualizer, SimulationData, SimulationDataFrame, parseXyz } from 'omovi'
+import { OMOVIVisualizer, SimulationData } from 'omovi'
 import PlayControls from './PlayControls'
 
 // const createBondsFunction = createBondsByDistance({radius: 0.5, pairDistances: [{type1: 'H', type2: 'O', distance: 1.4}]})
