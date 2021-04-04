@@ -1,6 +1,6 @@
-import React, {useState, useCallback, useEffect} from 'react'
-import {Drawer, Slider, Row, Col} from 'antd'
-import {CaretRightOutlined, PauseOutlined} from '@ant-design/icons'
+import React, { useState, useCallback, useEffect } from 'react'
+import { Drawer, Slider, Row, Col } from 'antd'
+import { CaretRightOutlined, PauseOutlined } from '@ant-design/icons'
 import styled from 'styled-components';
 
 const Container = styled.div`
@@ -11,7 +11,7 @@ const Container = styled.div`
 }
 `
 
-const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, playing: boolean, onFrameChanged: (frame: number)=> void}) => {
+const PlayControls = ({ numFrames, onFrameChanged, playing }: { numFrames: number, playing: boolean, onFrameChanged: (frame: number) => void }) => {
   const [isPlaying, setIsPlaying] = useState(playing)
   const [frame, setFrame] = useState(0)
   const [mouseDown, setMouseDown] = useState(false)
@@ -40,11 +40,11 @@ const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, 
         // Handle space
         setIsPlaying(!isPlaying)
       }
-      
+
     }
     window.addEventListener('keydown', handleKeyDown)
 
-    return () => {window.removeEventListener('keydown', handleKeyDown)}
+    return () => { window.removeEventListener('keydown', handleKeyDown) }
   }, [isPlaying])
 
   useEffect(() => {
@@ -56,36 +56,36 @@ const PlayControls = ({numFrames, onFrameChanged, playing}: {numFrames: number, 
         }
         setFrame(nextFrame)
         onFrameChanged(nextFrame)
-      }, 1);
+      }, 20);
 
       return () => clearInterval(interval);
     }
-    return () => {}
+    return () => { }
   }, [frame, isPlaying, numFrames, onFrameChanged, mouseDown]);
-    
-    return (
-        <Drawer
-          height={"6em"}
-          placement={"bottom"}
-          closable={false}
-          visible={true}
-          mask={false}
-        >
-          <Row>
-            <Col flex="10em">
-              {frame} / {numFrames}
-            </Col>
-            <Col flex="auto">
-              <Container onMouseDown={handleMouseDown} onClick={(e) => {console.log("Clicked")}}>
-                <Slider defaultValue={frame} max={numFrames-1} value={frame} onChange={onFrameChangedCB} />
-              </Container>
-            </Col>
-            <Col flex="3em">
-              {isPlaying ? <PauseOutlined onClick={toggleIsPlaying} style={{fontSize: '3em'}} /> : <CaretRightOutlined onClick={toggleIsPlaying} style={{fontSize: '3em'}} />}
-              </Col>
-          </Row>
-        </Drawer>
-    )
+
+  return (
+    <Drawer
+      height={"5em"}
+      placement={"bottom"}
+      closable={false}
+      visible={true}
+      mask={false}
+    >
+      <Row>
+        <Col flex="10em">
+          {frame} / {numFrames}
+        </Col>
+        <Col flex="auto">
+          <Container onMouseDown={handleMouseDown} onClick={(e) => { console.log("Clicked") }}>
+            <Slider defaultValue={frame} max={numFrames - 1} value={frame} onChange={onFrameChangedCB} />
+          </Container>
+        </Col>
+        <Col flex="3em">
+          {isPlaying ? <PauseOutlined onClick={toggleIsPlaying} style={{ fontSize: '2em' }} /> : <CaretRightOutlined onClick={toggleIsPlaying} style={{ fontSize: '2em' }} />}
+        </Col>
+      </Row>
+    </Drawer>
+  )
 }
 
 export default PlayControls

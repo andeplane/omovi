@@ -33,6 +33,8 @@ export default class Visualizer {
   private domElement: HTMLElement
   private object: THREE.Object3D
   private stats: Stats
+  private cpuStats: Stats
+  private memoryStats: Stats
   private materials: { [key: string]: Material }
 
   // @ts-ignore
@@ -61,9 +63,16 @@ export default class Visualizer {
     this.object = new THREE.Object3D()
     this.scene.add(this.object)
 
-    this.stats = new Stats()
-    this.stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
-    document.body.appendChild(this.stats.dom)
+    this.cpuStats = new Stats()
+    this.memoryStats = new Stats()
+    this.cpuStats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+    this.memoryStats.showPanel(2) // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(this.cpuStats.dom)
+    this.cpuStats.domElement.style.cssText =
+      'position:absolute;top:0px;right:80px;'
+    this.memoryStats.domElement.style.cssText =
+      'position:absolute;top:0px;right:0px;'
+    document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
     this.animate()
@@ -154,13 +163,14 @@ export default class Visualizer {
   }
 
   animate = () => {
-    this.stats.begin()
+    this.memoryStats.update()
+    this.cpuStats.begin()
     this.resizeIfNeeded()
     this.controls.update(this.clock.getDelta())
 
     this.updateUniforms(this.camera)
     this.renderer.render(this.scene, this.camera)
-    this.stats.end()
+    this.cpuStats.end()
 
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
     // console.log(this.camera.position.clone())
