@@ -108,7 +108,11 @@ class Particles {
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < this.count; i++) {
       this.mesh.setMatrixAt(i, matrix)
-      this.mesh.setColorAt(i, this.colors[i])
+      if (i < this.colors.length) {
+        this.mesh.setColorAt(i, this.colors[i])
+      } else {
+        this.mesh.setColorAt(i, new THREE.Color("red"));
+      }
     }
     this.mesh.frustumCulled = false
 
