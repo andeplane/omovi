@@ -18,11 +18,13 @@ function addParticlesToFrame(lines: string[], i: number, particles: Particles) {
     const x = parseFloat(lineData[1])
     const y = parseFloat(lineData[2])
     const z = parseFloat(lineData[3])
+    const id = j
 
     particles.add({
       x,
       y,
       z,
+      id,
       radius,
       r: color.r,
       g: color.g,

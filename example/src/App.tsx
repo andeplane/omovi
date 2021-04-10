@@ -11,7 +11,7 @@ import {
 
 import FileUpload from './FileUpload'
 
-import { createBondsByDistance, SimulationData, parseXyz } from 'omovi'
+import { createBondsByDistance, SimulationData, parseXyz, parseLAMMPSData } from 'omovi'
 import SimulationDataVisualizer from './SimulationDataVisualizer'
 import { useLoadSimulation } from 'hooks/simulation'
 
@@ -29,7 +29,12 @@ const App = () => {
 
   const onFileUploaded = useCallback((fileName: string, contents: string) => {
     setFileName(fileName)
-    const simulationData = parseXyz(contents)
+    let simulationData;
+    if (fileName.endsWith('xyz')) {
+      simulationData = parseXyz(contents)
+    } else if (fileName.endsWith('data')) {
+      simulationData = parseLAMMPSData(contents)
+    }
     setSimulationData(simulationData)
   }, [])
 

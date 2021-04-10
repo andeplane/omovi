@@ -1,57 +1,92 @@
 import Particles from 'core/geometries/particles/particles'
 import AtomTypes from 'core/atomtypes'
 import SimulationData from 'core/simulationdata/simulationdata'
+import SimulationCell from 'core/simulationdata/simulationcell'
 import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+import * as THREE from 'three'
 
 class ParseError extends Error { }
 
-
-const ensureLineContains = (lineNumber: number, line: string, needle: string) {
+const ensureLineContains = (
+  lineNumber: number,
+  line: string,
+  needle: string
+) => {
   if (!line.includes(needle)) {
-    throw new ParseError(`Error parsing LAMMPS Data File. Expected ${needle} on line ${lineNumber}.`)
+    throw new ParseError(
+      `Error parsing LAMMPS Data File. Expected ${needle} on line ${lineNumber}.`
+    )
   }
 }
 
-const ensureNotNull = (lineNumber: number, values: { [key: string]: string }) {
-  for (let key in values) {
+const ensureNotNull = (
+  lineNumber: number,
+  values: { [key: string]: string }
+) => {
+  for (const key in values) {
     if (values[key] == null) {
-      throw new ParseError(`Error parsing LAMMPS Data File. Expected non-null value for ${key} on line ${lineNumber}.`)
+      throw new ParseError(
+        `Error parsing LAMMPS Data File. Expected non-null value for ${key} on line ${lineNumber}.`
+      )
     }
   }
 }
 
-const parseMolecular = (lines: string[], lineNumber: number, particles: Particles) {
+const parseMolecular = (
+  lines: string[],
+  lineNumber: number,
+  particles: Particles
+) => {
   for (let j = 0; j < particles.count; j++) {
-    const [id_str, molId_str, type, x_str, y_str, z_str] = lines[lineNumber + j].split(' ')
-    ensureNotNull(lineNumber, { x: x_str, y: y_str, z: z_str, id: id_str, molId: molId_str, type })
+    const [idStr, molIdStr, type, xStr, yStr, zStr] = lines[
+      lineNumber + j
+    ].split(' ')
+    ensureNotNull(lineNumber, {
+      x: xStr,
+      y: yStr,
+      z: zStr,
+      id: idStr,
+      molId: molIdStr,
+      type
+    })
 
-    const x = parseFloat(x_str)
-    const y = parseFloat(y_str)
-    const z = parseFloat(z_str)
-    const id = parseInt(id_str)
-    const molId = parseInt(molId_str)
+    const x = parseFloat(xStr)
+    const y = parseFloat(yStr)
+    const z = parseFloat(zStr)
+    const id = parseInt(idStr)
+    const molId = parseInt(molIdStr)
     const radius = 1.0
     const r = 255
     const g = 0
     const b = 0
-    particles.add({ x, y, z, radius, type, r, g, b })
+    particles.add({ x, y, z, id, radius, type, r, g, b })
   }
 }
 
-const parseAtomic = (lines: string[], lineNumber: number, particles: Particles) {
+const parseAtomic = (
+  lines: string[],
+  lineNumber: number,
+  particles: Particles
+) => {
   for (let j = 0; j < particles.count; j++) {
-    const [id_str, type, x_str, y_str, z_str] = lines[lineNumber + j].split(' ')
-    ensureNotNull(lineNumber, { x: x_str, y: y_str, z: z_str, id: id_str, type })
+    const [idStr, type, xStr, yStr, zStr] = lines[lineNumber + j].split(' ')
+    ensureNotNull(lineNumber, {
+      x: xStr,
+      y: yStr,
+      z: zStr,
+      id: idStr,
+      type
+    })
 
-    const x = parseFloat(x_str)
-    const y = parseFloat(y_str)
-    const z = parseFloat(z_str)
-    const id = parseInt(id_str)
+    const x = parseFloat(xStr)
+    const y = parseFloat(yStr)
+    const z = parseFloat(zStr)
+    const id = parseInt(idStr)
     const radius = 1.0
     const r = 255
     const g = 0
     const b = 0
-    particles.add({ x, y, z, radius, type, r, g, b })
+    particles.add({ x, y, z, id, radius, type, r, g, b })
   }
 }
 
@@ -65,8 +100,8 @@ const parseLAMMPSData = (data: string) => {
   const [zlo, zhi] = lines[lineNumber++].split(' ').map(parseFloat)
   const [xy, xz, yz] = lines[lineNumber++].split(' ').map(parseFloat)
   lineNumber++
-  ensureLineContains(lineNumber, lines[lineNumber], "Atoms")
-  let isMolecular = lines[lineNumber].includes("molecular")
+  ensureLineContains(lineNumber, lines[lineNumber], 'Atoms')
+  const isMolecular = lines[lineNumber].includes('molecular')
   lineNumber++
   lineNumber++
   const particles = new Particles(numAtoms)
@@ -76,7 +111,16 @@ const parseLAMMPSData = (data: string) => {
     parseAtomic(lines, lineNumber, particles)
   }
 
-  return particles
+  const simulationCell = new SimulationCell(
+    new THREE.Vector3(xhi - xlo, 0, 0),
+    new THREE.Vector3(0, yhi - ylo, 0),
+    new THREE.Vector3(0, 0, zhi - zlo),
+    new THREE.Vector3(xlo, ylo, zlo)
+  )
+  const simulationDataFrame = new SimulationDataFrame(particles, simulationCell)
+  const simulationData = new SimulationData()
+  simulationData.frames.push(simulationDataFrame)
+  return simulationData
 }
 
 export default parseLAMMPSData

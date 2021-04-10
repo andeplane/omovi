@@ -28,6 +28,7 @@ class Particles {
     x,
     y,
     z,
+    id,
     radius,
     type = 'H',
     r = 255.0,
@@ -37,6 +38,7 @@ class Particles {
     x: number
     y: number
     z: number
+    id: number
     radius: number
     type: string
     r: number
@@ -55,7 +57,7 @@ class Particles {
     this.positions[3 * index + 2] = z
     this.colors.push(new THREE.Color(r / 255, g / 255, b / 255))
     this.radii[index] = radius * 0.25
-    this.indices[index] = index
+    this.indices[index] = id
     this.types.push(type)
 
     this.count += 1
@@ -111,7 +113,7 @@ class Particles {
       if (i < this.colors.length) {
         this.mesh.setColorAt(i, this.colors[i])
       } else {
-        this.mesh.setColorAt(i, new THREE.Color("red"));
+        this.mesh.setColorAt(i, new THREE.Color('red'))
       }
     }
     this.mesh.frustumCulled = false
