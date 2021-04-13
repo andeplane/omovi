@@ -1,8 +1,9 @@
 import Particles from 'core/geometries/particles/particles'
-import AtomTypes from 'core/atomtypes'
+import { getColor } from 'core/atomtypes'
 import SimulationData from 'core/simulationdata/simulationdata'
 import SimulationCell from 'core/simulationdata/simulationcell'
 import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+
 import * as THREE from 'three'
 
 class ParseError extends Error { }
@@ -37,8 +38,8 @@ const parseMolecular = (
   lineNumber: number,
   particles: Particles
 ) => {
-  for (let j = 0; j < particles.count; j++) {
-    const [idStr, molIdStr, type, xStr, yStr, zStr] = lines[
+  for (let j = 0; j < particles.capacity; j++) {
+    const [idStr, molIdStr, typeStr, xStr, yStr, zStr] = lines[
       lineNumber + j
     ].split(' ')
     ensureNotNull(lineNumber, {
@@ -47,7 +48,7 @@ const parseMolecular = (
       z: zStr,
       id: idStr,
       molId: molIdStr,
-      type
+      type: typeStr
     })
 
     const x = parseFloat(xStr)
@@ -55,11 +56,20 @@ const parseMolecular = (
     const z = parseFloat(zStr)
     const id = parseInt(idStr)
     const molId = parseInt(molIdStr)
+    const type = parseInt(typeStr)
     const radius = 1.0
-    const r = 255
-    const g = 0
-    const b = 0
-    particles.add({ x, y, z, id, radius, type, r, g, b })
+    const color = getColor(type)
+    particles.add({
+      x,
+      y,
+      z,
+      id,
+      radius,
+      type: typeStr,
+      r: color.r,
+      g: color.g,
+      b: color.b
+    })
   }
 }
 
@@ -93,10 +103,15 @@ const parseAtomic = (
 const parseLAMMPSData = (data: string) => {
   const lines = data.split('\n')
   let lineNumber = 1
+  ensureLineContains(lineNumber, lines[lineNumber], ' atoms')
   const numAtoms = parseInt(lines[lineNumber++].split(' ')[0])
+  ensureLineContains(lineNumber, lines[lineNumber], ' atom types')
   const numAtomTypes = parseInt(lines[lineNumber++].split(' ')[0])
+  ensureLineContains(lineNumber, lines[lineNumber], ' xlo xhi')
   const [xlo, xhi] = lines[lineNumber++].split(' ').map(parseFloat)
+  ensureLineContains(lineNumber, lines[lineNumber], ' ylo yhi')
   const [ylo, yhi] = lines[lineNumber++].split(' ').map(parseFloat)
+  ensureLineContains(lineNumber, lines[lineNumber], ' zlo zhi')
   const [zlo, zhi] = lines[lineNumber++].split(' ').map(parseFloat)
   const [xy, xz, yz] = lines[lineNumber++].split(' ').map(parseFloat)
   lineNumber++
@@ -105,6 +120,7 @@ const parseLAMMPSData = (data: string) => {
   lineNumber++
   lineNumber++
   const particles = new Particles(numAtoms)
+  console.log('isMolecular: ', isMolecular)
   if (isMolecular) {
     parseMolecular(lines, lineNumber, particles)
   } else {
@@ -120,6 +136,7 @@ const parseLAMMPSData = (data: string) => {
   const simulationDataFrame = new SimulationDataFrame(particles, simulationCell)
   const simulationData = new SimulationData()
   simulationData.frames.push(simulationDataFrame)
+  console.log(`Found ${particles.count} particles in file`)
   return simulationData
 }
 

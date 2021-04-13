@@ -11,6 +11,23 @@ export interface AtomType {
   color: Color
 }
 
+const colors: Color[] = [
+  { r: 255, g: 102, b: 102 },
+  { r: 102, g: 102, b: 255 },
+  { r: 255, g: 255, b: 0 },
+  { r: 255, g: 102, b: 255 },
+  { r: 102, g: 255, b: 51 },
+  { r: 204, g: 255, b: 179 },
+  { r: 179, g: 0, b: 255 },
+  { r: 51, g: 255, b: 255 },
+  { r: 247, g: 247, b: 247 }
+]
+
+export function getColor(particleType: number) {
+  const index = particleType % colors.length
+  return colors[index]
+}
+
 const AtomTypes: { [key: string]: AtomType } = {
   H: {
     shortname: 'H',
