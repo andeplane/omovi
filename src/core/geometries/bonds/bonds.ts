@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import fragmentShader from './fragment'
-import vertexShader from './vertex'
+import fragmentShader from './shaders/fragment'
+import vertexShader from './shaders/vertex'
 import createMaterial from 'core/materials'
 
 class Bonds {
