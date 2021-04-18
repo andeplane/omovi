@@ -113,14 +113,19 @@ const parseLAMMPSData = (data: string) => {
   const [ylo, yhi] = lines[lineNumber++].split(' ').map(parseFloat)
   ensureLineContains(lineNumber, lines[lineNumber], ' zlo zhi')
   const [zlo, zhi] = lines[lineNumber++].split(' ').map(parseFloat)
-  const [xy, xz, yz] = lines[lineNumber++].split(' ').map(parseFloat)
+  let xy = 0
+  let xz = 0
+  let yz = 0
+  if (lines[lineNumber].includes('xy xz yz')) {
+    ;[xy, xz, yz] = lines[lineNumber++].split(' ').map(parseFloat)
+  }
   lineNumber++
   ensureLineContains(lineNumber, lines[lineNumber], 'Atoms')
   const isMolecular = lines[lineNumber].includes('molecular')
   lineNumber++
   lineNumber++
   const particles = new Particles(numAtoms)
-  console.log('isMolecular: ', isMolecular)
+
   if (isMolecular) {
     parseMolecular(lines, lineNumber, particles)
   } else {
