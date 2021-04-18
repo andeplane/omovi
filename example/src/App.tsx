@@ -11,7 +11,7 @@ import {
 
 import FileUpload from './FileUpload'
 
-import { createBondsByDistance, SimulationData, parseXyz, parseLAMMPSData } from 'omovi'
+import { createBondsByDistance, SimulationData, parseXyz, parseLAMMPSData, parseLAMMPSBinaryDump } from 'omovi'
 import SimulationDataVisualizer from './SimulationDataVisualizer'
 import { useLoadSimulation } from 'hooks/simulation'
 
@@ -27,19 +27,22 @@ const App = () => {
   const [url, setUrl] = useState<string>()
   const { loading, loadSimulation } = useLoadSimulation()
 
-  const onFileUploaded = useCallback((fileName: string, contents: string) => {
+  const onFileUploaded = useCallback((fileName: string, contents?: string, buffer?: ArrayBuffer) => {
     setFileName(fileName)
     let simulationData;
     if (fileName.endsWith('xyz')) {
       simulationData = parseXyz(contents)
     } else if (fileName.endsWith('data')) {
       simulationData = parseLAMMPSData(contents)
+    } else if (fileName.endsWith('bin')) {
+      simulationData = parseLAMMPSBinaryDump(buffer)
     }
+
     setSimulationData(simulationData)
   }, [])
 
   const loadWater = useCallback(() => {
-    const onWaterUploaded = async (fileName: string, contents: string) => {
+    const onWaterUploaded = async (fileName: string, contents?: string, buffer?: ArrayBuffer) => {
       const createBondsFunction = createBondsByDistance({ radius: 0.5, pairDistances: [{ type1: 'H', type2: 'O', distance: 1.4 }] })
       const simulationData = parseXyz(contents)
       simulationData.generateBondsFunction = createBondsFunction
