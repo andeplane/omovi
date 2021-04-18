@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useCallback } from 'react'
 // Based on https://codepen.io/nekobog/pen/JjoZvBm
-
-const FileUpload = ({ onFileUploaded }: { onFileUploaded: (filename: string, contents: string) => void }) => {
+interface FileUploadProps {
+    onFileUploaded: (filename: string, text?: string, buffer?: ArrayBuffer) => void
+}
+const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     const domElement = useRef<HTMLDivElement | null>(null);
 
     const showDropZone = useCallback(() => {
@@ -29,8 +31,13 @@ const FileUpload = ({ onFileUploaded }: { onFileUploaded: (filename: string, con
         const files = e.dataTransfer?.files
         if (files && files.length > 0) {
             const filename = files[0].name
-            const data = await files[0].text()
-            onFileUploaded(filename, data)
+            let text, buffer;
+            if (filename.endsWith('.bin')) {
+                buffer = await files[0].arrayBuffer()
+            } else {
+                text = await files[0].text()
+            }
+            onFileUploaded(filename, text, buffer)
         }
 
     }, [hideDropZone, onFileUploaded])

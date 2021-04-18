@@ -2,11 +2,11 @@ import OMOVIVisualizer from 'OMOVIVisualizer'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
 import parseXyz from 'parsers/xyzparser'
+import parseLAMMPSBinaryDump from 'parsers/lammpsbinarydump'
 import parseLAMMPSData from 'parsers/lammpsdataparser'
 import SimulationData from 'core/simulationdata/simulationdata'
 import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
 import { createBondsByDistance } from 'utils/bondcreators'
-import Kdtree from 'utils/kdtree/kdtree'
 
 export {
   OMOVIVisualizer,
@@ -14,6 +14,7 @@ export {
   Particles,
   parseXyz,
   parseLAMMPSData,
+  parseLAMMPSBinaryDump,
   SimulationData,
   SimulationDataFrame,
   createBondsByDistance
