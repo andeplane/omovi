@@ -129,8 +129,8 @@ const parseLAMMPSData = (data: string) => {
 
   const simulationCell = new SimulationCell(
     new THREE.Vector3(xhi - xlo, 0, 0),
-    new THREE.Vector3(0, yhi - ylo, 0),
-    new THREE.Vector3(0, 0, zhi - zlo),
+    new THREE.Vector3(xy, yhi - ylo, 0),
+    new THREE.Vector3(xz, yz, zhi - zlo),
     new THREE.Vector3(xlo, ylo, zlo)
   )
   const simulationDataFrame = new SimulationDataFrame(particles, simulationCell)
