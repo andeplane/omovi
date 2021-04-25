@@ -1,6 +1,6 @@
 {
   "name": "omovi",
-  "version": "0.0.3",
+  "version": "0.0.8",
   "description": "Online Molecular Visualizer",
   "author": "andeplane",
   "license": "GPLv3",
@@ -12,7 +12,7 @@
     "node": ">=10"
   },
   "scripts": {
-    "build": "microbundle-crl --no-compress --format modern,cjs",
+    "build": "microbundle-crl --no-compress --format modern,cjs --target node",
     "start": "microbundle-crl watch --no-compress --format modern,cjs",
     "dev": "concurrently --kill-others \"npm run start\" \"cd example; npm run start\"",
     "prepare": "run-s build",
