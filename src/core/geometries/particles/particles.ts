@@ -12,6 +12,7 @@ class Particles {
   count: number
   capacity: number
   mesh?: THREE.InstancedMesh
+  geometry?: THREE.InstancedBufferGeometry
 
   constructor(capacity: number) {
     this.types = []
@@ -22,6 +23,7 @@ class Particles {
     this.count = 0
     this.capacity = capacity
     this.mesh = undefined
+    this.geometry = undefined
   }
 
   add({
@@ -87,7 +89,6 @@ class Particles {
     geometry.setIndex(baseGeometry.getIndex())
     geometry.setAttribute('position', baseGeometry.getAttribute('position'))
     geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
-
     geometry.setAttribute(
       'particlePosition',
       new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
@@ -96,6 +97,7 @@ class Particles {
       'particleRadius',
       new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
     )
+
     return geometry
   }
 
@@ -103,9 +105,9 @@ class Particles {
     if (this.mesh != null) {
       return this.mesh
     }
-    const geometry = this.getGeometry()
     const material = createMaterial('particle', vertexShader, fragmentShader)
-    this.mesh = new THREE.InstancedMesh(geometry, material, this.count)
+    this.geometry = this.getGeometry()
+    this.mesh = new THREE.InstancedMesh(this.geometry, material, this.count)
 
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < this.count; i++) {
@@ -119,6 +121,18 @@ class Particles {
     this.mesh.frustumCulled = false
 
     return this.mesh
+  }
+
+  markNeedsUpdate = () => {
+    if (this.mesh) {
+      Object.values(this.mesh.geometry.attributes).forEach((attribute) => {
+        attribute.needsUpdate = true
+      })
+    }
+
+    if (this.geometry) {
+      this.geometry.instanceCount = this.count
+    }
   }
 }
 
