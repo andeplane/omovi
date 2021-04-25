@@ -6,7 +6,7 @@ import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
 
 import * as THREE from 'three'
 
-class ParseError extends Error { }
+class ParseError extends Error {}
 
 const ensureLineContains = (
   lineNumber: number,
@@ -220,7 +220,7 @@ const parseLAMMPSData = (data: string) => {
   lineNumber = getNextLineNumber(lines, lineNumber, 'Atoms')
   console.log(
     `Found Atoms on line ${lineNumber - 1} which is line ${
-    lines[lineNumber - 1]
+      lines[lineNumber - 1]
     }`
   )
 
