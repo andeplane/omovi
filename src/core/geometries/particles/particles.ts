@@ -134,6 +134,11 @@ class Particles {
       this.geometry.instanceCount = this.count
     }
   }
+
+  dispose = () => {
+    this.geometry?.dispose()
+    this.mesh?.dispose()
+  }
 }
 
 export default Particles

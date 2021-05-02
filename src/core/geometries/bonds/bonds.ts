@@ -135,6 +135,11 @@ class Bonds {
 
     return this.mesh
   }
+
+  dispose = () => {
+    this.geometry?.dispose()
+    this.mesh?.dispose()
+  }
 }
 
 export default Bonds
