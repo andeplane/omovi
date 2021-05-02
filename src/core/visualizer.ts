@@ -21,6 +21,11 @@ const adjustCamera = (
   camera.updateProjectionMatrix()
 }
 
+interface VisualizerProps {
+  domElement: HTMLElement
+  onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+}
+
 export default class Visualizer {
   private renderer: THREE.WebGLRenderer
   private canvas: HTMLCanvasElement
@@ -40,7 +45,7 @@ export default class Visualizer {
   // @ts-ignore
   private latestRequestId?: number
 
-  constructor(domElement: HTMLElement) {
+  constructor({ domElement, onCameraChanged }: VisualizerProps) {
     this.renderer = new THREE.WebGLRenderer()
 
     this.canvas = this.renderer.domElement
@@ -57,6 +62,12 @@ export default class Visualizer {
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
+    this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
+      const { position, target } = event.camera
+      if (onCameraChanged) {
+        onCameraChanged(position, target)
+      }
+    })
 
     this.latestRequestId = undefined
     this.clock = new THREE.Clock()

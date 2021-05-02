@@ -3,28 +3,36 @@ import Visualizer from './core/visualizer'
 import Particles from './core/geometries/particles/particles'
 import Bonds from './core/geometries/bonds/bonds'
 
-let newVisualizer: Visualizer | undefined
+interface OMOVIVisualizerProps {
+  particles?: Particles
+  bonds?: Bonds
+  cameraTarget?: THREE.Vector3
+  cameraPosition?: THREE.Vector3
+  onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+}
 
 const OMOVIVisualizer = ({
   particles,
   bonds,
   cameraTarget,
-  cameraPosition
-}: {
-  particles?: Particles
-  bonds?: Bonds
-  cameraTarget?: THREE.Vector3
-  cameraPosition?: THREE.Vector3
-}) => {
+  cameraPosition,
+  onCameraChanged
+}: OMOVIVisualizerProps) => {
+  const [loading, setLoading] = useState(false)
   const domElement = useRef<HTMLDivElement | null>(null)
   const [visualizer, setVisualizer] = useState<Visualizer | undefined>(
     undefined
   )
 
   useEffect(() => {
-    if (domElement.current && !newVisualizer) {
-      newVisualizer = new Visualizer(domElement.current)
+    if (domElement.current && !loading && !visualizer) {
+      setLoading(true)
+      const newVisualizer = new Visualizer({
+        domElement: domElement.current,
+        onCameraChanged
+      })
       setVisualizer(newVisualizer)
+      setLoading(false)
     }
   }, [domElement, visualizer])
 
@@ -79,9 +87,9 @@ const OMOVIVisualizer = ({
   useEffect(() => {
     // console.log('Will create visualizer')
     return () => {
-      // console.log('Should dispose visualizer')
-      // visualizer.dispose()
-      newVisualizer = undefined
+      if (visualizer) {
+        visualizer.dispose()
+      }
     }
   }, [])
 
