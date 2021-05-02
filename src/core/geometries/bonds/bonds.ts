@@ -137,7 +137,6 @@ class Bonds {
   }
 
   dispose = () => {
-    this.geometry?.dispose()
     this.mesh?.dispose()
   }
 }
