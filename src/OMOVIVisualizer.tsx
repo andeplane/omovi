@@ -2,12 +2,14 @@ import React, { useEffect, useState, useRef } from 'react'
 import Visualizer from './core/visualizer'
 import Particles from './core/geometries/particles/particles'
 import Bonds from './core/geometries/bonds/bonds'
+import {Color} from 'core/types'
 
 interface OMOVIVisualizerProps {
   particles?: Particles
   bonds?: Bonds
   cameraTarget?: THREE.Vector3
   cameraPosition?: THREE.Vector3
+  colors?: Color[]
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
 }
 
@@ -16,6 +18,7 @@ const OMOVIVisualizer = ({
   bonds,
   cameraTarget,
   cameraPosition,
+  colors,
   onCameraChanged
 }: OMOVIVisualizerProps) => {
   const [loading, setLoading] = useState(false)
@@ -29,6 +32,7 @@ const OMOVIVisualizer = ({
       setLoading(true)
       const newVisualizer = new Visualizer({
         domElement: domElement.current,
+        initialColors: colors,
         onCameraChanged
       })
       setVisualizer(newVisualizer)

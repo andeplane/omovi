@@ -9,6 +9,7 @@ import bondFragmentShader from 'core/geometries/bonds/shaders/fragment'
 import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
+import { Color } from 'core/types'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -32,6 +33,7 @@ const adjustCamera = (
 interface VisualizerProps {
   domElement: HTMLElement
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+  initialColors?: Color[]
 }
 
 export default class Visualizer {
@@ -56,7 +58,7 @@ export default class Visualizer {
   // @ts-ignore
   private latestRequestId?: number
 
-  constructor({ domElement, onCameraChanged }: VisualizerProps) {
+  constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps) {
     this.renderer = new THREE.WebGLRenderer()
 
     this.canvas = this.renderer.domElement
@@ -75,6 +77,10 @@ export default class Visualizer {
     this.colorTexture = new DataTexture('colorTexture', 4096*4096, () => {
       this.forceRender = true
     })
+    initialColors?.forEach((color, index) => {
+      this.colorTexture.setRGBA(index, color.r, color.g, color.b);
+    })
+    
     //@ts-ignore
     window.colorTexture = this.colorTexture
 

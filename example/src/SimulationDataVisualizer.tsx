@@ -42,9 +42,15 @@ const SimulationDataVisualizer = ({ simulationData }: SimulationDataVisualizerPr
     setFrame(newFrame)
   }
 
+  const colors = [
+    {r: 255, g: 0, b: 0},
+    {r: 255, g: 255, b: 255},
+    {r: 255, g: 255, b: 255},
+  ]
+
   return (
     <>
-      <OMOVIVisualizer particles={currentFrame.particles} bonds={currentFrame.bonds} cameraTarget={cameraTarget} cameraPosition={cameraPosition} />
+      <OMOVIVisualizer colors={colors} particles={currentFrame.particles} bonds={currentFrame.bonds} cameraTarget={cameraTarget} cameraPosition={cameraPosition} />
       <PlayControls numFrames={simulationData.getNumFrames()} onFrameChanged={onFrameChanged} playing={true} />
     </>
   )
