@@ -53,18 +53,18 @@ const OMOVIVisualizer = ({
       return
     }
 
-    if (prevParticles) {
-      visualizer.remove(prevParticles.getMesh())
+    if (prevParticles && prevParticles !== particles) {
+      visualizer.remove(prevParticles)
     }
     if (particles) {
-      visualizer.add(particles.getMesh())
+      visualizer.add(particles)
     }
 
-    if (prevBonds) {
-      visualizer.remove(prevBonds.getMesh()!)
+    if (prevBonds && prevBonds !== bonds) {
+      visualizer.remove(prevBonds!)
     }
     if (bonds) {
-      visualizer.add(bonds.getMesh()!)
+      visualizer.add(bonds!)
     }
   }, [particles, bonds, visualizer])
 

@@ -80,18 +80,14 @@ const parseFrame = (buffer: Buffer, offset: number = 0) => {
       const x = chunk.buffer[2 + particleIndex * header.sizeOne]
       const y = chunk.buffer[3 + particleIndex * header.sizeOne]
       const z = chunk.buffer[4 + particleIndex * header.sizeOne]
-      const color = getColor(type)
       const typeStr = type.toString()
       particles.add({
         x,
         y,
         z,
-        radius: 0.05,
+        radius: 1.0,
         id,
         type: typeStr,
-        r: color.r,
-        g: color.g,
-        b: color.b
       })
     }
   }

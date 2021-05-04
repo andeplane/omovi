@@ -2,8 +2,11 @@ import * as THREE from 'three'
 import fragmentShader from './shaders/fragment'
 import vertexShader from './shaders/vertex'
 import createMaterial from 'core/materials'
+//@ts-ignore
+import uuid from 'uuid';
 
 class Particles {
+  id: string
   types: string[]
   positions: Float32Array
   indices: Float32Array
@@ -11,10 +14,10 @@ class Particles {
   colors: THREE.Color[]
   count: number
   capacity: number
-  mesh?: THREE.InstancedMesh
   geometry?: THREE.InstancedBufferGeometry
 
   constructor(capacity: number) {
+    this.id = uuid()
     this.types = []
     this.positions = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)
@@ -22,7 +25,6 @@ class Particles {
     this.colors = []
     this.count = 0
     this.capacity = capacity
-    this.mesh = undefined
     this.geometry = undefined
   }
 
@@ -32,10 +34,7 @@ class Particles {
     z,
     id,
     radius,
-    type = 'H',
-    r = 255.0,
-    g = 0.0,
-    b = 0.0
+    type = 'H'
   }: {
     x: number
     y: number
@@ -43,9 +42,6 @@ class Particles {
     id: number
     radius: number
     type: string
-    r: number
-    g: number
-    b: number
   }) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
@@ -57,8 +53,7 @@ class Particles {
     this.positions[3 * index + 0] = x
     this.positions[3 * index + 1] = y
     this.positions[3 * index + 2] = z
-    this.colors.push(new THREE.Color(r / 255, g / 255, b / 255))
-    this.radii[index] = radius * 0.25
+    this.radii[index] = radius / 3 // van der Waals to ball-and-stick rendering. Each particle has half the space.
     this.indices[index] = id
     this.types.push(type)
 
@@ -82,62 +77,40 @@ class Particles {
   }
 
   getGeometry = () => {
-    const baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
-    const geometry = new THREE.InstancedBufferGeometry()
+    if (this.geometry) {
+      return this.geometry
+    }
 
-    geometry.instanceCount = this.count
-    geometry.setIndex(baseGeometry.getIndex())
-    geometry.setAttribute('position', baseGeometry.getAttribute('position'))
-    geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
-    geometry.setAttribute(
+    const baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
+    this.geometry = new THREE.InstancedBufferGeometry()
+
+    this.geometry.instanceCount = this.count
+    this.geometry.setIndex(baseGeometry.getIndex())
+    this.geometry.setAttribute('position', baseGeometry.getAttribute('position'))
+    this.geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
+    this.geometry.setAttribute(
       'particlePosition',
       new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
     )
-    geometry.setAttribute(
+    this.geometry.setAttribute(
       'particleRadius',
       new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
     )
 
-    return geometry
-  }
-
-  getMesh = () => {
-    if (this.mesh != null) {
-      return this.mesh
-    }
-    const material = createMaterial('particle', vertexShader, fragmentShader)
-    this.geometry = this.getGeometry()
-    this.mesh = new THREE.InstancedMesh(this.geometry, material, this.count)
-
-    const matrix = new THREE.Matrix4()
-    for (let i = 0; i < this.count; i++) {
-      this.mesh.setMatrixAt(i, matrix)
-      if (i < this.colors.length) {
-        this.mesh.setColorAt(i, this.colors[i])
-      } else {
-        this.mesh.setColorAt(i, new THREE.Color('red'))
-      }
-    }
-    this.mesh.frustumCulled = false
-
-    return this.mesh
+    return this.geometry
   }
 
   markNeedsUpdate = () => {
-    if (this.mesh) {
-      Object.values(this.mesh.geometry.attributes).forEach((attribute) => {
+    if (this.geometry) {
+      Object.values(this.geometry.attributes).forEach((attribute) => {
         attribute.needsUpdate = true
       })
-    }
-
-    if (this.geometry) {
       this.geometry.instanceCount = this.count
     }
   }
 
   dispose = () => {
     this.geometry?.dispose()
-    this.mesh?.dispose()
   }
 }
 

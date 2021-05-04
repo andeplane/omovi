@@ -13,7 +13,6 @@ function addParticlesToFrame(lines: string[], i: number, particles: Particles) {
     let radius = 1.0
     if (atomType) {
       radius = atomType.radius
-      color = atomType.color
     }
     const x = parseFloat(lineData[1])
     const y = parseFloat(lineData[2])
@@ -26,9 +25,6 @@ function addParticlesToFrame(lines: string[], i: number, particles: Particles) {
       z,
       id,
       radius,
-      r: color.r,
-      g: color.g,
-      b: color.b,
       type: atomType.shortname
     })
   }

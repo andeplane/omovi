@@ -2,8 +2,11 @@ import * as THREE from 'three'
 import fragmentShader from './shaders/fragment'
 import vertexShader from './shaders/vertex'
 import createMaterial from 'core/materials'
+//@ts-ignore
+import uuid from 'uuid';
 
 class Bonds {
+  id: string
   positions1: Float32Array
   positions2: Float32Array
   indices: Float32Array
@@ -11,9 +14,10 @@ class Bonds {
   colors: THREE.Color[]
   count: number
   capacity: number
-  mesh?: THREE.InstancedMesh
+  geometry?: THREE.InstancedBufferGeometry
 
   constructor(capacity: number) {
+    this.id = uuid()
     this.positions1 = new Float32Array(3 * capacity)
     this.positions2 = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)
@@ -21,7 +25,7 @@ class Bonds {
     this.colors = []
     this.count = 0
     this.capacity = capacity
-    this.mesh = undefined
+    this.geometry = undefined
   }
 
   add(
@@ -32,9 +36,6 @@ class Bonds {
     y2: number,
     z2: number,
     radius: number,
-    r: number = 255.0,
-    g: number = 255.0,
-    b: number = 255.0
   ) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
@@ -49,8 +50,6 @@ class Bonds {
     this.positions2[3 * index + 0] = x2
     this.positions2[3 * index + 1] = y2
     this.positions2[3 * index + 2] = z2
-
-    this.colors.push(new THREE.Color(r / 255, g / 255, b / 255))
 
     this.radii[index] = radius * 0.25
     this.indices[index] = index
@@ -71,6 +70,10 @@ class Bonds {
   }
 
   getGeometry = () => {
+    if (this.geometry) {
+      return this.geometry
+    }
+
     const positions = []
     positions.push(-1, 1, -1)
     positions.push(-1, -1, -1)
@@ -88,56 +91,33 @@ class Bonds {
       1
     )
 
-    const geometry = new THREE.InstancedBufferGeometry()
+    this.geometry = new THREE.InstancedBufferGeometry()
 
-    geometry.instanceCount = this.count
-    geometry.setIndex(indexBufferAttribute)
-    geometry.setAttribute('position', positionBufferAttribute)
-    geometry.setAttribute('normal', positionBufferAttribute)
+    this.geometry.instanceCount = this.count
+    this.geometry.setIndex(indexBufferAttribute)
+    this.geometry.setAttribute('position', positionBufferAttribute)
+    this.geometry.setAttribute('normal', positionBufferAttribute)
 
-    geometry.setAttribute(
+    this.geometry.setAttribute(
       'position1',
       new THREE.InstancedBufferAttribute(this.positions1, 3, false, 1)
     )
 
-    geometry.setAttribute(
+    this.geometry.setAttribute(
       'position2',
       new THREE.InstancedBufferAttribute(this.positions2, 3, false, 1)
     )
 
-    geometry.setAttribute(
+    this.geometry.setAttribute(
       'bondRadius',
       new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
     )
 
-    return geometry
-  }
-
-  getMesh = () => {
-    if (this.mesh != null) {
-      return this.mesh
-    }
-
-    if (this.count === 0) {
-      return null
-    }
-
-    const geometry = this.getGeometry()
-    const material = createMaterial('bonds', vertexShader, fragmentShader)
-    this.mesh = new THREE.InstancedMesh(geometry, material, this.count)
-
-    const matrix = new THREE.Matrix4()
-    for (let i = 0; i < this.count; i++) {
-      this.mesh.setMatrixAt(i, matrix)
-      this.mesh.setColorAt(i, this.colors[i])
-    }
-    this.mesh.frustumCulled = false
-
-    return this.mesh
+    return this.geometry
   }
 
   dispose = () => {
-    this.mesh?.dispose()
+    this.geometry?.dispose()
   }
 }
 

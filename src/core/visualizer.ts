@@ -1,6 +1,14 @@
 import * as THREE from 'three'
 import ComboControls from '@cognite/three-combo-controls'
 import { Material } from './materials'
+import DataTexture from './datatexture'
+import createMaterial from 'core/materials'
+import particleFragmentShader from 'core/geometries/particles/shaders/fragment'
+import particleVertexShader from 'core/geometries/particles/shaders/vertex'
+import bondFragmentShader from 'core/geometries/bonds/shaders/fragment'
+import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
+import Particles from 'core/geometries/particles/particles'
+import Bonds from 'core/geometries/bonds/bonds'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -30,6 +38,8 @@ export default class Visualizer {
   private renderer: THREE.WebGLRenderer
   private canvas: HTMLCanvasElement
   public scene: THREE.Scene
+  public forceRender: boolean
+  private cachedMeshes: {[key: string]: THREE.Mesh}
   private camera: THREE.PerspectiveCamera
   private ambientLight: THREE.AmbientLight
   private directionalLight: THREE.DirectionalLight
@@ -40,6 +50,7 @@ export default class Visualizer {
   private stats: Stats
   private cpuStats: Stats
   private memoryStats: Stats
+  private colorTexture: DataTexture
   private materials: { [key: string]: Material }
 
   // @ts-ignore
@@ -54,10 +65,16 @@ export default class Visualizer {
     this.setupCanvas(this.canvas)
 
     this.scene = new THREE.Scene()
+    this.forceRender = false
+    this.cachedMeshes = {}
 
     this.ambientLight = new THREE.AmbientLight(0xffffff)
     this.directionalLight = new THREE.DirectionalLight(0xffffff)
     this.setupLights(this.ambientLight, this.directionalLight, this.scene)
+
+    this.colorTexture = new DataTexture('particleColors', 4096*4096, () => {
+      this.forceRender = true
+    })
 
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
@@ -86,27 +103,47 @@ export default class Visualizer {
     document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
+    this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader)
+    this.materials['bonds'] = createMaterial('bonds', particleVertexShader, particleFragmentShader)
+
     this.animate()
   }
 
-  add = (object: THREE.Mesh) => {
-    if (object == null) {
+
+
+  add = (object: Particles | Bonds) => {
+    if (this.cachedMeshes[object.id]) {
+      this.object.add(this.cachedMeshes[object.id])
       return
     }
 
-    if (object.material instanceof Material) {
-      const material = object.material as Material
-      const materialType = material.type
-      if (this.materials[materialType] == null) {
-        this.materials[materialType] = material
-      }
+    let material: THREE.Material
+    if (object instanceof Particles) {
+      material = this.materials['particles']
+    } else {
+      material = this.materials['bonds']
     }
 
-    this.object.add(object)
+    const geometry = object.getGeometry()
+    const mesh = new THREE.InstancedMesh(geometry, material, object.count)
+
+    const matrix = new THREE.Matrix4()
+    for (let i = 0; i < object.count; i++) {
+      mesh.setMatrixAt(i, matrix)
+    }
+    mesh.frustumCulled = false
+
+    this.cachedMeshes[object.id] = mesh
+
+    this.object.add(mesh)
   }
 
-  remove = (object: THREE.Mesh) => {
-    this.object.remove(object)
+  remove = (object: Particles | Bonds) => {
+    if (this.cachedMeshes[object.id]) {
+      this.object.remove(this.cachedMeshes[object.id])
+      return
+    }
+    throw new Error("Tried to remove object that never was added to the scene.")
   }
 
   setupLights = (
@@ -154,6 +191,9 @@ export default class Visualizer {
 
   dispose = () => {
     this.domElement.removeChild(this.canvas)
+    Object.values(this.materials).forEach(material => {
+      material.dispose()
+    })
     this.renderer.dispose()
   }
 
@@ -184,7 +224,7 @@ export default class Visualizer {
     this.cpuStats.end()
 
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
-    // console.log(this.camera.position.clone())
+    this.forceRender = false
   }
 
   resizeIfNeeded = () => {
