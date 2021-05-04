@@ -83,6 +83,9 @@ export default class DataTexture {
     this.height = height;
 
     const data = new Uint8Array(4 * width * height);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = 255;
+    }
     this._texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
     this._texture.needsUpdate = true;
   }
@@ -91,8 +94,8 @@ export default class DataTexture {
     this._texture.dispose();
   }
 
-  getRGBA(maxParticleIndex: number): { r: number; g: number; b: number; a: number } {
-    let index = 4 * maxParticleIndex;
+  getRGBA(particleIndex: number): { r: number; g: number; b: number; a: number } {
+    let index = 4 * particleIndex;
     const r = this._texture.image.data[index++];
     const g = this._texture.image.data[index++];
     const b = this._texture.image.data[index++];
@@ -100,8 +103,8 @@ export default class DataTexture {
     return { r, g, b, a };
   }
 
-  setRGBA(maxParticleIndex: number, r: number, g: number, b: number, a: number = 255) {
-    let index = 4 * maxParticleIndex;
+  setRGBA(particleIndex: number, r: number, g: number, b: number, a: number = 255) {
+    let index = 4 * particleIndex;
     this._texture.image.data[index++] = r;
     this._texture.image.data[index++] = g;
     this._texture.image.data[index++] = b;
@@ -110,28 +113,28 @@ export default class DataTexture {
     this._onChange();
   }
 
-  getFloat(maxParticleIndex: number): number {
+  getFloat(particleIndex: number): number {
     // Unpack from RGBA
-    const { r, g, b, a } = this.getRGBA(maxParticleIndex);
+    const { r, g, b, a } = this.getRGBA(particleIndex);
     return DataTexture.valueFromRgba(r, g, b, a, false);
   }
 
-  setFloat(maxParticleIndex: number, value: number) {
+  setFloat(particleIndex: number, value: number) {
     // Pack as RGBA
     const { r, g, b, a } = DataTexture.rgbaFromValue(value, false);
-    this.setRGBA(maxParticleIndex, r, g, b, a);
+    this.setRGBA(particleIndex, r, g, b, a);
   }
 
-  getInteger(maxParticleIndex: number): number {
+  getInteger(particleIndex: number): number {
     // Unpack from RGBA
-    const { r, g, b, a } = this.getRGBA(maxParticleIndex);
+    const { r, g, b, a } = this.getRGBA(particleIndex);
     return DataTexture.valueFromRgba(r, g, b, a, true);
   }
 
-  setInteger(maxParticleIndex: number, value: number) {
+  setInteger(particleIndex: number, value: number) {
     // Pack as RGBA
     const { r, g, b, a } = DataTexture.rgbaFromValue(value, true);
-    this.setRGBA(maxParticleIndex, r, g, b, a);
+    this.setRGBA(particleIndex, r, g, b, a);
   }
 
   getTexture(): THREE.Texture {

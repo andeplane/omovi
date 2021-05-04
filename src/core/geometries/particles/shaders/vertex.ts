@@ -11,10 +11,12 @@ varying vec3 vViewPosition;
 uniform mat4 inverseModelMatrix;
 attribute vec3 particlePosition;
 attribute float particleRadius;
+attribute float particleIndex;
 
 varying vec3 vSurfacePoint;
 varying vec3 vCenter;
 varying float vRadius;
+varying float vParticleIndex;
 
 #include <common>
 #include <uv_pars_vertex>
@@ -66,7 +68,7 @@ void main() {
 	#include <morphtarget_vertex>
 	#include <skinning_vertex>
 	#include <displacementmap_vertex>
-	
+		vParticleIndex = particleIndex;
     vec4 mvPosition = vec4( transformed, 1.0 );
 
     #ifdef USE_INSTANCING

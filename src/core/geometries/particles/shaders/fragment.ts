@@ -7,10 +7,14 @@ uniform vec3 specular;
 uniform float shininess;
 uniform float opacity;
 
+uniform sampler2D colorTexture;
 uniform mat4 projectionMatrix;
+uniform float dataTextureWidth;
+uniform float dataTextureHeight;
 varying vec3 vSurfacePoint;
 varying vec3 vCenter;
 varying float vRadius;
+varying float vParticleIndex;
 
 #include <common>
 #include <packing>
@@ -39,6 +43,13 @@ varying float vRadius;
 
 void main() {
 
+	float x = mod(vParticleIndex, dataTextureWidth);
+	float y = floor(vParticleIndex / dataTextureWidth);
+	float xCoord = (x + 0.5) / dataTextureWidth;
+	float yCoord = (y + 0.5) / dataTextureHeight; // invert Y axis
+	vec2 textureIndex = vec2(xCoord, yCoord);
+	vec4 particleColor = texture2D(colorTexture, textureIndex);
+
 	#include <clipping_planes_fragment>
 
 	vec4 diffuseColor = vec4( diffuse, opacity );
@@ -47,7 +58,8 @@ void main() {
 
 	#include <logdepthbuf_fragment>
 	#include <map_fragment>
-	#include <color_fragment>
+	
+	diffuseColor.rgb *= particleColor.rgb;
 	#include <alphamap_fragment>
 	#include <alphatest_fragment>
 	#include <specularmap_fragment>

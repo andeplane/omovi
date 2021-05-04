@@ -72,9 +72,11 @@ export default class Visualizer {
     this.directionalLight = new THREE.DirectionalLight(0xffffff)
     this.setupLights(this.ambientLight, this.directionalLight, this.scene)
 
-    this.colorTexture = new DataTexture('particleColors', 4096*4096, () => {
+    this.colorTexture = new DataTexture('colorTexture', 4096*4096, () => {
       this.forceRender = true
     })
+    //@ts-ignore
+    window.colorTexture = this.colorTexture
 
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
@@ -103,13 +105,11 @@ export default class Visualizer {
     document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
-    this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader)
-    this.materials['bonds'] = createMaterial('bonds', particleVertexShader, particleFragmentShader)
+    this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture)
+    this.materials['bonds'] = createMaterial('bonds', particleVertexShader, particleFragmentShader, this.colorTexture)
 
     this.animate()
   }
-
-
 
   add = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {

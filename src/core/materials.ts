@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import DataTexture from 'core/datatexture'
 
 export interface Uniforms {
   [name: string]: THREE.IUniform
@@ -72,7 +73,8 @@ function fragDepthSupported() {
 const createMaterial = (
   type: string,
   vertexShader: string,
-  fragmentShader: string
+  fragmentShader: string,
+  colorTexture: DataTexture
 ) => {
   if (materialMap[type] != null) {
     return materialMap[type]
@@ -82,6 +84,8 @@ const createMaterial = (
   material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
   material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
 
+
+
   if (fragDepthSupported()) {
     material.extensions.fragDepth = true
     material.defines!.FRAG_DEPTH = 1
@@ -89,6 +93,11 @@ const createMaterial = (
 
   material.onBeforeCompile = (shader: THREE.Shader) => {
     Object.assign(shader.uniforms, material.uniforms)
+    const texture = colorTexture.getTexture();
+    shader.uniforms.dataTextureWidth = { value: colorTexture.width };
+    shader.uniforms.dataTextureHeight = { value: colorTexture.height };
+    shader.uniforms[colorTexture.name] = { value: texture };
+
     material.uniforms = shader.uniforms
 
     shader.vertexShader = vertexShader

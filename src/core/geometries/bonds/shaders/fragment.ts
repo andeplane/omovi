@@ -7,6 +7,7 @@ uniform vec3 specular;
 uniform float shininess;
 uniform float opacity;
 
+uniform sampler2D colorTexture;
 uniform mat4 projectionMatrix;
 varying vec4 v_position1;
 varying vec4 v_position2;

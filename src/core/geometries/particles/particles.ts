@@ -96,6 +96,10 @@ class Particles {
       'particleRadius',
       new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
     )
+    this.geometry.setAttribute(
+      'particleIndex',
+      new THREE.InstancedBufferAttribute(this.indices, 1, false, 1)
+    )
 
     return this.geometry
   }
