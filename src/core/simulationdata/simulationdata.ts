@@ -30,6 +30,6 @@ export default class SimulationData {
     this.frames.forEach(frame => {
       particleTypes.push(...frame.particleTypes)
     })
-    return [...new Set(particleTypes)]
+    return [...new Set(particleTypes)].sort()
   }
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import * as THREE from 'three'
-
-import { OMOVIVisualizer, SimulationData } from 'omovi'
+import {useStoreState, useStoreActions} from 'hooks'
+import { OMOVIVisualizer, SimulationData, AtomTypes, getColor } from 'omovi'
 import PlayControls from './PlayControls'
 
 // const createBondsFunction = createBondsByDistance({radius: 0.5, pairDistances: [{type1: 'H', type2: 'O', distance: 1.4}]})
@@ -12,6 +12,9 @@ const SimulationDataVisualizer = ({ simulationData }: SimulationDataVisualizerPr
   const [frame, setFrame] = useState<number>(0)
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3>()
   const [cameraPosition, setCameraPosition] = useState<THREE.Vector3>()
+  
+  const colorMap = useStoreState(state => state.colors.colorMap)
+  const setColorMap = useStoreActions(actions => actions.colors.setColorMap)
 
   useEffect(() => {
     if (simulationData != null) {
@@ -26,8 +29,29 @@ const SimulationDataVisualizer = ({ simulationData }: SimulationDataVisualizerPr
       const position = center.clone().add(boundingBox.max.clone().sub(center).multiplyScalar(3.5))
       setCameraPosition(position)
       setCameraTarget(simulationData.frames[0].simulationCell.getCenter())
+
+      const particleTypes = simulationData.getUniqueParticleTypes()
+      particleTypes.forEach( (particleType: string, index: number) => {
+        if (colorMap[particleType] == null) {
+          if (AtomTypes[particleType] != null) {
+            const color = AtomTypes[particleType].color
+            colorMap[particleType] = color
+            return
+          } 
+
+          if (!isNaN(parseInt(particleType))) {
+            const type = parseInt(particleType)
+            colorMap[particleType] = getColor(type)
+            return
+          }
+
+          colorMap[particleType] = getColor(index)
+        }
+      })
+      setColorMap(colorMap)
+
     }
-  }, [simulationData])
+  }, [colorMap, setColorMap, simulationData])
 
   if (simulationData == null) {
     return <>Downloading simulation data ...</>

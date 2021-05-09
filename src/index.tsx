@@ -7,7 +7,7 @@ import parseLAMMPSData from 'parsers/lammpsdataparser'
 import SimulationData from 'core/simulationdata/simulationdata'
 import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
 import { createBondsByDistance } from 'utils/bondcreators'
-
+import AtomTypes, { getColor } from 'core/atomtypes'
 export {
   OMOVIVisualizer,
   Bonds,
@@ -17,5 +17,7 @@ export {
   parseLAMMPSBinaryDump,
   SimulationData,
   SimulationDataFrame,
+  AtomTypes,
+  getColor,
   createBondsByDistance
 }

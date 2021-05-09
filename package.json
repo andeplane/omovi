@@ -71,6 +71,7 @@
     "@types/three": "^0.126.2",
     "antd": "^4.14.1",
     "binary-parser": "^1.7.0",
+    "easy-peasy": "^5.0.3",
     "kd-tree-javascript": "^1.0.3",
     "stats.js": "^0.17.0",
     "strict-uri-encode": "^1.1.0",
