@@ -1,44 +1,28 @@
-import React from 'react'
-import { List, Row, Col } from 'antd'
-import {useStoreState} from 'hooks'
-import styled from 'styled-components'
+import React, {useCallback, useEffect} from 'react'
+import { Modal } from 'antd'
+import {useStoreActions} from 'hooks'
+import {Color} from 'types'
+import { ColorPicker, useColor } from "react-color-palette";
+import "react-color-palette/lib/css/styles.css";
 
-const Container = styled.div`
-  .particle {
-    border-radius: 50%;
-    width: 3em;
-    height: 3em;
-  }
-  
-  .ant-list-item {
-    color: #ffffff
-  }
+interface ParticleColorSelectorProps {
+  particleType: string
+  color: Color
+}
+const ParticleColorSelector = ({particleType, color}: ParticleColorSelectorProps) => {
+  const setColor = useStoreActions(actions => actions.colors.setColor)
+  const [currentColor, setCurrentColor] = useColor("rgb", color);
 
-  margin: 1em;
-`
+  useEffect(() => {
+    console.log("Setting color because it changed ", currentColor.rgb)
+    setColor({particleType, color: currentColor.rgb})
+  }, [currentColor, particleType, setColor])
 
-const ParticleColorSelector = () => {
-  const colorMap = useStoreState(state => state.colors.colorMap)
-  const particleTypes = Object.keys(colorMap).map( (particleType) => ({
-    particleType,
-    color: colorMap[particleType]
-  }))
-  
   return (
-    <Container>
-    <List
-      itemLayout="horizontal"
-      dataSource={particleTypes}
-      renderItem={particleType => (
-        <List.Item>
-            <div style={{backgroundColor: `rgba(${particleType.color.r}, ${particleType.color.g}, ${particleType.color.b}, 1.0)`}} className="particle" />
-              <div style={{fontSize: '2em'}}>
-            {particleType.particleType}
-            </div>
-        </List.Item>
-      )}
-    />
-  </Container>)
+    <Modal title={`Select color for particle type ${particleType}`} closable={false} visible={true}>
+      <ColorPicker width={456} height={228} color={currentColor} onChange={setCurrentColor} dark />
+    </Modal>
+  )
 }
 
 export default ParticleColorSelector

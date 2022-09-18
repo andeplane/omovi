@@ -14,9 +14,7 @@ import FileUpload from './FileUpload'
 import { createBondsByDistance, SimulationData, parseXyz, parseLAMMPSData, parseLAMMPSBinaryDump } from 'omovi'
 import SimulationDataVisualizer from './SimulationDataVisualizer'
 import { useLoadSimulation } from 'hooks/simulation'
-import ParticleColorSelector from 'components/ParticleColorSelector';
-import {useStoreState} from 'hooks'
-import styled from 'styled-components'
+import ParticleTypes from 'components/ParticleTypes'
 
 const { Header, Content, Sider } = Layout;
 const { SubMenu } = Menu;
@@ -24,25 +22,11 @@ const { SubMenu } = Menu;
 const waterUrl = "https://raw.githubusercontent.com/andeplane/simulations/main/water.xyz"
 const ljUrl = "https://raw.githubusercontent.com/andeplane/simulations/main/lj.xyz"
 
-const ParticleTypeContainer = styled.div`
-  color: white;
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  padding: 0px;
-`;
-
 const App = () => {
   const [simulationData, setSimulationData] = useState<SimulationData>()
   const [fileName, setFileName] = useState<string>()
   const [url, setUrl] = useState<string>()
   const { loading, loadSimulation } = useLoadSimulation()
-
-  const colorMap = useStoreState(state => state.colors.colorMap)
-  const particleTypes = Object.keys(colorMap).map( (particleType) => ({
-    particleType,
-    color: colorMap[particleType]
-  }))
 
   const onFileUploaded = useCallback((fileName: string, contents?: string, buffer?: ArrayBuffer) => {
     setFileName(fileName)
@@ -109,35 +93,11 @@ const App = () => {
     }
   }
 
-  const defaultSelectedKeys = simulationUrl === undefined ? ['example1'] : undefined
-
-  const ParticleTypes = ({subMenuKey}: {subMenuKey?: string}) => (
-    <List
-      itemLayout="horizontal"
-      dataSource={particleTypes}
-      renderItem={(particleType, index) => {
-        let color = `rgba(${particleType.color.r}, ${particleType.color.g}, ${particleType.color.b}, 1.0)`;
-        const onParticleTypeClicked = () => {
-          console.log("Clicked on ", particleType.particleType)
-        }
-        return (
-          <List.Item onClick={onParticleTypeClicked} style={{borderBottomWidth: 0}}>
-            <ParticleTypeContainer>
-              <div style={{ marginLeft: '1em', width: '2em', height: '2em', borderRadius: '50%', backgroundColor: color }} />
-              <div style={{marginTop: '0.3em', marginLeft: '1em'}}>
-                {particleType.particleType}
-              </div>
-            </ParticleTypeContainer>
-          </List.Item>
-        )
-      }}> </List>
-    )
-    
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider>
         <div className="logo" />
-        <Menu theme="dark" defaultOpenKeys={["examples", "particletypes"]} defaultSelectedKeys={defaultSelectedKeys} mode="inline">
+        <Menu theme="dark" defaultOpenKeys={["examples", "particletypes"]} mode="inline">
           <SubMenu key="examples" icon={<DotChartOutlined />} title="Examples">
             <Menu.Item key="example1" onClick={() => loadWater()} icon={<DotChartOutlined />}>
               Water molecule
@@ -148,7 +108,6 @@ const App = () => {
           </SubMenu>
           <SubMenu key="particletypes" title="Particle types">
             <ParticleTypes />
-            {/* {renderParticleTypes()} */}
           </SubMenu>
         </Menu>
       </Sider>
