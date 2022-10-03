@@ -15,7 +15,7 @@
     "@testing-library/user-event": "file:../node_modules/@testing-library/user-event",
     "@types/jest": "file:../node_modules/@types/jest",
     "@types/node": "file:../node_modules/@types/node",
-    "@types/react": "file:../node_modules/@types/react",
+    "@types/react": "^18.0.21",
     "@types/react-dom": "file:../node_modules/@types/react-dom",
     "@types/styled-components": "^5.1.9",
     "omovi": "file:..",
