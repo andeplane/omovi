@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import ComboControls from '@cognite/three-combo-controls'
+import ComboControls from '../controls'
 import { Material } from './materials'
 import DataTexture from './datatexture'
 import createMaterial from 'core/materials'
