@@ -115,6 +115,9 @@ class Particles {
 
   dispose = () => {
     this.geometry?.dispose()
+    this.positions = new Float32Array(0)
+    this.indices = new Float32Array(0)
+    this.radii = new Float32Array(0)
   }
 }
 

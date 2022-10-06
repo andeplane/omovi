@@ -219,6 +219,10 @@ export default class Visualizer {
     this.controls.setState(this.getCameraPosition(), target)
   }
 
+  setColor = (index: number, color: Color) => {
+    this.colorTexture.setRGBA(index, color.r, color.g, color.b);
+  }
+
   animate = () => {
     this.memoryStats.update()
     this.cpuStats.begin()

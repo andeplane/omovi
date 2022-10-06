@@ -46,6 +46,12 @@ const OMOVIVisualizer = ({
   })
   const prevParticles = prevParticlesRef.current
 
+  const prevColorsRef = useRef<Color[]>()
+  useEffect(() => {
+    prevColorsRef.current = colors
+  })
+  const prevColors = prevColorsRef.current
+
   const prevBondsRef = useRef<Bonds>()
   useEffect(() => {
     prevBondsRef.current = bonds
@@ -60,6 +66,13 @@ const OMOVIVisualizer = ({
     if (prevParticles && prevParticles !== particles) {
       visualizer.remove(prevParticles)
     }
+
+    if (prevColors && prevColors !== colors) {
+      colors?.forEach((color, index) => {
+        visualizer.setColor(index, color)
+      })
+    }
+
     if (particles) {
       visualizer.add(particles)
     }
