@@ -15,7 +15,7 @@ class Particles {
   count: number
   capacity: number
   geometry?: THREE.InstancedBufferGeometry
-
+  baseGeometry?: THREE.PlaneBufferGeometry
   constructor(capacity: number) {
     this.id = uuid()
     this.types = []
@@ -81,13 +81,13 @@ class Particles {
       return this.geometry
     }
 
-    const baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
+    this.baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
     this.geometry = new THREE.InstancedBufferGeometry()
 
     this.geometry.instanceCount = this.count
-    this.geometry.setIndex(baseGeometry.getIndex())
-    this.geometry.setAttribute('position', baseGeometry.getAttribute('position'))
-    this.geometry.setAttribute('normal', baseGeometry.getAttribute('normal'))
+    this.geometry.setIndex(this.baseGeometry.getIndex())
+    this.geometry.setAttribute('position', this.baseGeometry.getAttribute('position'))
+    this.geometry.setAttribute('normal', this.baseGeometry.getAttribute('normal'))
     this.geometry.setAttribute(
       'particlePosition',
       new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
@@ -114,6 +114,7 @@ class Particles {
   }
 
   dispose = () => {
+    this.baseGeometry?.dispose()
     this.geometry?.dispose()
     this.positions = new Float32Array(0)
     this.indices = new Float32Array(0)
