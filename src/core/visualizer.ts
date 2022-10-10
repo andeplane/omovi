@@ -112,7 +112,7 @@ export default class Visualizer {
 
     this.materials = {}
     this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture)
-    this.materials['bonds'] = createMaterial('bonds', particleVertexShader, particleFragmentShader, this.colorTexture)
+    this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture)
 
     this.animate()
   }
