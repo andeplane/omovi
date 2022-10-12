@@ -116,8 +116,21 @@ class Bonds {
     return this.geometry
   }
 
+  markNeedsUpdate = () => {
+    if (this.geometry) {
+      Object.values(this.geometry.attributes).forEach((attribute) => {
+        attribute.needsUpdate = true
+      })
+      this.geometry.instanceCount = this.count
+    }
+  }
+
   dispose = () => {
     this.geometry?.dispose()
+    this.indices = new Float32Array(0)
+    this.radii = new Float32Array(0)
+    this.positions1 = new Float32Array(0)
+    this.positions2 = new Float32Array(0)
   }
 }
 
