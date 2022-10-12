@@ -232,6 +232,11 @@ export default class Visualizer {
     this.updateUniforms(this.camera)
     this.renderer.render(this.scene, this.camera)
     this.cpuStats.end()
+    this.object.children.forEach(child => {
+      if (child instanceof THREE.InstancedMesh) {
+        child.count = child.geometry.instanceCount
+      }
+    })
 
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
     this.forceRender = false
