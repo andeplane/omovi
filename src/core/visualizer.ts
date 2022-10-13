@@ -132,7 +132,8 @@ export default class Visualizer {
 
     const geometry = object.getGeometry()
     const mesh = new THREE.InstancedMesh(geometry, material, object.count)
-
+    
+    object.mesh = mesh
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < object.count; i++) {
       mesh.setMatrixAt(i, matrix)
@@ -232,11 +233,6 @@ export default class Visualizer {
     this.updateUniforms(this.camera)
     this.renderer.render(this.scene, this.camera)
     this.cpuStats.end()
-    this.object.children.forEach(child => {
-      if (child instanceof THREE.InstancedMesh) {
-        child.count = child.geometry.instanceCount
-      }
-    })
 
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
     this.forceRender = false

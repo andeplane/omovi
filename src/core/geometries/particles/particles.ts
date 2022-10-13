@@ -16,6 +16,8 @@ class Particles {
   capacity: number
   geometry?: THREE.InstancedBufferGeometry
   baseGeometry?: THREE.PlaneBufferGeometry
+  mesh?: THREE.Mesh
+
   constructor(capacity: number) {
     this.id = uuid()
     this.types = []
@@ -109,7 +111,6 @@ class Particles {
       Object.values(this.geometry.attributes).forEach((attribute) => {
         attribute.needsUpdate = true
       })
-      this.geometry.instanceCount = this.count
     }
   }
 
