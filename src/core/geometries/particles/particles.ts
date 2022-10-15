@@ -90,17 +90,25 @@ class Particles {
     this.geometry.setIndex(this.baseGeometry.getIndex())
     this.geometry.setAttribute('position', this.baseGeometry.getAttribute('position'))
     this.geometry.setAttribute('normal', this.baseGeometry.getAttribute('normal'))
+    const positionAttribute = new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
+    positionAttribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(
       'particlePosition',
-      new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
+      positionAttribute
     )
+
+    const particleRadiusAttribute = new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
+    particleRadiusAttribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(
       'particleRadius',
-      new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
+      particleRadiusAttribute
     )
+    
+    const particleIndexAttribute = new THREE.InstancedBufferAttribute(this.indices, 1, false, 1)
+    particleIndexAttribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(
       'particleIndex',
-      new THREE.InstancedBufferAttribute(this.indices, 1, false, 1)
+      particleIndexAttribute
     )
 
     return this.geometry

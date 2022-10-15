@@ -99,19 +99,25 @@ class Bonds {
     this.geometry.setAttribute('position', positionBufferAttribute)
     this.geometry.setAttribute('normal', positionBufferAttribute)
 
+    const position1Attribute = new THREE.InstancedBufferAttribute(this.positions1, 3, false, 1)
+    position1Attribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(
       'position1',
-      new THREE.InstancedBufferAttribute(this.positions1, 3, false, 1)
+      position1Attribute
     )
 
+    const position2Attribute = new THREE.InstancedBufferAttribute(this.positions2, 3, false, 1)
+    position2Attribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(
       'position2',
-      new THREE.InstancedBufferAttribute(this.positions2, 3, false, 1)
+      position2Attribute
     )
 
+    const bondRadiusAttribute = new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
+    bondRadiusAttribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(
       'bondRadius',
-      new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
+      bondRadiusAttribute
     )
 
     return this.geometry
