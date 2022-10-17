@@ -81,7 +81,7 @@ export default class Visualizer {
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
 
-    this.renderer = new OMOVIRenderer({ alpha: false, highlightColor: new THREE.Color(0, 0, 1) })
+    this.renderer = new OMOVIRenderer({ alpha: false, ssao: true })
     this.canvas = this.renderer.getRawRenderer().domElement
     this.domElement = domElement
     this.domElement.appendChild(this.canvas)
@@ -159,8 +159,8 @@ export default class Visualizer {
     directionalLight: THREE.DirectionalLight,
     scene: THREE.Scene
   ) => {
-    ambientLight.intensity = 0.3
-    directionalLight.intensity = 0.7
+    ambientLight.intensity = 0.5
+    directionalLight.intensity = 0.4
     scene.add(directionalLight)
     scene.add(ambientLight)
   }

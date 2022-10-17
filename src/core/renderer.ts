@@ -38,10 +38,8 @@ export default class OMOVIRenderer {
   onBeforeSelectRender: () => void;
   onAfterRender: () => void;
   private alpha: boolean;
-  private highlightColor: THREE.Color;
   private renderer: THREE.WebGLRenderer;
   private modelTarget: THREE.WebGLRenderTarget;
-  private selectedTarget: THREE.WebGLRenderTarget;
   private screenshotTarget: THREE.WebGLRenderTarget;
   private rttTarget: THREE.WebGLRenderTarget;
   private ssaoTarget: THREE.WebGLRenderTarget;
@@ -51,15 +49,15 @@ export default class OMOVIRenderer {
   private rttUniforms: any;
   private antiAliasScene: THREE.Scene;
   private antiAliasUniforms: any;
+  private renderSsao: boolean
   private ssaoScene: THREE.Scene;
   private ssaoUniforms: any;
   private ssaoFinalScene: THREE.Scene;
   private ssaoFinalUniforms: any;
 
-  constructor(options: { alpha: boolean; highlightColor: THREE.Color }) {
-    const { alpha, highlightColor } = options;
+  constructor(options: { alpha: boolean; ssao: boolean }) {
+    const { alpha, ssao } = options;
     this.alpha = alpha;
-    this.highlightColor = highlightColor;
     this.renderer = new THREE.WebGLRenderer({ alpha });
     this.renderer.localClippingEnabled = true;
 
@@ -67,10 +65,6 @@ export default class OMOVIRenderer {
     this.modelTarget.depthBuffer = true;
     this.modelTarget.depthTexture = new THREE.DepthTexture(0, 0); // size will be set by the first render
     this.modelTarget.depthTexture.type = THREE.UnsignedIntType;
-
-    this.selectedTarget = new THREE.WebGLRenderTarget(0, 0); // adjust size later
-    this.selectedTarget.depthBuffer = true;
-    this.selectedTarget.stencilBuffer = false;
 
     this.screenshotTarget = new THREE.WebGLRenderTarget(0, 0); // adjust size later
     this.screenshotTarget.depthBuffer = false;
@@ -85,6 +79,7 @@ export default class OMOVIRenderer {
     this.ssaoFinalTarget = new THREE.WebGLRenderTarget(0, 0); // adjust size later
     this.ssaoFinalTarget.depthBuffer = false;
     this.ssaoFinalTarget.stencilBuffer = false;
+    this.renderSsao = ssao
 
     this.GUIScene = new THREE.Scene();
 
@@ -113,7 +108,6 @@ export default class OMOVIRenderer {
     this.renderer.dispose();
     this.modelTarget.depthTexture.dispose();
     this.modelTarget.dispose();
-    this.selectedTarget.dispose();
     this.screenshotTarget.dispose();
     this.rttTarget.dispose();
     this.ssaoTarget.dispose();
@@ -127,9 +121,7 @@ export default class OMOVIRenderer {
   createRTTScene(): SceneInfo {
     const uniforms = {
       tBase: { value: this.modelTarget.texture },
-      tSelected: { value: this.selectedTarget.texture },
       texelSize: { value: new THREE.Vector2() },
-      uHighlightColor: { value: this.highlightColor }
     };
     const scene = setupRenderingPass({
       uniforms,
@@ -160,9 +152,9 @@ export default class OMOVIRenderer {
       cameraNear: { value: 0 }, // set during rendering
       cameraFar: { value: 0 }, // set during rendering
       radius: { value: 6 },
-      onlyAO: { value: true },
-      aoClamp: { value: 0.25 },
-      lumInfluence: { value: 0.7 }
+      onlyAO: { value: false },
+      aoClamp: { value: 0.5 },
+      lumInfluence: { value: 1.5 }
     };
     const scene = setupRenderingPass({
       uniforms,
@@ -190,7 +182,6 @@ export default class OMOVIRenderer {
     this.renderer.setSize(width, height, false);
 
     this.modelTarget.setSize(width, height);
-    this.selectedTarget.setSize(width, height);
     this.screenshotTarget.setSize(width, height);
     this.rttTarget.setSize(width, height);
     this.rttUniforms.texelSize.value.set(1.75 / width, 1.75 / height);
@@ -259,19 +250,19 @@ export default class OMOVIRenderer {
     this.renderer.setRenderTarget(this.modelTarget);
     this.renderer.render(scene, camera);
     this.onBeforeSelectRender();
-    // this.renderer.setRenderTarget(this.selectedTarget);
-    // this.renderer.render(scene, camera);
 
-    this.renderer.setRenderTarget(this.rttTarget);
+    this.renderer.setRenderTarget(this.renderSsao ? this.rttTarget : this.ssaoFinalTarget);
     this.renderer.render(this.rttScene, quadCamera);
 
     // ssao
-    this.ssaoUniforms.cameraNear.value = camera.near;
-    this.ssaoUniforms.cameraFar.value = camera.far;
-    this.renderer.setRenderTarget(this.ssaoTarget);
-    this.renderer.render(this.ssaoScene, quadCamera);
-    this.renderer.setRenderTarget(this.ssaoFinalTarget);
-    this.renderer.render(this.ssaoFinalScene, quadCamera);
+    if (this.renderSsao) {
+      this.ssaoUniforms.cameraNear.value = camera.near;
+      this.ssaoUniforms.cameraFar.value = camera.far;
+      this.renderer.setRenderTarget(this.ssaoTarget);
+      this.renderer.render(this.ssaoScene, quadCamera);
+      this.renderer.setRenderTarget(this.ssaoFinalTarget);
+      this.renderer.render(this.ssaoFinalScene, quadCamera);
+    }
 
     // antialias
     this.renderer.setRenderTarget(target ? target : null);
