@@ -20,6 +20,19 @@ const modelViewMatrix = new THREE.Matrix4()
 const normalMatrix = new THREE.Matrix3()
 const inverseNormalMatrix = new THREE.Matrix3()
 
+const v1 = new THREE.Vector3()
+const v2 = new THREE.Vector3()
+
+const makePerpendicular = (v: THREE.Vector3, t: THREE.Vector3) => {
+  if(v.x == 0.0 && v.y == 0.0) {
+    if(v.z == 0.0) {
+        return t.set(0.0, 0.0, 0.0);
+    }
+    return t.set(0.0, 1.0, 0.0);
+  }
+  return t.set(-v.y, v.x, 0.0).normalize();
+}
+
 const adjustCamera = (
   camera: THREE.PerspectiveCamera,
   width: number,
@@ -90,6 +103,16 @@ export default class Visualizer {
     this.controls = new ComboControls(this.camera, this.canvas)
     this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
       const { position, target } = event.camera
+      this.directionalLight.target.position.set(target.x, target.y, target.z)
+      
+      v2.copy(target).sub(position)
+      makePerpendicular(v2, v1)
+      v2.cross(v1)
+      v1.normalize().multiplyScalar(4.0)
+      v2.normalize().multiplyScalar(4.0)
+      
+      this.directionalLight.position.set(position.x, position.y, position.z).add(v1).add(v2)
+      
       if (onCameraChanged) {
         onCameraChanged(position, target)
       }
@@ -116,6 +139,10 @@ export default class Visualizer {
     this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture)
     
     this.animate()
+    //@ts-ignore
+    window.visualizer = this
+    //@ts-ignore
+    window.THREE = THREE
   }
 
   add = (object: Particles | Bonds) => {
