@@ -9,6 +9,7 @@ import bondFragmentShader from 'core/geometries/bonds/shaders/fragment'
 import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
+import OMOVIRenderer from 'core/renderer'
 import { Color } from 'core/types'
 
 // @ts-ignore
@@ -37,7 +38,7 @@ interface VisualizerProps {
 }
 
 export default class Visualizer {
-  private renderer: THREE.WebGLRenderer
+  private renderer: OMOVIRenderer
   private canvas: HTMLCanvasElement
   public scene: THREE.Scene
   public forceRender: boolean
@@ -59,13 +60,6 @@ export default class Visualizer {
   private latestRequestId?: number
 
   constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps) {
-    this.renderer = new THREE.WebGLRenderer()
-
-    this.canvas = this.renderer.domElement
-    this.domElement = domElement
-    this.domElement.appendChild(this.canvas)
-    this.setupCanvas(this.canvas)
-
     this.scene = new THREE.Scene()
     this.forceRender = false
     this.cachedMeshes = {}
@@ -86,6 +80,13 @@ export default class Visualizer {
 
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
+
+    this.renderer = new OMOVIRenderer({ alpha: false, highlightColor: new THREE.Color(0, 0, 1) })
+    this.canvas = this.renderer.getRawRenderer().domElement
+    this.domElement = domElement
+    this.domElement.appendChild(this.canvas)
+    this.setupCanvas(this.canvas)
+
     this.controls = new ComboControls(this.camera, this.canvas)
     this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
       const { position, target } = event.camera
@@ -113,7 +114,7 @@ export default class Visualizer {
     this.materials = {}
     this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture)
     this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture)
-
+    
     this.animate()
   }
 
@@ -244,7 +245,7 @@ export default class Visualizer {
     // TODO Increase maxTextureSize if SSAO performance is improved
     const maxTextureSize = 1.4e6
 
-    const rendererSize = this.renderer.getSize(new THREE.Vector2())
+    const rendererSize = this.renderer.getSize()
     const rendererPixelWidth = rendererSize.width
     const rendererPixelHeight = rendererSize.height
 
