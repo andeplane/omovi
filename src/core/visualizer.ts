@@ -9,8 +9,11 @@ import bondFragmentShader from 'core/geometries/bonds/shaders/fragment'
 import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
+import BaseMesh from './basemesh'
 import OMOVIRenderer from 'core/renderer'
+import ColorPicker from 'core/colorpicker'
 import { Color } from 'core/types'
+import ViewCube from '../helpers/ViewCube/ViewCube';
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -47,23 +50,27 @@ const adjustCamera = (
 interface VisualizerProps {
   domElement: HTMLElement
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+  onClick?: ()
   initialColors?: Color[]
 }
 
 export default class Visualizer {
   private renderer: OMOVIRenderer
   private canvas: HTMLCanvasElement
+  public idle: boolean
   public scene: THREE.Scene
   public forceRender: boolean
   private cachedMeshes: {[key: string]: THREE.Mesh}
   private camera: THREE.PerspectiveCamera
   private ambientLight: THREE.AmbientLight
   private directionalLight: THREE.DirectionalLight
+  private pointLight: THREE.PointLight
   private controls: ComboControls
   private clock: THREE.Clock
   private domElement: HTMLElement
   private object: THREE.Object3D
   private stats: Stats
+  private colorpicker: ColorPicker
   private cpuStats: Stats
   private memoryStats: Stats
   private colorTexture: DataTexture
@@ -76,10 +83,13 @@ export default class Visualizer {
     this.scene = new THREE.Scene()
     this.forceRender = false
     this.cachedMeshes = {}
+    this.idle = false
 
     this.ambientLight = new THREE.AmbientLight(0xffffff)
     this.directionalLight = new THREE.DirectionalLight(0xffffff)
-    this.setupLights(this.ambientLight, this.directionalLight, this.scene)
+    this.pointLight = new THREE.PointLight( 0xffffff, 0.5, 150 )
+
+    this.setupLights(this.ambientLight, this.directionalLight, this.pointLight, this.scene)
 
     this.colorTexture = new DataTexture('colorTexture', 4096*4096, () => {
       this.forceRender = true
@@ -95,6 +105,7 @@ export default class Visualizer {
     this.setupCamera(this.camera)
 
     this.renderer = new OMOVIRenderer({ alpha: false, ssao: true })
+    // this.renderer.addGUIComponent(new ViewCube('bottomleft'));
     this.canvas = this.renderer.getRawRenderer().domElement
     this.domElement = domElement
     this.domElement.appendChild(this.canvas)
@@ -104,6 +115,7 @@ export default class Visualizer {
     this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
       const { position, target } = event.camera
       this.directionalLight.target.position.set(target.x, target.y, target.z)
+      this.pointLight.position.set(position.x, position.y, position.z)
       
       v2.copy(target).sub(position)
       makePerpendicular(v2, v1)
@@ -122,6 +134,7 @@ export default class Visualizer {
     this.clock = new THREE.Clock()
     this.object = new THREE.Object3D()
     this.scene.add(this.object)
+    this.colorpicker = new ColorPicker(this.object)
 
     this.cpuStats = new Stats()
     this.memoryStats = new Stats()
@@ -151,7 +164,7 @@ export default class Visualizer {
       return
     }
 
-    let material: THREE.Material
+    let material: Material
     if (object instanceof Particles) {
       material = this.materials['particles']
     } else {
@@ -159,8 +172,9 @@ export default class Visualizer {
     }
 
     const geometry = object.getGeometry()
-    const mesh = new THREE.InstancedMesh(geometry, material, object.count)
-    
+    const mesh = new BaseMesh(geometry, material, object.count)
+    this.colorpicker.makeObjectPickable(mesh)
+
     object.mesh = mesh
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < object.count; i++) {
@@ -184,12 +198,14 @@ export default class Visualizer {
   setupLights = (
     ambientLight: THREE.AmbientLight,
     directionalLight: THREE.DirectionalLight,
+    pointLight: THREE.PointLight,
     scene: THREE.Scene
   ) => {
     ambientLight.intensity = 0.5
-    directionalLight.intensity = 0.4
+    directionalLight.intensity = 0.0
     scene.add(directionalLight)
     scene.add(ambientLight)
+    scene.add(pointLight)
   }
 
   setupCanvas = (canvas: HTMLCanvasElement) => {
@@ -252,18 +268,36 @@ export default class Visualizer {
     this.colorTexture.setRGBA(index, color.r, color.g, color.b);
   }
 
+  getIntersectionFromPixel = (x: number, y: number) => {
+    const {
+      width: rendererWidth,
+      height: rendererHeight,
+    } = this.renderer.getSize();
+
+    x = (x * rendererWidth) / this.canvas.clientWidth;
+    y = (y * rendererHeight) / this.canvas.clientHeight;
+
+    const rawRenderer = this.renderer.getRawRenderer();
+    const intersectedParticleIndex = this.colorpicker.getIntersectedParticleIndexFromPixel(this.camera, rawRenderer, x, y);
+    return this.colorpicker.getIntersectedParticleIndexFromPixel(this.camera, rawRenderer, x, y);
+  };
+
   animate = () => {
-    this.memoryStats.update()
-    this.cpuStats.begin()
-    this.resizeIfNeeded()
-    this.controls.update(this.clock.getDelta())
+    if (!this.idle) {
+      this.memoryStats.update()
+      this.cpuStats.begin()
+      this.resizeIfNeeded()
+      this.controls.update(this.clock.getDelta())
 
-    this.updateUniforms(this.camera)
-    this.renderer.render(this.scene, this.camera)
-    this.cpuStats.end()
 
+      this.updateUniforms(this.camera)
+      this.renderer.render(this.scene, this.camera)
+      this.cpuStats.end()
+      
+      this.forceRender = false
+    }
+    
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
-    this.forceRender = false
   }
 
   resizeIfNeeded = () => {

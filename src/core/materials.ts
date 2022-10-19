@@ -9,9 +9,23 @@ export interface Extensions {
   fragDepth?: boolean
 }
 
+export interface Defines {
+  [name: string]: string;
+}
+
+export function addDefinitionToMaterial(material: Material, define: string) {
+  material.defines[define] = '';
+}
+
+export function removeDefinitionFromMaterial(material: Material, define: string) {
+  delete material.defines[define];
+}
+
+
 class Material extends THREE.MeshPhongMaterial {
-  materialType: string
   uniforms: Uniforms
+  materialType: string
+  defines: Defines;
   extensions: Extensions
 
   constructor(
