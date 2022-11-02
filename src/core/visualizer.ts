@@ -9,7 +9,6 @@ import bondFragmentShader from 'core/geometries/bonds/shaders/fragment'
 import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
-import OMOVIRenderer from 'core/renderer'
 import { Color } from 'core/types'
 
 // @ts-ignore
@@ -51,14 +50,15 @@ interface VisualizerProps {
 }
 
 export default class Visualizer {
-  private renderer: OMOVIRenderer
+  private renderer: THREE.WebGLRenderer
   private canvas: HTMLCanvasElement
+  idle: boolean
   public scene: THREE.Scene
   public forceRender: boolean
   private cachedMeshes: {[key: string]: THREE.Mesh}
   private camera: THREE.PerspectiveCamera
   private ambientLight: THREE.AmbientLight
-  private directionalLight: THREE.DirectionalLight
+  private pointLight: THREE.PointLight
   private controls: ComboControls
   private clock: THREE.Clock
   private domElement: HTMLElement
@@ -73,13 +73,22 @@ export default class Visualizer {
   private latestRequestId?: number
 
   constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps) {
+    this.renderer = new THREE.WebGLRenderer()
+    this.idle = false
+
+    this.canvas = this.renderer.domElement
+    this.domElement = domElement
+    this.domElement.appendChild(this.canvas)
+    this.setupCanvas(this.canvas)
+
     this.scene = new THREE.Scene()
     this.forceRender = false
     this.cachedMeshes = {}
 
-    this.ambientLight = new THREE.AmbientLight(0xffffff)
-    this.directionalLight = new THREE.DirectionalLight(0xffffff)
-    this.setupLights(this.ambientLight, this.directionalLight, this.scene)
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+    this.pointLight = new THREE.PointLight(0xffffff, 0.5, 150, 1)
+    this.scene.add(this.ambientLight)
+    this.scene.add(this.pointLight)
 
     this.colorTexture = new DataTexture('colorTexture', 4096*4096, () => {
       this.forceRender = true
@@ -93,25 +102,11 @@ export default class Visualizer {
 
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
-
-    this.renderer = new OMOVIRenderer({ alpha: false, ssao: true })
-    this.canvas = this.renderer.getRawRenderer().domElement
-    this.domElement = domElement
-    this.domElement.appendChild(this.canvas)
-    this.setupCanvas(this.canvas)
-
     this.controls = new ComboControls(this.camera, this.canvas)
     this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
       const { position, target } = event.camera
-      this.directionalLight.target.position.set(target.x, target.y, target.z)
       
-      v2.copy(target).sub(position)
-      makePerpendicular(v2, v1)
-      v2.cross(v1)
-      v1.normalize().multiplyScalar(4.0)
-      v2.normalize().multiplyScalar(4.0)
-      
-      this.directionalLight.position.set(position.x, position.y, position.z).add(v1).add(v2)
+      this.pointLight.position.set(position.x, position.y, position.z)
       
       if (onCameraChanged) {
         onCameraChanged(position, target)
@@ -137,7 +132,7 @@ export default class Visualizer {
     this.materials = {}
     this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture)
     this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture)
-    
+
     this.animate()
     //@ts-ignore
     window.visualizer = this
@@ -179,17 +174,6 @@ export default class Visualizer {
       return
     }
     throw new Error("Tried to remove object that never was added to the scene.")
-  }
-
-  setupLights = (
-    ambientLight: THREE.AmbientLight,
-    directionalLight: THREE.DirectionalLight,
-    scene: THREE.Scene
-  ) => {
-    ambientLight.intensity = 0.5
-    directionalLight.intensity = 0.4
-    scene.add(directionalLight)
-    scene.add(ambientLight)
   }
 
   setupCanvas = (canvas: HTMLCanvasElement) => {
@@ -253,17 +237,19 @@ export default class Visualizer {
   }
 
   animate = () => {
-    this.memoryStats.update()
-    this.cpuStats.begin()
-    this.resizeIfNeeded()
-    this.controls.update(this.clock.getDelta())
+    if (!this.idle) {
+      this.memoryStats.update()
+      this.cpuStats.begin()
+      this.resizeIfNeeded()
+      this.controls.update(this.clock.getDelta())
 
-    this.updateUniforms(this.camera)
-    this.renderer.render(this.scene, this.camera)
-    this.cpuStats.end()
+      this.updateUniforms(this.camera)
+      this.renderer.render(this.scene, this.camera)
+      this.cpuStats.end()
 
+      this.forceRender = false
+    }
     this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
-    this.forceRender = false
   }
 
   resizeIfNeeded = () => {
@@ -272,7 +258,7 @@ export default class Visualizer {
     // TODO Increase maxTextureSize if SSAO performance is improved
     const maxTextureSize = 1.4e6
 
-    const rendererSize = this.renderer.getSize()
+    const rendererSize = this.renderer.getSize(new THREE.Vector2())
     const rendererPixelWidth = rendererSize.width
     const rendererPixelHeight = rendererSize.height
 
