@@ -181,8 +181,8 @@ export default class OMOVIRenderer {
       tDepth: { value: this.modelTarget.depthTexture },
       tDiffuse: { value: this.rttTarget.texture },
       size: { value: new THREE.Vector2() },
-      sampleRadius: {value: 1},
-      bias: {value: 0.0125},
+      sampleRadius: {value: 5},
+      bias: {value: 0.5},
       kernel: {value: this.createKernel(defines.MAX_KERNEL_SIZE) },
       projMatrix: { value: new THREE.Matrix4() },
       inverseProjectionMatrix: { value: new THREE.Matrix4() },
@@ -297,13 +297,13 @@ export default class OMOVIRenderer {
     if (this.renderSsao) {
       this.renderer.setRenderTarget(this.ssaoTarget);
       this.renderer.render(this.ssaoScene, quadCamera);
-      this.renderer.setRenderTarget(this.ssaoFinalTarget);
+      this.renderer.setRenderTarget(null);
       this.renderer.render(this.ssaoFinalScene, quadCamera);
     }
 
     // antialias
-    this.renderer.setRenderTarget(target ? target : null);
-    this.renderer.render(this.antiAliasScene, quadCamera);
+    // this.renderer.setRenderTarget(target ? target : null);
+    // this.renderer.render(this.antiAliasScene, quadCamera);
 
     // gui
     this.renderer.autoClear = false;
