@@ -10,6 +10,7 @@ import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
 import { Color } from 'core/types'
+import OMOVIRenderer from 'core/renderer'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -50,7 +51,7 @@ interface VisualizerProps {
 }
 
 export default class Visualizer {
-  private renderer: THREE.WebGLRenderer
+  private renderer: OMOVIRenderer
   private canvas: HTMLCanvasElement
   idle: boolean
   public scene: THREE.Scene
@@ -73,10 +74,13 @@ export default class Visualizer {
   private latestRequestId?: number
 
   constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps) {
-    this.renderer = new THREE.WebGLRenderer()
+    this.renderer = new OMOVIRenderer({
+      alpha: false,
+      ssao: true
+    })
     this.idle = false
 
-    this.canvas = this.renderer.domElement
+    this.canvas = this.renderer.getRawRenderer().domElement
     this.domElement = domElement
     this.domElement.appendChild(this.canvas)
     this.setupCanvas(this.canvas)
@@ -258,7 +262,7 @@ export default class Visualizer {
     // TODO Increase maxTextureSize if SSAO performance is improved
     const maxTextureSize = 1.4e6
 
-    const rendererSize = this.renderer.getSize(new THREE.Vector2())
+    const rendererSize = this.renderer.getSize()
     const rendererPixelWidth = rendererSize.width
     const rendererPixelHeight = rendererSize.height
 

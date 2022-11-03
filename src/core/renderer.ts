@@ -11,10 +11,11 @@ interface SceneInfo {
   uniforms: any;
 }
 
-function setupRenderingPass(options: { uniforms: any; vertexShader: string; fragmentShader: string }): THREE.Scene {
+function setupRenderingPass(options: { uniforms: any; defines: any, vertexShader: string; fragmentShader: string }): {scene: THREE.Scene, material: THREE.Material} {
   const scene = new THREE.Scene();
   const material = new THREE.ShaderMaterial({
     uniforms: options.uniforms,
+    defines: options.defines,
     vertexShader: options.vertexShader,
     fragmentShader: options.fragmentShader,
     depthWrite: false
@@ -22,7 +23,7 @@ function setupRenderingPass(options: { uniforms: any; vertexShader: string; frag
   const quad = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), material);
   quad.frustumCulled = false;
   scene.add(quad);
-  return scene;
+  return {scene, material};
 }
 
 function getBlob(canvas: HTMLCanvasElement): Promise<any> {
@@ -123,8 +124,9 @@ export default class OMOVIRenderer {
       tBase: { value: this.modelTarget.texture },
       texelSize: { value: new THREE.Vector2() },
     };
-    const scene = setupRenderingPass({
+    const {scene, material} = setupRenderingPass({
       uniforms,
+      defines: {},
       vertexShader: rttVertex,
       fragmentShader: rttFragment
     });
@@ -136,28 +138,59 @@ export default class OMOVIRenderer {
       tDiffuse: { value: this.ssaoFinalTarget.texture },
       resolution: { value: new THREE.Vector2() }
     };
-    const scene = setupRenderingPass({
+    const {scene, material} = setupRenderingPass({
       uniforms,
+      defines: {},
       vertexShader: antialiasVertex,
       fragmentShader: antialiasFragment
     });
     return { scene, uniforms };
   }
 
+  createKernel(kernelSize: number): THREE.Vector3[] {
+    const result: THREE.Vector3[] = [];
+    for (let i = 0; i < kernelSize; i++) {
+      const sample = new THREE.Vector3();
+      while (sample.length() < 1.0) {
+        // Ensure some distance in samples
+        sample.x = Math.random() * 2 - 1;
+        sample.y = Math.random() * 2 - 1;
+        sample.z = Math.random();
+      }
+      sample.normalize();
+      let scale = i / kernelSize;
+      scale = lerp(0.1, 1, scale * scale);
+      sample.multiplyScalar(scale);
+      result.push(sample);
+    }
+    return result;
+
+    function lerp(value1: number, value2: number, amount: number) {
+      amount = amount < 0 ? 0 : amount;
+      amount = amount > 1 ? 1 : amount;
+      return value1 + (value2 - value1) * amount;
+    }
+  }
+
   createSSAOScene(): SceneInfo {
+    const defines = {
+      MAX_KERNEL_SIZE: 32
+    }
+    
     const uniforms = {
-      tDiffuse: { value: this.rttTarget.texture },
       tDepth: { value: this.modelTarget.depthTexture },
+      tDiffuse: { value: this.rttTarget.texture },
       size: { value: new THREE.Vector2() },
-      cameraNear: { value: 0 }, // set during rendering
-      cameraFar: { value: 0 }, // set during rendering
-      radius: { value: 6 },
-      onlyAO: { value: false },
-      aoClamp: { value: 0.5 },
-      lumInfluence: { value: 1.5 }
+      sampleRadius: {value: 1},
+      bias: {value: 0.0125},
+      kernel: {value: this.createKernel(defines.MAX_KERNEL_SIZE) },
+      projMatrix: { value: new THREE.Matrix4() },
+      inverseProjectionMatrix: { value: new THREE.Matrix4() },
     };
-    const scene = setupRenderingPass({
+    
+    const {scene, material} = setupRenderingPass({
       uniforms,
+      defines,
       vertexShader: passThroughVertex,
       fragmentShader: ssao
     });
@@ -170,11 +203,14 @@ export default class OMOVIRenderer {
       ssaoTexture: { value: this.ssaoTarget.texture },
       size: { value: new THREE.Vector2() }
     };
-    const scene = setupRenderingPass({
+    
+    const {scene, material} = setupRenderingPass({
       uniforms,
+      defines: {},
       vertexShader: passThroughVertex,
       fragmentShader: ssaoFinal
     });
+    
     return { scene, uniforms };
   }
 
@@ -246,6 +282,9 @@ export default class OMOVIRenderer {
   }
 
   render(scene: THREE.Scene, camera: THREE.PerspectiveCamera | THREE.OrthographicCamera, target?: THREE.RenderTarget) {
+    this.ssaoUniforms.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
+    this.ssaoUniforms.projMatrix.value = camera.projectionMatrix;
+    
     this.onBeforeModelRender();
     this.renderer.setRenderTarget(this.modelTarget);
     this.renderer.render(scene, camera);
@@ -256,8 +295,6 @@ export default class OMOVIRenderer {
 
     // ssao
     if (this.renderSsao) {
-      this.ssaoUniforms.cameraNear.value = camera.near;
-      this.ssaoUniforms.cameraFar.value = camera.far;
       this.renderer.setRenderTarget(this.ssaoTarget);
       this.renderer.render(this.ssaoScene, quadCamera);
       this.renderer.setRenderTarget(this.ssaoFinalTarget);

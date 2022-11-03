@@ -1,139 +1,107 @@
 export const ssao = `
-uniform float cameraNear;
-uniform float cameraFar;
-#ifdef USE_LOGDEPTHBUF
-  uniform float logDepthBufFC;
-#endif
 
-uniform float radius;    // ao radius
-uniform bool onlyAO;     // use only ambient occlusion pass?
+// From http://www.science-and-fiction.org/rendering/noise.html
+float rand2d(vec2 co){
+    return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
+}
 
-uniform vec2 size;       // texture width, height
-uniform float aoClamp;   // depth clamp - reduces haloing at screen edges
-
-uniform float lumInfluence; // how much luminance affects occlusion
-
+uniform mat4 projMatrix;
+uniform mat4 inverseProjectionMatrix;
+uniform vec3 kernel[MAX_KERNEL_SIZE];
+uniform sampler2D tDepth;
 uniform sampler2D tDiffuse;
-uniform highp sampler2D tDepth;
+uniform float sampleRadius;
+uniform float bias;
 
-varying vec2 vUv;
+in vec2 vUv;
 
-#define DL 2.399963229728653 // PI * ( 3.0 - sqrt( 5.0 ) )
-#define EULER 2.718281828459045
+vec3 viewPosFromDepth(float depth, vec2 uv) {
+  // Depth to clip space: [0, 1] -> [-1, 1]
+  float z = depth * 2.0 - 1.0;
 
-// user variables
+  // Fragment in clip space
+  vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, z, 1.0);
+  vec4 viewSpacePosition = inverseProjectionMatrix * clipSpacePosition;
 
-const int samples = 12;   // ao sample count
+  // Perspective division
+  viewSpacePosition /= viewSpacePosition.w;
 
-const bool useNoise = true;     // use noise instead of pattern for sample dithering
-const float noiseAmount = 0.0004;// dithering amount
-
-const float diffArea = 0.4;  // self-shadowing reduction
-const float gDisplace = 0.4; // gauss bell center
-
-
-// RGBA depth
-
-#include <packing>
-
-// generating noise / pattern texture for dithering
-
-vec2 rand( const vec2 coord ) {
-  vec2 noise;
-  if (useNoise) {
-    float nx = dot(coord, vec2(12.9898, 78.233));
-    float ny = dot(coord, vec2(12.9898, 78.233) * 2.0);
-    noise = clamp(fract ( 43758.5453 * sin( vec2( nx, ny ) ) ), 0.0, 1.0);
-  } else {
-    float ff = fract( 1.0 - coord.s * ( size.x / 2.0 ) );
-    float gg = fract( coord.t * ( size.y / 2.0 ) );
-    noise = vec2( 0.25, 0.75 ) * vec2( ff ) + vec2( 0.75, 0.25 ) * gg;
-  }
-  return ( noise * 2.0  - 1.0 ) * noiseAmount;
+  return viewSpacePosition.xyz;
 }
 
-float readDepth( vec2 coord ) {
-  float fragCoordZ = texture2D( tDepth, coord ).x;
-  float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
-  return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
+vec3 computeWorldNormalFromDepth(sampler2D depthTexture, vec2 resolution, vec2 uv, float sampleDepth){
+  float dx = 1.0 / resolution.x;
+  float dy = 1.0 / resolution.y;
+
+  vec2 uv1 = uv + vec2(dx, 0.0); // right
+  float d1 = texture(depthTexture, uv1).r; 
+
+  vec2 uv2 = uv + vec2(0.0, dy);  // up
+  float d2 = texture(depthTexture, uv2).r;
+
+  vec2 uv3 = uv + vec2(-dx, 0.0); // left
+  float d3 = texture(depthTexture, uv3).r;
+
+  vec2 uv4 = uv + vec2(0.0, -dy);  // down
+  float d4 = texture(depthTexture, uv4).r;
+
+  bool horizontalSampleCondition = abs(d1 - sampleDepth) < abs(d3 - sampleDepth);
+
+  float horizontalSampleDepth = horizontalSampleCondition ? d1 : d3;
+  vec2 horizontalSampleUv = horizontalSampleCondition ? uv1 : uv3;
+
+  bool verticalSampleCondition = abs(d2 - sampleDepth) < abs(d4 - sampleDepth);
+
+  float verticalSampleDepth = verticalSampleCondition ? d2 : d4;
+  vec2 verticalSampleUv = verticalSampleCondition ? uv2 : uv4;
+
+  vec3 viewPos = viewPosFromDepth(sampleDepth, vUv);
+  
+  vec3 viewPos1 = (horizontalSampleCondition == verticalSampleCondition) ? viewPosFromDepth(horizontalSampleDepth, horizontalSampleUv) : viewPosFromDepth(verticalSampleDepth, verticalSampleUv);
+  vec3 viewPos2 = (horizontalSampleCondition == verticalSampleCondition) ? viewPosFromDepth(verticalSampleDepth, verticalSampleUv) : viewPosFromDepth(horizontalSampleDepth, horizontalSampleUv);
+
+  return normalize(cross(viewPos1 - viewPos, viewPos2 - viewPos));
 }
 
-float compareDepths( const in float depth1, const in float depth2, inout int far ) {
-  float garea = 8.0;                        // gauss bell width
-  float diff = ( depth1 - depth2 ) * 100.0; // depth difference (0-100)
+void main(){
+  float d = texture(tDepth, vUv).r;
+  vec3 c = texture(tDiffuse, vUv).rgb;
 
-  // reduce left bell width to avoid self-shadowing
-  if ( diff < gDisplace ) {
-    garea = diffArea;
-  } else {
-    far = 1;
+  ivec2 textureSize = textureSize(tDepth, 0);
+
+  vec3 viewNormal = computeWorldNormalFromDepth(tDepth, vec2(float(textureSize.x), float(textureSize.y)), vUv, d);
+
+  vec3 viewPosition = viewPosFromDepth(d, vUv);
+
+  vec3 randomVec = normalize(vec3(rand2d(vUv), rand2d(vUv * 3.0), rand2d(vUv * 5.0)));
+
+  vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));
+
+  vec3 bitangent = cross(viewNormal, tangent);
+
+  mat3 TBN = mat3(tangent, bitangent, viewNormal);
+
+  float occlusion = 0.0;
+
+  for (int i = 0; i < MAX_KERNEL_SIZE; i++){
+    
+    vec3 sampleVector = TBN * kernel[i];
+    sampleVector = viewPosition + sampleVector * sampleRadius;
+
+    vec4 offset = projMatrix * vec4(sampleVector, 1.0);
+    offset.xyz /= offset.w;
+    offset.xyz = offset.xyz * 0.5 + 0.5;
+
+    float realDepth = texture(tDepth, offset.xy).r;
+    vec3 realPos = viewPosFromDepth(realDepth, offset.xy);
+
+    float rangeCheck = smoothstep(0.0, 1.0, sampleRadius / length(viewPosition - realPos));
+
+    occlusion += (realPos.z >= sampleVector.z + bias ? 1.0 : 0.0) * rangeCheck;
   }
 
-  float dd = diff - gDisplace;
-  float gauss = pow( EULER, -2.0 * ( dd * dd ) / ( garea * garea ) );
-  return gauss;
-}
-
-float calcAO( float depth, float dw, float dh ) {
-  vec2 vv = vec2( dw, dh );
-
-  vec2 coord1 = vUv + radius * vv;
-  vec2 coord2 = vUv - radius * vv;
-
-  float temp1 = 0.0;
-  float temp2 = 0.0;
-
-  int far = 0;
-  temp1 = compareDepths( depth, readDepth( coord1 ), far );
-
-  // DEPTH EXTRAPOLATION
-
-  if (far > 0) {
-    temp2 = compareDepths( readDepth( coord2 ), depth, far );
-    temp1 += ( 1.0 - temp1 ) * temp2;
-  }
-  return temp1;
-}
-
-void main() {
-  vec2 noise = rand( vUv );
-  float depth = readDepth( vUv );
-
-  float tt = clamp( depth, aoClamp, 1.0 );
-
-  float w = ( 1.0 / size.x ) / tt + ( noise.x * ( 1.0 - noise.x ) );
-  float h = ( 1.0 / size.y ) / tt + ( noise.y * ( 1.0 - noise.y ) );
-
-  float ao = 0.0;
-
-  float dz = 1.0 / float( samples );
-  float l = 0.0;
-  float z = 1.0 - dz / 2.0;
-
-  for ( int i = 0; i <= samples; i ++ ) {
-    float r = sqrt( 1.0 - z );
-    float pw = cos( l ) * r;
-    float ph = sin( l ) * r;
-    ao += calcAO( depth, pw * w, ph * h );
-    z = z - dz;
-    l = l + DL;
-  }
-
-  ao /= float( samples );
-  ao = 1.0 - ao;
-
-  vec3 color = texture2D( tDiffuse, vUv ).rgb;
-
-  vec3 lumcoeff = vec3( 0.299, 0.587, 0.114 );
-  float lum = dot( color.rgb, lumcoeff );
-  vec3 luminance = vec3( lum );
-
-  vec3 final = vec3( mix( vec3( ao ), vec3( 1.0 ), luminance * lumInfluence ) ); // ambient occlusion only
-  if (!onlyAO) {
-    final = vec3( color * mix( vec3( ao ), vec3( 1.0 ), luminance * lumInfluence ) ); // mix( color * ao, white, luminance )
-  }
-
-  gl_FragColor = vec4( final, 1.0 );
+  float occlusionFactor = 1.0 - clamp(occlusion / float(MAX_KERNEL_SIZE), 0.0, 1.0);
+  gl_FragColor = vec4(c.r * occlusionFactor, c.g * occlusionFactor, c.b * occlusionFactor, 1.0);
 }`
 
 export const ssaoFinal = `
