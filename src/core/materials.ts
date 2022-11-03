@@ -74,7 +74,8 @@ const createMaterial = (
   type: string,
   vertexShader: string,
   fragmentShader: string,
-  colorTexture: DataTexture
+  colorTexture: DataTexture,
+  radiusTexture: DataTexture,
 ) => {
   if (materialMap[type] != null) {
     return materialMap[type]
@@ -93,10 +94,12 @@ const createMaterial = (
 
   material.onBeforeCompile = (shader: THREE.Shader) => {
     Object.assign(shader.uniforms, material.uniforms)
-    const texture = colorTexture.getTexture();
+    const rawColorTexture = colorTexture.getTexture();
+    const rawRadiusTexture = radiusTexture.getTexture();
     shader.uniforms.dataTextureWidth = { value: colorTexture.width };
     shader.uniforms.dataTextureHeight = { value: colorTexture.height };
-    shader.uniforms[colorTexture.name] = { value: texture };
+    shader.uniforms[colorTexture.name] = { value: rawColorTexture };
+    shader.uniforms[radiusTexture.name] = { value: rawRadiusTexture };
 
     material.uniforms = shader.uniforms
 

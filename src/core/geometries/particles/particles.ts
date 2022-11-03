@@ -97,13 +97,6 @@ class Particles {
       positionAttribute
     )
 
-    const particleRadiusAttribute = new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
-    particleRadiusAttribute.setUsage(THREE.DynamicDrawUsage)
-    this.geometry.setAttribute(
-      'particleRadius',
-      particleRadiusAttribute
-    )
-    
     const particleIndexAttribute = new THREE.InstancedBufferAttribute(this.indices, 1, false, 1)
     particleIndexAttribute.setUsage(THREE.DynamicDrawUsage)
     this.geometry.setAttribute(

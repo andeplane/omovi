@@ -68,6 +68,7 @@ export default class Visualizer {
   private cpuStats: Stats
   private memoryStats: Stats
   private colorTexture: DataTexture
+  private radiusTexture: DataTexture
   private materials: { [key: string]: Material }
 
   // @ts-ignore
@@ -97,6 +98,10 @@ export default class Visualizer {
     this.colorTexture = new DataTexture('colorTexture', 4096*4096, () => {
       this.forceRender = true
     })
+    this.radiusTexture = new DataTexture('radiusTexture', 4096*4096, () => {
+      this.forceRender = true
+    })
+    
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b);
     })
@@ -134,8 +139,8 @@ export default class Visualizer {
     document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
-    this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture)
-    this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture)
+    this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture, this.radiusTexture)
+    this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture, this.radiusTexture)
 
     this.animate()
     //@ts-ignore
@@ -153,6 +158,9 @@ export default class Visualizer {
     let material: THREE.Material
     if (object instanceof Particles) {
       material = this.materials['particles']
+      object.radii.forEach( (value, index) => {
+        this.setRadius(index, value)
+      })
     } else {
       material = this.materials['bonds']
     }
@@ -238,6 +246,10 @@ export default class Visualizer {
 
   setColor = (index: number, color: Color) => {
     this.colorTexture.setRGBA(index, color.r, color.g, color.b);
+  }
+
+  setRadius = (index: number, radius: number) => {
+    this.radiusTexture.setFloat(index, radius)
   }
 
   animate = () => {

@@ -8,9 +8,11 @@ varying vec3 vViewPosition;
 
 #endif
 
+uniform float dataTextureWidth;
+uniform float dataTextureHeight;
+uniform sampler2D radiusTexture;
 uniform mat4 inverseModelMatrix;
 attribute vec3 particlePosition;
-attribute float particleRadius;
 attribute float particleIndex;
 
 varying vec3 vSurfacePoint;
@@ -31,6 +33,14 @@ varying float vParticleIndex;
 #include <logdepthbuf_pars_vertex>
 #include <clipping_planes_pars_vertex>
 
+float unpack(vec4 rgba) {
+  float value = (rgba.r * 255. * 255. + rgba.g * 255. + rgba.b);
+  if (rgba.a < 1.0) {
+    return -value;
+  }
+  return value;
+}
+
 vec3 makePerpendicular(vec3 v) {
     if(v.x == 0.0 && v.y == 0.0) {
         if(v.z == 0.0) {
@@ -47,7 +57,14 @@ vec3 mul3(mat4 M, vec3 v) {
 }
 
 void main() {
+	float x = mod(particleIndex, dataTextureWidth);
+	float y = floor(particleIndex / dataTextureWidth);
+	float xCoord = (x + 0.5) / dataTextureWidth;
+	float yCoord = (y + 0.5) / dataTextureHeight; // invert Y axis
+	vec2 textureIndex = vec2(xCoord, yCoord);
+	float particleRadius = unpack(texture2D(radiusTexture, textureIndex));
 
+	
 	#include <uv_vertex>
 	#include <uv2_vertex>
 	#include <color_vertex>
@@ -100,6 +117,5 @@ void main() {
 	#include <envmap_vertex>
 	#include <shadowmap_vertex>
 	#include <fog_vertex>
-
 }
 `

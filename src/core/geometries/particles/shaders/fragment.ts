@@ -42,7 +42,6 @@ varying float vParticleIndex;
 #include <clipping_planes_pars_fragment>
 
 void main() {
-
 	float x = mod(vParticleIndex, dataTextureWidth);
 	float y = floor(vParticleIndex / dataTextureWidth);
 	float xCoord = (x + 0.5) / dataTextureWidth;
