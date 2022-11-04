@@ -73,19 +73,33 @@ export default class DataTexture {
   height: number;
   private _onChange: () => void;
   private _texture: THREE.DataTexture;
+  public maxParticleIndex: number
 
-  constructor(name: string, maxParticleIndex: number, onChange: () => void) {
+  constructor(name: string, maxParticleIndex: number, type: "rgba"|"float", onChange: () => void) {
     this.name = name;
     this._onChange = onChange;
-
+    this.maxParticleIndex = maxParticleIndex
     const { width, height } = findTextureSizeFromNumPixels(maxParticleIndex + 10);
     this.width = width;
     this.height = height;
-
+    const now = performance.now()
     const data = new Uint8Array(4 * width * height);
-    for (let i = 0; i < data.length; i++) {
-      data[i] = 255;
+    if (type === "rgba") {
+      for (let i = 0; i < data.length; i++) {
+        data[i] = 255;
+      }
+    } else {
+      for (let i = 0; i < maxParticleIndex; i++) {
+        // Pack as RGBA
+        const value = 1.0
+        const { r, g, b, a } = DataTexture.rgbaFromValue(value, false);
+        data[4 * i + 0] = r
+        data[4 * i + 1] = g
+        data[4 * i + 2] = b
+        data[4 * i + 3] = a
+      }
     }
+    const stop = performance.now()
     this._texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
     this._texture.needsUpdate = true;
   }

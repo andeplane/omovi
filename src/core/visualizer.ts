@@ -57,6 +57,7 @@ export default class Visualizer {
   public scene: THREE.Scene
   public forceRender: boolean
   private cachedMeshes: {[key: string]: THREE.Mesh}
+  private setRadiusCalled: boolean
   private camera: THREE.PerspectiveCamera
   private ambientLight: THREE.AmbientLight
   private pointLight: THREE.PointLight
@@ -80,7 +81,7 @@ export default class Visualizer {
       ssao: true
     })
     this.idle = false
-
+    this.setRadiusCalled = false
     this.canvas = this.renderer.getRawRenderer().domElement
     this.domElement = domElement
     this.domElement.appendChild(this.canvas)
@@ -95,20 +96,18 @@ export default class Visualizer {
     this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
 
-    this.colorTexture = new DataTexture('colorTexture', 4096*4096, () => {
+    const maxParticleIndex = 4096*4096
+    this.colorTexture = new DataTexture('colorTexture', maxParticleIndex, "rgba", () => {
       this.forceRender = true
     })
-    this.radiusTexture = new DataTexture('radiusTexture', 4096*4096, () => {
+    this.radiusTexture = new DataTexture('radiusTexture', maxParticleIndex, "float", () => {
       this.forceRender = true
     })
-    
+
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b);
     })
     
-    //@ts-ignore
-    window.colorTexture = this.colorTexture
-
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
@@ -158,9 +157,6 @@ export default class Visualizer {
     let material: THREE.Material
     if (object instanceof Particles) {
       material = this.materials['particles']
-      object.radii.forEach( (value, index) => {
-        this.setRadius(index, value)
-      })
     } else {
       material = this.materials['bonds']
     }
@@ -249,6 +245,7 @@ export default class Visualizer {
   }
 
   setRadius = (index: number, radius: number) => {
+    this.setRadiusCalled = true
     this.radiusTexture.setFloat(index, radius)
   }
 
