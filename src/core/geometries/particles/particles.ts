@@ -7,10 +7,9 @@ import uuid from 'uuid';
 
 class Particles {
   id: string
-  types: string[]
+  types: Float32Array
   positions: Float32Array
   indices: Float32Array
-  radii: Float32Array
   colors: THREE.Color[]
   count: number
   capacity: number
@@ -20,10 +19,9 @@ class Particles {
 
   constructor(capacity: number) {
     this.id = uuid()
-    this.types = []
+    this.types = new Float32Array(capacity)
     this.positions = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)
-    this.radii = new Float32Array(capacity)
     this.colors = []
     this.count = 0
     this.capacity = capacity
@@ -35,15 +33,13 @@ class Particles {
     y,
     z,
     id,
-    radius,
-    type = 'H'
+    type
   }: {
     x: number
     y: number
     z: number
     id: number
-    radius: number
-    type: string
+    type: number
   }) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
@@ -55,15 +51,10 @@ class Particles {
     this.positions[3 * index + 0] = x
     this.positions[3 * index + 1] = y
     this.positions[3 * index + 2] = z
-    this.radii[index] = radius / 3 // van der Waals to ball-and-stick rendering. Each particle has half the space.
     this.indices[index] = id
-    this.types.push(type)
+    this.types[index] = type
 
     this.count += 1
-  }
-
-  getRadius = (index: number) => {
-    return this.radii[index]
   }
 
   getPosition = (index: number) => {
@@ -120,7 +111,7 @@ class Particles {
     this.geometry?.dispose()
     this.positions = new Float32Array(0)
     this.indices = new Float32Array(0)
-    this.radii = new Float32Array(0)
+    this.types = new Float32Array(0)
   }
 }
 
