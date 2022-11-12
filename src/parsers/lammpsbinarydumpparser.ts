@@ -85,9 +85,8 @@ const parseFrame = (buffer: Buffer, offset: number = 0) => {
         x,
         y,
         z,
-        radius: 1.0,
         id,
-        type: typeStr,
+        type,
       })
     }
   }

@@ -25,7 +25,7 @@ export default class SimulationData {
   }
 
   getUniqueParticleTypes = () => {
-    const particleTypes: string[] = []
+    const particleTypes: number[] = []
 
     this.frames.forEach(frame => {
       particleTypes.push(...frame.particleTypes)

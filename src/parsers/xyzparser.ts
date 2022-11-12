@@ -24,8 +24,7 @@ function addParticlesToFrame(lines: string[], i: number, particles: Particles) {
       y,
       z,
       id,
-      radius,
-      type: atomType.shortname
+      type: 1
     })
   }
 }

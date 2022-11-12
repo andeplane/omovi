@@ -5,15 +5,15 @@ import SimulationCell from './simulationcell'
 
 export default class SimulationDataFrame {
   simulationCell: SimulationCell
-  particleTypes: string[]
+  particleTypes: number[]
   particles: Particles
   bonds?: Bonds
 
   constructor(particles: Particles, simulationCell?: SimulationCell) {
     this.particles = particles
 
-    const particleTypeMap: { [key: string]: boolean } = {}
-    particles.types.forEach((particleType: string) => {
+    const particleTypeMap: boolean[] = []
+    particles.types.forEach((particleType: number) => {
       particleTypeMap[particleType] = true
     })
 

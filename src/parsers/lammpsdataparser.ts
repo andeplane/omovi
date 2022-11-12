@@ -65,8 +65,7 @@ const parseMolecular = (
       y,
       z,
       id,
-      radius,
-      type: typeStr
+      type: type
     })
   }
 }
@@ -97,8 +96,7 @@ const parseAtomic = (
       y,
       z,
       id,
-      radius,
-      type: typeStr,
+      type: type,
     })
   }
 }
