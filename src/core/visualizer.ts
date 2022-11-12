@@ -162,7 +162,8 @@ export default class Visualizer {
     }
 
     const geometry = object.getGeometry()
-    const mesh = new THREE.InstancedMesh(geometry, material, object.count)
+    const mesh = new THREE.InstancedMesh(geometry, material, object.capacity)
+    mesh.count = object.count
     
     object.mesh = mesh
     const matrix = new THREE.Matrix4()
