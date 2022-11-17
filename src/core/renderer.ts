@@ -186,6 +186,7 @@ export default class OMOVIRenderer {
       kernel: {value: this.createKernel(defines.MAX_KERNEL_SIZE) },
       projMatrix: { value: new THREE.Matrix4() },
       inverseProjectionMatrix: { value: new THREE.Matrix4() },
+      time: {value: 0.0}
     };
     
     const {scene, material} = setupRenderingPass({
@@ -284,6 +285,7 @@ export default class OMOVIRenderer {
   render(scene: THREE.Scene, camera: THREE.PerspectiveCamera | THREE.OrthographicCamera, target?: THREE.RenderTarget) {
     this.ssaoUniforms.inverseProjectionMatrix.value = camera.projectionMatrixInverse;
     this.ssaoUniforms.projMatrix.value = camera.projectionMatrix;
+    this.ssaoUniforms.time.value = Date.now()%1000
     
     this.onBeforeModelRender();
     this.renderer.setRenderTarget(this.modelTarget);

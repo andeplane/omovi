@@ -91,7 +91,7 @@ export default class DataTexture {
     } else {
       for (let i = 0; i < maxParticleIndex; i++) {
         // Pack as RGBA
-        const value = 1.0
+        const value = 0.33
         const { r, g, b, a } = DataTexture.rgbaFromValue(value, false);
         data[4 * i + 0] = r
         data[4 * i + 1] = g

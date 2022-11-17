@@ -12,6 +12,7 @@ uniform sampler2D tDepth;
 uniform sampler2D tDiffuse;
 uniform float sampleRadius;
 uniform float bias;
+uniform float time;
 
 in vec2 vUv;
 
@@ -73,7 +74,9 @@ void main(){
 
   vec3 viewPosition = viewPosFromDepth(d, vUv);
 
-  vec3 randomVec = normalize(vec3(rand2d(vUv), rand2d(vUv * 3.0), rand2d(vUv * 5.0)));
+  vec3 randomVec = normalize(vec3(rand2d( (vUv + cos(time))), rand2d((vUv + cos(time)) * 3.0), rand2d((vUv + cos(time)) * 5.0)));
+  // vec3 randomVec = normalize(vec3(rand2d( (vUv + time)), rand2d((vUv + time) * 3.0), rand2d((vUv + time) * 5.0)));
+  // vec3 randomVec = normalize(vec3(rand2d(viewPosition.xy + time), rand2d( (viewPosition.xz + time) * 3.0), rand2d((viewPosition.yz + time) * 5.0)));
 
   vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));
 
