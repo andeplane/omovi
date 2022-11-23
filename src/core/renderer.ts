@@ -216,6 +216,9 @@ export default class OMOVIRenderer {
   }
 
   setSize(width: number, height: number) {
+    // width = Math.floor(width)
+    // height = Math.floor(height)
+    console.log("Resize: ", width, height)
     this.renderer.setSize(width, height, false);
 
     this.modelTarget.setSize(width, height);
@@ -224,13 +227,16 @@ export default class OMOVIRenderer {
     this.rttUniforms.texelSize.value.set(1.75 / width, 1.75 / height);
     this.antiAliasUniforms.resolution.value.set(width, height);
 
-    const halfWidth = Math.floor(width * 0.5);
-    const halfheight = Math.floor(height * 0.5);
-    this.ssaoTarget.setSize(halfWidth, halfheight);
-    this.ssaoUniforms.size.value.set(width, height);
+    // const halfWidth = Math.floor(width * 0.5);
+    // const halfHeight = Math.floor(height * 0.5);
+    const halfWidth = width * 0.5;
+    const halfHeight = height * 0.5;
+    // this.ssaoTarget.setSize(width, height);
+    this.ssaoTarget.setSize(halfWidth, halfHeight);
+    this.ssaoUniforms.size.value.set(halfWidth, halfHeight);
 
-    this.ssaoFinalTarget.setSize(width, height);
-    this.ssaoFinalUniforms.size.value.set(width, height);
+    this.ssaoFinalTarget.setSize(halfWidth, halfHeight);
+    this.ssaoFinalUniforms.size.value.set(halfWidth, halfHeight);
   }
 
   getSize(): { width: number; height: number } {

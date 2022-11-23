@@ -45,7 +45,7 @@ const adjustCamera = (
 }
 
 interface VisualizerProps {
-  domElement: HTMLElement
+  domElement?: HTMLElement
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
   initialColors?: Color[]
 }
@@ -63,7 +63,7 @@ export default class Visualizer {
   private pointLight: THREE.PointLight
   private controls: ComboControls
   private clock: THREE.Clock
-  private domElement: HTMLElement
+  private domElement?: HTMLElement
   private object: THREE.Object3D
   private stats: Stats
   private cpuStats: Stats
@@ -83,8 +83,10 @@ export default class Visualizer {
     this.idle = false
     this.setRadiusCalled = false
     this.canvas = this.renderer.getRawRenderer().domElement
-    this.domElement = domElement
-    this.domElement.appendChild(this.canvas)
+    if (domElement) {
+      this.domElement = domElement
+      this.domElement.appendChild(this.canvas)
+    }
     this.setupCanvas(this.canvas)
 
     this.scene = new THREE.Scene()
@@ -218,7 +220,9 @@ export default class Visualizer {
   }
 
   dispose = () => {
-    this.domElement.removeChild(this.canvas)
+    if (this.domElement) {
+      this.domElement.removeChild(this.canvas)
+    }
     Object.values(this.materials).forEach(material => {
       material.dispose()
     })
@@ -276,16 +280,23 @@ export default class Visualizer {
     const rendererPixelWidth = rendererSize.width
     const rendererPixelHeight = rendererSize.height
 
+    let clientWidth: number
+    let clientHeight: number
     // client width and height are in virtual pixels and not yet scaled by dpr
-    // TODO VERSION 5.0.0 remove the test for dom element size once we have removed the getCanvas function
-    const clientWidth =
-      this.domElement.clientWidth !== 0
-        ? this.domElement.clientWidth
-        : this.canvas.clientWidth
-    const clientHeight =
-      this.domElement.clientHeight !== 0
-        ? this.domElement.clientHeight
-        : this.canvas.clientHeight
+    if (this.domElement) {
+      clientWidth =
+        this.domElement.clientWidth !== 0
+          ? this.domElement.clientWidth
+          : this.canvas.clientWidth
+      clientHeight =
+        this.domElement.clientHeight !== 0
+          ? this.domElement.clientHeight
+          : this.canvas.clientHeight
+
+    } else {
+      clientWidth = this.canvas.clientWidth
+      clientHeight = this.canvas.clientHeight
+    }
     const clientPixelWidth = window.devicePixelRatio * clientWidth
     const clientPixelHeight = window.devicePixelRatio * clientHeight
     const clientTextureSize = clientPixelWidth * clientPixelHeight

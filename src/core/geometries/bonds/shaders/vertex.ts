@@ -1,5 +1,5 @@
 export default /* glsl */ `
-#define PHONG
+#define LAMBERT
 
 varying vec3 vViewPosition;
 

@@ -1,5 +1,5 @@
 export default /* glsl */ `
-#define PHONG
+#define LAMBERT
 
 uniform vec3 diffuse;
 uniform vec3 emissive;
