@@ -1,8 +1,8 @@
-import Particles from 'core/geometries/particles/particles'
-import { getColor } from 'core/atomtypes'
-import SimulationData from 'core/simulationdata/simulationdata'
-import SimulationCell from 'core/simulationdata/simulationcell'
-import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+import Particles from '../core/geometries/particles/particles'
+import { getColor } from '../core/atomtypes'
+import SimulationData from '../core/simulationdata/simulationdata'
+import SimulationCell from '../core/simulationdata/simulationcell'
+import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
 
 import * as THREE from 'three'
 
@@ -60,13 +60,13 @@ const parseMolecular = (
     const molId = parseInt(molIdStr)
     const type = parseInt(typeStr) - 1
     const radius = 1.0
-    particles.add({
+    particles.add(
       x,
       y,
       z,
       id,
-      type: type
-    })
+      type
+    )
   }
 }
 
@@ -91,13 +91,13 @@ const parseAtomic = (
     const id = parseInt(idStr)
     const type = parseInt(typeStr)
     const radius = 1.0
-    particles.add({
+    particles.add(
       x,
       y,
       z,
       id,
-      type: type,
-    })
+      type,
+    )
   }
 }
 

@@ -2,15 +2,15 @@ import * as THREE from 'three'
 import ComboControls from '../controls'
 import { Material } from './materials'
 import DataTexture from './datatexture'
-import createMaterial from 'core/materials'
-import particleFragmentShader from 'core/geometries/particles/shaders/fragment'
-import particleVertexShader from 'core/geometries/particles/shaders/vertex'
-import bondFragmentShader from 'core/geometries/bonds/shaders/fragment'
-import bondVertexShader from 'core/geometries/bonds/shaders/vertex'
-import Particles from 'core/geometries/particles/particles'
-import Bonds from 'core/geometries/bonds/bonds'
-import { Color } from 'core/types'
-import OMOVIRenderer from 'core/renderer'
+import createMaterial from './materials'
+import particleFragmentShader from './geometries/particles/shaders/fragment'
+import particleVertexShader from './geometries/particles/shaders/vertex'
+import bondFragmentShader from './geometries/bonds/shaders/fragment'
+import bondVertexShader from './geometries/bonds/shaders/vertex'
+import Particles from './geometries/particles/particles'
+import Bonds from './geometries/bonds/bonds'
+import { Color } from './types'
+import OMOVIRenderer from './renderer'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -75,7 +75,7 @@ export default class Visualizer {
   // @ts-ignore
   private latestRequestId?: number
 
-  constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps) {
+  constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps = {}) {
     this.renderer = new OMOVIRenderer({
       alpha: false,
       ssao: true
@@ -132,12 +132,12 @@ export default class Visualizer {
     this.memoryStats = new Stats()
     this.cpuStats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
     this.memoryStats.showPanel(2) // 0: fps, 1: ms, 2: mb, 3+: custom
-    document.body.appendChild(this.cpuStats.dom)
+    // document.body.appendChild(this.cpuStats.dom)
     this.cpuStats.domElement.style.cssText =
       'position:absolute;top:0px;right:80px;'
     this.memoryStats.domElement.style.cssText =
       'position:absolute;top:0px;right:0px;'
-    document.body.appendChild(this.memoryStats.dom)
+    // document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
     this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture, this.radiusTexture)

@@ -28,19 +28,7 @@ class Particles {
     this.geometry = undefined
   }
 
-  add({
-    x,
-    y,
-    z,
-    id,
-    type
-  }: {
-    x: number
-    y: number
-    z: number
-    id: number
-    type: number
-  }) {
+  add(x: number, y: number, z: number, id: number, type: number) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
       return
