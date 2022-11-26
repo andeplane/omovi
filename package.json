@@ -16,7 +16,7 @@
     "watch": "parcel watch",
     "build": "parcel build",
     "start": "parcel src/index.html",
-    "predeploy": "npm run build:all",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d example/build"
   },
   "devDependencies": {

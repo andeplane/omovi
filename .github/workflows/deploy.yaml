@@ -22,7 +22,7 @@ jobs:
       - name: Install Packages
         run: npm install
       - name: Build app
-        run: npm run predeploy
+        run: npm run build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
