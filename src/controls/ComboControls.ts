@@ -1,5 +1,3 @@
-// Copyright 2018 Cognite AS
-
 import {
   EventDispatcher,
   MathUtils as ThreeMath,

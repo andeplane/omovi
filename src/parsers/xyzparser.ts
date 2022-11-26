@@ -1,7 +1,7 @@
-import Particles from 'core/geometries/particles/particles'
-import AtomTypes from 'core/atomtypes'
-import SimulationData from 'core/simulationdata/simulationdata'
-import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+import Particles from '../core/geometries/particles/particles'
+import AtomTypes from '../core/atomtypes'
+import SimulationData from '../core/simulationdata/simulationdata'
+import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
 
 function addParticlesToFrame(lines: string[], i: number, particles: Particles) {
   for (let j = 0; j < particles.capacity; j++) {

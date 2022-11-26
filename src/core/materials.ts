@@ -9,14 +9,14 @@ export interface Extensions {
   fragDepth?: boolean
 }
 
-class Material extends THREE.MeshLambertMaterial {
+class Material extends THREE.MeshPhongMaterial {
   materialType: string
   uniforms: Uniforms
   extensions: Extensions
 
   constructor(
     materialType: string,
-    parameters?: THREE.MeshLambertMaterialParameters
+    parameters?: THREE.MeshPhongMaterialParameters
   ) {
     super(parameters)
     // @ts-ignore
@@ -27,7 +27,7 @@ class Material extends THREE.MeshLambertMaterial {
   }
 
   copy(source: THREE.Material): this {
-    THREE.MeshLambertMaterial.prototype.copy.call(this, source)
+    THREE.MeshPhongMaterial.prototype.copy.call(this, source)
     const castedSource = source as Material
     this.type = castedSource.type
     this.defines = { ...castedSource.defines }
@@ -39,7 +39,7 @@ class Material extends THREE.MeshLambertMaterial {
 
   clone(): this {
     // three.js uses "this" for no good reason, and we need to match that
-    const material = new THREE.MeshLambertMaterial()
+    const material = new THREE.MeshPhongMaterial()
     Material.prototype.copy.call(material, this)
     return material as this
   }

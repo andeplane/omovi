@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>OMOVI example app</title>
+    <script type="module" type="text/javascript" defer>
+        import * as OMOVI from './index.ts'
+        setTimeout(() => {
+            const visualizer = new OMOVI.Visualizer({
+                domElement: document.getElementById('canvas-container')
+            })
+            const numParticles = 1e6
+            const particles = new OMOVI.Particles(numParticles)
+            for (let i = 0; i < numParticles; i++) {
+                particles.add(
+                    120 * (Math.random() - 0.5), 
+                    120 * (Math.random() - 0.5), 
+                    120 * (Math.random() - 0.5), 
+                    i,
+                    1
+                )
+            }
+            visualizer.add(particles)
+            window.visualizer = visualizer
+        }, 1)
+    </script>
+</head>
+  <body>
+    <div style="width: 100vh; height: 100vh;" id="canvas-container"></div>
+  </body>
+</html>

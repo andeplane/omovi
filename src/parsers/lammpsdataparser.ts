@@ -1,8 +1,8 @@
-import Particles from 'core/geometries/particles/particles'
-import { getColor } from 'core/atomtypes'
-import SimulationData from 'core/simulationdata/simulationdata'
-import SimulationCell from 'core/simulationdata/simulationcell'
-import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+import Particles from '../core/geometries/particles/particles'
+import { getColor } from '../core/atomtypes'
+import SimulationData from '../core/simulationdata/simulationdata'
+import SimulationCell from '../core/simulationdata/simulationcell'
+import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
 
 import * as THREE from 'three'
 

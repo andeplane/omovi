@@ -1,11 +1,11 @@
-import Particles from 'core/geometries/particles/particles'
-import SimulationData from 'core/simulationdata/simulationdata'
-import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+import Particles from '../core/geometries/particles/particles'
+import SimulationData from '../core/simulationdata/simulationdata'
+import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
+import SimulationCell from '../core/simulationdata/simulationcell'
 import * as THREE from 'three'
-import { getColor } from 'core/atomtypes'
+import { getColor } from '../core/atomtypes'
 // @ts-ignore
 import { Parser } from 'binary-parser'
-import SimulationCell from 'core/simulationdata/simulationcell'
 
 const parseHeader = (buffer: Buffer, offset: number = 0) => {
   const triclinicParser = new Parser()

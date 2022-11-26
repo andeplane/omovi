@@ -1,6 +1,6 @@
-import SimulationDataFrame from 'core/simulationdata/simulationdataframe'
+import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
+import Bonds from '../core/geometries/bonds/bonds'
 import Kdtree from './kdtree/kdtree'
-import Bonds from 'core/geometries/bonds/bonds'
 
 type CreateBondsByDistanceOptions = {
   radius: number
