@@ -17,7 +17,7 @@
     "build": "parcel build",
     "start": "parcel src/index.html",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d example/build"
+    "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
     "@parcel/packager-ts": "^2.8.0",
