@@ -1,4 +1,3 @@
-import OMOVIVisualizer from 'OMOVIVisualizer'
 import Particles from 'core/geometries/particles/particles'
 import Bonds from 'core/geometries/bonds/bonds'
 import Visualizer from 'core/visualizer'
@@ -11,7 +10,6 @@ import { createBondsByDistance } from 'utils/bondcreators'
 import AtomTypes, { getColor } from 'core/atomtypes'
 
 export {
-  OMOVIVisualizer,
   Visualizer,
   Bonds,
   Particles,
