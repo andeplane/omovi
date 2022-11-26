@@ -1,13 +1,13 @@
 {
   "name": "omovi",
-  "version": "0.7.6",
+  "version": "0.8.1",
   "description": "Online Molecular Visualizer",
   "author": "andeplane",
   "license": "GPLv3",
   "repository": "andeplane/omovi",
   "main": "dist/index.js",
   "module": "dist/index.modern.js",
-  "source": "src/index.tsx",
+  "source": "src/index.ts",
   "types": "dist/types.d.ts",
   "engines": {
     "node": ">=10"

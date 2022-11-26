@@ -81,13 +81,13 @@ const parseFrame = (buffer: Buffer, offset: number = 0) => {
       const y = chunk.buffer[3 + particleIndex * header.sizeOne]
       const z = chunk.buffer[4 + particleIndex * header.sizeOne]
       const typeStr = type.toString()
-      particles.add({
+      particles.add(
         x,
         y,
         z,
         id,
         type,
-      })
+      )
     }
   }
 
