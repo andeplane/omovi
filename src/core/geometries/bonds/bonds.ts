@@ -15,7 +15,7 @@ class Bonds {
   count: number
   capacity: number
   geometry?: THREE.InstancedBufferGeometry
-  mesh?: THREE.Mesh
+  mesh?: THREE.InstancedMesh
 
   constructor(capacity: number) {
     this.id = uuid()
@@ -128,6 +128,10 @@ class Bonds {
       Object.values(this.geometry.attributes).forEach((attribute) => {
         attribute.needsUpdate = true
       })
+    }
+    
+    if (this.mesh) {
+      this.mesh.count = this.count
     }
   }
 
