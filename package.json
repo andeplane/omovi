@@ -1,6 +1,6 @@
 {
   "name": "omovi",
-  "version": "0.8.1",
+  "version": "0.8.5",
   "description": "Online Molecular Visualizer",
   "author": "andeplane",
   "license": "GPLv3",
@@ -13,9 +13,8 @@
     "node": ">=10"
   },
   "scripts": {
-    "watch": "parcel watch",
-    "build": "parcel build",
-    "start": "parcel src/index.html",
+    "build": "microbundle-crl --no-compress --format modern,cjs --target node",
+    "start": "microbundle-crl watch --no-compress --format modern,cjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
@@ -42,6 +41,7 @@
     "binary-parser": "^1.7.0",
     "easy-peasy": "^5.0.3",
     "kd-tree-javascript": "^1.0.3",
+    "microbundle-crl": "^0.13.11",
     "stats.js": "^0.17.0",
     "strict-uri-encode": "^1.1.0",
     "three": "^0.126.1",
