@@ -56,9 +56,9 @@ export default class Visualizer {
   public forceRender: boolean
   public renderer: OMOVIRenderer
   public ambientLight: THREE.AmbientLight
+  public idle: boolean
   public pointLight: THREE.PointLight
   public materials: { [key: string]: Material }
-  private idle: boolean
   private cachedMeshes: {[key: string]: THREE.Mesh}
   private setRadiusCalled: boolean
   private camera: THREE.PerspectiveCamera
