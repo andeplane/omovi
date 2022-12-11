@@ -38,6 +38,7 @@ export default class OMOVIRenderer {
   onBeforeModelRender: () => void;
   onBeforeSelectRender: () => void;
   onAfterRender: () => void;
+  public renderSsao: boolean
   private alpha: boolean;
   private renderer: THREE.WebGLRenderer;
   private modelTarget: THREE.WebGLRenderTarget;
@@ -50,7 +51,6 @@ export default class OMOVIRenderer {
   private rttUniforms: any;
   private antiAliasScene: THREE.Scene;
   private antiAliasUniforms: any;
-  private renderSsao: boolean
   private ssaoScene: THREE.Scene;
   private ssaoUniforms: any;
   private ssaoFinalScene: THREE.Scene;
@@ -218,7 +218,6 @@ export default class OMOVIRenderer {
   setSize(width: number, height: number) {
     // width = Math.floor(width)
     // height = Math.floor(height)
-    console.log("Resize: ", width, height)
     this.renderer.setSize(width, height, false);
 
     this.modelTarget.setSize(width, height);

@@ -15,7 +15,7 @@ class Particles {
   capacity: number
   geometry?: THREE.InstancedBufferGeometry
   baseGeometry?: THREE.PlaneBufferGeometry
-  mesh?: THREE.Mesh
+  mesh?: THREE.InstancedMesh
 
   constructor(capacity: number) {
     this.id = uuid()
@@ -65,7 +65,6 @@ class Particles {
     this.baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
     this.geometry = new THREE.InstancedBufferGeometry()
 
-    this.geometry.instanceCount = this.count
     this.geometry.setIndex(this.baseGeometry.getIndex())
     this.geometry.setAttribute('position', this.baseGeometry.getAttribute('position'))
     this.geometry.setAttribute('normal', this.baseGeometry.getAttribute('normal'))
@@ -91,6 +90,9 @@ class Particles {
       Object.values(this.geometry.attributes).forEach((attribute) => {
         attribute.needsUpdate = true
       })
+    }
+    if (this.mesh) {
+      this.mesh.count = this.count
     }
   }
 

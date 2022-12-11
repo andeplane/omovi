@@ -51,16 +51,17 @@ interface VisualizerProps {
 }
 
 export default class Visualizer {
-  private renderer: OMOVIRenderer
   private canvas: HTMLCanvasElement
-  idle: boolean
   public scene: THREE.Scene
   public forceRender: boolean
+  public renderer: OMOVIRenderer
+  public ambientLight: THREE.AmbientLight
+  public idle: boolean
+  public pointLight: THREE.PointLight
+  public materials: { [key: string]: Material }
   private cachedMeshes: {[key: string]: THREE.Mesh}
   private setRadiusCalled: boolean
   private camera: THREE.PerspectiveCamera
-  private ambientLight: THREE.AmbientLight
-  private pointLight: THREE.PointLight
   private controls: ComboControls
   private clock: THREE.Clock
   private domElement?: HTMLElement
@@ -70,7 +71,6 @@ export default class Visualizer {
   private memoryStats: Stats
   private colorTexture: DataTexture
   private radiusTexture: DataTexture
-  private materials: { [key: string]: Material }
 
   // @ts-ignore
   private latestRequestId?: number
