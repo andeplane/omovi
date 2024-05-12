@@ -11,6 +11,7 @@ import Particles from './geometries/particles/particles'
 import Bonds from './geometries/bonds/bonds'
 import { Color } from './types'
 import OMOVIRenderer from './renderer'
+import { VRButton } from '../utils/VRButton'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -24,13 +25,13 @@ const v1 = new THREE.Vector3()
 const v2 = new THREE.Vector3()
 
 const makePerpendicular = (v: THREE.Vector3, t: THREE.Vector3) => {
-  if(v.x == 0.0 && v.y == 0.0) {
-    if(v.z == 0.0) {
-        return t.set(0.0, 0.0, 0.0);
+  if (v.x == 0.0 && v.y == 0.0) {
+    if (v.z == 0.0) {
+      return t.set(0.0, 0.0, 0.0)
     }
-    return t.set(0.0, 1.0, 0.0);
+    return t.set(0.0, 1.0, 0.0)
   }
-  return t.set(-v.y, v.x, 0.0).normalize();
+  return t.set(-v.y, v.x, 0.0).normalize()
 }
 
 const adjustCamera = (
@@ -59,7 +60,7 @@ export default class Visualizer {
   public idle: boolean
   public pointLight: THREE.PointLight
   public materials: { [key: string]: Material }
-  private cachedMeshes: {[key: string]: THREE.Mesh}
+  private cachedMeshes: { [key: string]: THREE.Mesh }
   private setRadiusCalled: boolean
   private camera: THREE.PerspectiveCamera
   private controls: ComboControls
@@ -75,7 +76,11 @@ export default class Visualizer {
   // @ts-ignore
   private latestRequestId?: number
 
-  constructor({ domElement, initialColors, onCameraChanged }: VisualizerProps = {}) {
+  constructor({
+    domElement,
+    initialColors,
+    onCameraChanged
+  }: VisualizerProps = {}) {
     this.renderer = new OMOVIRenderer({
       alpha: false,
       ssao: true
@@ -98,26 +103,36 @@ export default class Visualizer {
     this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
 
-    const maxParticleIndex = 4096*4096
-    this.colorTexture = new DataTexture('colorTexture', maxParticleIndex, "rgba", () => {
-      this.forceRender = true
-    })
-    this.radiusTexture = new DataTexture('radiusTexture', maxParticleIndex, "float", () => {
-      this.forceRender = true
-    })
+    const maxParticleIndex = 4096 * 4096
+    this.colorTexture = new DataTexture(
+      'colorTexture',
+      maxParticleIndex,
+      'rgba',
+      () => {
+        this.forceRender = true
+      }
+    )
+    this.radiusTexture = new DataTexture(
+      'radiusTexture',
+      maxParticleIndex,
+      'float',
+      () => {
+        this.forceRender = true
+      }
+    )
 
     initialColors?.forEach((color, index) => {
-      this.colorTexture.setRGBA(index, color.r, color.g, color.b);
+      this.colorTexture.setRGBA(index, color.r, color.g, color.b)
     })
-    
+
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
     this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
       const { position, target } = event.camera
-      
+
       this.pointLight.position.set(position.x, position.y, position.z)
-      
+
       if (onCameraChanged) {
         onCameraChanged(position, target)
       }
@@ -140,14 +155,32 @@ export default class Visualizer {
     // document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
-    this.materials['particles'] = createMaterial('particle', particleVertexShader, particleFragmentShader, this.colorTexture, this.radiusTexture)
-    this.materials['bonds'] = createMaterial('bonds', bondVertexShader, bondFragmentShader, this.colorTexture, this.radiusTexture)
+    this.materials['particles'] = createMaterial(
+      'particle',
+      particleVertexShader,
+      particleFragmentShader,
+      this.colorTexture,
+      this.radiusTexture
+    )
+    this.materials['bonds'] = createMaterial(
+      'bonds',
+      bondVertexShader,
+      bondFragmentShader,
+      this.colorTexture,
+      this.radiusTexture
+    )
 
     this.animate()
     //@ts-ignore
     window.visualizer = this
     //@ts-ignore
     window.THREE = THREE
+
+    this.renderer.getRawRenderer().xr.enabled = true
+    document.body.appendChild(
+      VRButton.createButton(this.renderer.getRawRenderer())
+    )
+    this.renderer.getRawRenderer().setAnimationLoop(this.animate)
   }
 
   add = (object: Particles | Bonds) => {
@@ -166,7 +199,7 @@ export default class Visualizer {
     const geometry = object.getGeometry()
     const mesh = new THREE.InstancedMesh(geometry, material, object.capacity)
     mesh.count = object.count
-    
+
     object.mesh = mesh
     const matrix = new THREE.Matrix4()
     for (let i = 0; i < object.count; i++) {
@@ -184,7 +217,7 @@ export default class Visualizer {
       this.object.remove(this.cachedMeshes[object.id])
       return
     }
-    throw new Error("Tried to remove object that never was added to the scene.")
+    throw new Error('Tried to remove object that never was added to the scene.')
   }
 
   setupCanvas = (canvas: HTMLCanvasElement) => {
@@ -223,7 +256,7 @@ export default class Visualizer {
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
     }
-    Object.values(this.materials).forEach(material => {
+    Object.values(this.materials).forEach((material) => {
       material.dispose()
     })
     this.renderer.dispose()
@@ -246,7 +279,7 @@ export default class Visualizer {
   }
 
   setColor = (index: number, color: Color) => {
-    this.colorTexture.setRGBA(index, color.r, color.g, color.b);
+    this.colorTexture.setRGBA(index, color.r, color.g, color.b)
   }
 
   setRadius = (index: number, radius: number) => {
@@ -267,7 +300,7 @@ export default class Visualizer {
 
       this.forceRender = false
     }
-    this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
+    // this.latestRequestId = requestAnimationFrame(this.animate.bind(this))
   }
 
   resizeIfNeeded = () => {
@@ -292,7 +325,6 @@ export default class Visualizer {
         this.domElement.clientHeight !== 0
           ? this.domElement.clientHeight
           : this.canvas.clientHeight
-
     } else {
       clientWidth = this.canvas.clientWidth
       clientHeight = this.canvas.clientHeight
