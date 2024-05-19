@@ -124,9 +124,9 @@ void main() {
 	vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
 
 	#include <envmap_fragment>
-	#include <output_fragment>
+	#include <opaque_fragment>
 	#include <tonemapping_fragment>
-	#include <encodings_fragment>
+	#include <colorspace_fragment>
 	#include <fog_fragment>
 	#include <premultiplied_alpha_fragment>
 	#include <dithering_fragment>

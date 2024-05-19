@@ -118,7 +118,7 @@ export default class OMOVIRenderer {
 
   dispose() {
     this.renderer.dispose()
-    this.modelTarget.depthTexture.dispose()
+    this.modelTarget.depthTexture?.dispose()
     this.modelTarget.dispose()
     this.screenshotTarget.dispose()
     this.rttTarget.dispose()
