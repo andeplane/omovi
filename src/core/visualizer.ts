@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import ComboControls from '../controls'
+import { ComboControls, CameraUpdateEvent } from '../controls'
 import { Material } from './materials'
 import DataTexture from './datatexture'
 import createMaterial from './materials'
@@ -127,7 +127,7 @@ export default class Visualizer {
     this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
-    this.controls.addEventListener('cameraChange', (event: THREE.Event) => {
+    this.controls.addEventListener('cameraChange', (event: any) => {
       const { position, target } = event.camera
 
       this.pointLight.position.set(position.x, position.y, position.z)

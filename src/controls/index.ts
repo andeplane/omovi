@@ -1,1 +1,1 @@
-export { default } from './ComboControls';
+export * from './ComboControls'

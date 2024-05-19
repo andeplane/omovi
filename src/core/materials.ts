@@ -90,19 +90,22 @@ const createMaterial = (
     material.defines!.FRAG_DEPTH = 1
   }
 
-  material.onBeforeCompile = (shader: THREE.Shader) => {
-    Object.assign(shader.uniforms, material.uniforms)
+  material.onBeforeCompile = (
+    parameters: THREE.WebGLProgramParametersWithUniforms,
+    renderer: THREE.WebGLRenderer
+  ) => {
+    Object.assign(parameters.uniforms, material.uniforms)
     const rawColorTexture = colorTexture.getTexture()
     const rawRadiusTexture = radiusTexture.getTexture()
-    shader.uniforms.dataTextureWidth = { value: colorTexture.width }
-    shader.uniforms.dataTextureHeight = { value: colorTexture.height }
-    shader.uniforms[colorTexture.name] = { value: rawColorTexture }
-    shader.uniforms[radiusTexture.name] = { value: rawRadiusTexture }
+    parameters.uniforms.dataTextureWidth = { value: colorTexture.width }
+    parameters.uniforms.dataTextureHeight = { value: colorTexture.height }
+    parameters.uniforms[colorTexture.name] = { value: rawColorTexture }
+    parameters.uniforms[radiusTexture.name] = { value: rawRadiusTexture }
 
-    material.uniforms = shader.uniforms
+    material.uniforms = parameters.uniforms
 
-    shader.vertexShader = vertexShader
-    shader.fragmentShader = fragmentShader
+    parameters.vertexShader = vertexShader
+    parameters.fragmentShader = fragmentShader
   }
 
   // Necessary because of a bug in THREE.JS
