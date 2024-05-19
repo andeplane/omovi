@@ -60,11 +60,11 @@ export default class OMOVIRenderer {
   private ssaoUniforms: any
   private ssaoFinalScene: THREE.Scene
   private ssaoFinalUniforms: any
-
   constructor(options: { alpha: boolean; ssao: boolean }) {
     const { alpha, ssao } = options
     this.alpha = alpha
     this.renderer = new THREE.WebGLRenderer({ alpha })
+    this.renderer.useLegacyLights = true
     this.renderer.localClippingEnabled = true
 
     this.modelTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later

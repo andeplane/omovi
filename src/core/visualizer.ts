@@ -147,10 +147,10 @@ export default class Visualizer {
     this.cpuStats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
     this.memoryStats.showPanel(2) // 0: fps, 1: ms, 2: mb, 3+: custom
     // document.body.appendChild(this.cpuStats.dom)
-    this.cpuStats.domElement.style.cssText =
-      'position:absolute;top:0px;right:80px;'
-    this.memoryStats.domElement.style.cssText =
-      'position:absolute;top:0px;right:0px;'
+    // this.cpuStats.domElement.style.cssText =
+    //   'position:absolute;top:0px;right:80px;'
+    // this.memoryStats.domElement.style.cssText =
+    //   'position:absolute;top:0px;right:0px;'
     // document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
