@@ -3,7 +3,7 @@ import fragmentShader from './shaders/fragment'
 import vertexShader from './shaders/vertex'
 import createMaterial from 'core/materials'
 //@ts-ignore
-import uuid from 'uuid';
+import uuid from 'uuid'
 
 class Particles {
   id: string
@@ -14,7 +14,7 @@ class Particles {
   count: number
   capacity: number
   geometry?: THREE.InstancedBufferGeometry
-  baseGeometry?: THREE.PlaneBufferGeometry
+  baseGeometry?: THREE.PlaneGeometry
   mesh?: THREE.InstancedMesh
 
   constructor(capacity: number) {
@@ -62,25 +62,35 @@ class Particles {
       return this.geometry
     }
 
-    this.baseGeometry = new THREE.PlaneBufferGeometry(1, 1, 1, 1)
+    this.baseGeometry = new THREE.PlaneGeometry(1, 1, 1, 1)
     this.geometry = new THREE.InstancedBufferGeometry()
 
     this.geometry.setIndex(this.baseGeometry.getIndex())
-    this.geometry.setAttribute('position', this.baseGeometry.getAttribute('position'))
-    this.geometry.setAttribute('normal', this.baseGeometry.getAttribute('normal'))
-    const positionAttribute = new THREE.InstancedBufferAttribute(this.positions, 3, false, 1)
+    this.geometry.setAttribute(
+      'position',
+      this.baseGeometry.getAttribute('position')
+    )
+    this.geometry.setAttribute(
+      'normal',
+      this.baseGeometry.getAttribute('normal')
+    )
+    const positionAttribute = new THREE.InstancedBufferAttribute(
+      this.positions,
+      3,
+      false,
+      1
+    )
     positionAttribute.setUsage(THREE.DynamicDrawUsage)
-    this.geometry.setAttribute(
-      'particlePosition',
-      positionAttribute
-    )
+    this.geometry.setAttribute('particlePosition', positionAttribute)
 
-    const particleIndexAttribute = new THREE.InstancedBufferAttribute(this.indices, 1, false, 1)
-    particleIndexAttribute.setUsage(THREE.DynamicDrawUsage)
-    this.geometry.setAttribute(
-      'particleIndex',
-      particleIndexAttribute
+    const particleIndexAttribute = new THREE.InstancedBufferAttribute(
+      this.indices,
+      1,
+      false,
+      1
     )
+    particleIndexAttribute.setUsage(THREE.DynamicDrawUsage)
+    this.geometry.setAttribute('particleIndex', particleIndexAttribute)
 
     return this.geometry
   }

@@ -85,8 +85,6 @@ const createMaterial = (
   material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
   material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
 
-
-
   if (fragDepthSupported()) {
     material.extensions.fragDepth = true
     material.defines!.FRAG_DEPTH = 1
