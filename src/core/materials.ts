@@ -75,7 +75,7 @@ const createMaterial = (
   vertexShader: string,
   fragmentShader: string,
   colorTexture: DataTexture,
-  radiusTexture: DataTexture,
+  radiusTexture: DataTexture
 ) => {
   if (materialMap[type] != null) {
     return materialMap[type]
