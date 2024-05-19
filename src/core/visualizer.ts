@@ -67,7 +67,6 @@ export default class Visualizer {
   private clock: THREE.Clock
   private domElement?: HTMLElement
   private object: THREE.Object3D
-  private stats: Stats
   private cpuStats: Stats
   private memoryStats: Stats
   private colorTexture: DataTexture

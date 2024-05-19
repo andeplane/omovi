@@ -27,7 +27,6 @@ varying float height;
 
 #include <common>
 #include <uv_pars_vertex>
-#include <uv2_pars_vertex>
 #include <displacementmap_pars_vertex>
 #include <envmap_pars_vertex>
 #include <color_pars_vertex>
@@ -46,7 +45,6 @@ vec3 mul3(mat4 M, vec3 v) {
 void main() {
 
 	#include <uv_vertex>
-	#include <uv2_vertex>
 	#include <color_vertex>
 
 	#include <beginnormal_vertex>
