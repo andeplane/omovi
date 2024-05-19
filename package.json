@@ -44,7 +44,7 @@
     "microbundle-crl": "^0.13.11",
     "stats.js": "^0.17.0",
     "strict-uri-encode": "^1.1.0",
-    "three": "^0.151.3",
+    "three": "^0.152.2",
     "uuid": "^3.4.0"
   }
 }
