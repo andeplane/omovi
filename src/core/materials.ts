@@ -54,7 +54,7 @@ function fragDepthSupported() {
   }
 
   const renderer = new THREE.WebGLRenderer()
-  const gl = renderer.domElement.getContext('webgl')
+  const gl = renderer.domElement.getContext('webgl2')
 
   if (
     renderer.capabilities.isWebGL2 ||
@@ -92,12 +92,12 @@ const createMaterial = (
 
   material.onBeforeCompile = (shader: THREE.Shader) => {
     Object.assign(shader.uniforms, material.uniforms)
-    const rawColorTexture = colorTexture.getTexture();
-    const rawRadiusTexture = radiusTexture.getTexture();
-    shader.uniforms.dataTextureWidth = { value: colorTexture.width };
-    shader.uniforms.dataTextureHeight = { value: colorTexture.height };
-    shader.uniforms[colorTexture.name] = { value: rawColorTexture };
-    shader.uniforms[radiusTexture.name] = { value: rawRadiusTexture };
+    const rawColorTexture = colorTexture.getTexture()
+    const rawRadiusTexture = radiusTexture.getTexture()
+    shader.uniforms.dataTextureWidth = { value: colorTexture.width }
+    shader.uniforms.dataTextureHeight = { value: colorTexture.height }
+    shader.uniforms[colorTexture.name] = { value: rawColorTexture }
+    shader.uniforms[radiusTexture.name] = { value: rawRadiusTexture }
 
     material.uniforms = shader.uniforms
 
