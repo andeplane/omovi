@@ -175,10 +175,10 @@ export default class Visualizer {
     //@ts-ignore
     window.THREE = THREE
 
-    this.renderer.getRawRenderer().xr.enabled = true
-    document.body.appendChild(
-      VRButton.createButton(this.renderer.getRawRenderer())
-    )
+    // this.renderer.getRawRenderer().xr.enabled = true
+    // document.body.appendChild(
+    //   VRButton.createButton(this.renderer.getRawRenderer())
+    // )
     this.renderer.getRawRenderer().setAnimationLoop(this.animate)
   }
 
