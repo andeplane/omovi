@@ -12,6 +12,7 @@ import Bonds from './geometries/bonds/bonds'
 import { Color } from './types'
 import OMOVIRenderer from './renderer'
 import { VRButton } from '../utils/VRButton'
+import { PickingHandler, PickResult } from './picking'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -45,9 +46,15 @@ const adjustCamera = (
   camera.updateProjectionMatrix()
 }
 
+export interface ParticleClickEvent {
+  particleIndex: number
+  position: THREE.Vector3
+}
+
 interface VisualizerProps {
   domElement?: HTMLElement
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+  onParticleClick?: (event: ParticleClickEvent) => void
   initialColors?: Color[]
 }
 
@@ -71,6 +78,11 @@ export default class Visualizer {
   private memoryStats: Stats
   private colorTexture: DataTexture
   private radiusTexture: DataTexture
+  private pickingHandler: PickingHandler
+  private onParticleClick?: (event: ParticleClickEvent) => void
+  private currentParticles?: Particles
+  private mouseDownPosition?: { x: number; y: number }
+  private readonly clickDistanceThreshold = 5 // pixels
 
   // @ts-ignore
   private latestRequestId?: number
@@ -78,7 +90,8 @@ export default class Visualizer {
   constructor({
     domElement,
     initialColors,
-    onCameraChanged
+    onCameraChanged,
+    onParticleClick
   }: VisualizerProps = {}) {
     this.renderer = new OMOVIRenderer({
       alpha: false,
@@ -86,6 +99,7 @@ export default class Visualizer {
     })
     this.idle = false
     this.setRadiusCalled = false
+    this.onParticleClick = onParticleClick
     this.canvas = this.renderer.getRawRenderer().domElement
     if (domElement) {
       this.domElement = domElement
@@ -169,6 +183,16 @@ export default class Visualizer {
       this.radiusTexture
     )
 
+    // Initialize picking handler
+    this.pickingHandler = new PickingHandler(
+      this.renderer.getRawRenderer(),
+      this.radiusTexture
+    )
+
+    // Add click listeners for particle picking
+    this.canvas.addEventListener('mousedown', this.handleMouseDown)
+    this.canvas.addEventListener('mouseup', this.handleMouseUp)
+
     this.animate()
     //@ts-ignore
     window.visualizer = this
@@ -185,12 +209,16 @@ export default class Visualizer {
   add = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {
       this.object.add(this.cachedMeshes[object.id])
+      if (object instanceof Particles) {
+        this.currentParticles = object
+      }
       return
     }
 
     let material: THREE.Material
     if (object instanceof Particles) {
       material = this.materials['particles']
+      this.currentParticles = object
     } else {
       material = this.materials['bonds']
     }
@@ -251,7 +279,73 @@ export default class Visualizer {
     })
   }
 
+  private handleMouseDown = (event: MouseEvent) => {
+    this.mouseDownPosition = { x: event.clientX, y: event.clientY }
+  }
+
+  private handleMouseUp = (event: MouseEvent) => {
+    if (!this.mouseDownPosition) {
+      return
+    }
+
+    // Check if mouse moved significantly (drag vs click)
+    const dx = event.clientX - this.mouseDownPosition.x
+    const dy = event.clientY - this.mouseDownPosition.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // If it's a drag, don't pick
+    if (distance > this.clickDistanceThreshold) {
+      this.mouseDownPosition = undefined
+      return
+    }
+
+    this.mouseDownPosition = undefined
+
+    if (!this.onParticleClick || !this.currentParticles) {
+      return
+    }
+
+    // Get particle meshes from cached meshes
+    const particleMeshes: THREE.InstancedMesh[] = []
+    for (const mesh of Object.values(this.cachedMeshes)) {
+      if (mesh instanceof THREE.InstancedMesh && mesh.material === this.materials['particles']) {
+        particleMeshes.push(mesh)
+      }
+    }
+
+    if (particleMeshes.length === 0) {
+      return
+    }
+
+    // Get click coordinates relative to the canvas
+    const rect = this.canvas.getBoundingClientRect()
+    const x = (event.clientX - rect.left) * window.devicePixelRatio
+    const y = (event.clientY - rect.top) * window.devicePixelRatio
+
+    // Perform picking
+    const result = this.pickingHandler.pick(
+      x,
+      y,
+      this.camera,
+      this.scene,
+      particleMeshes
+    )
+
+    if (result) {
+      // Look up the actual position from the particles data
+      const position = this.currentParticles.getPosition(result.particleIndex)
+      
+      this.onParticleClick({
+        particleIndex: result.particleIndex,
+        position
+      })
+    }
+  }
+
   dispose = () => {
+    this.canvas.removeEventListener('mousedown', this.handleMouseDown)
+    this.canvas.removeEventListener('mouseup', this.handleMouseUp)
+    this.pickingHandler.dispose()
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
     }
