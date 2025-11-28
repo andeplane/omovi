@@ -64,12 +64,8 @@ void main() {
 	#include <logdepthbuf_fragment>
 	#include <map_fragment>
 	
-	// Apply selection highlight - blend with selection color
-	vec3 finalColor = particleColor.rgb;
-	if (isSelected > 0.5) {
-		finalColor = mix(particleColor.rgb, selectionColor, 0.5);
-	}
-	diffuseColor.rgb *= finalColor;
+	// Selection highlight will be applied after we calculate the normal
+	diffuseColor.rgb *= particleColor.rgb;
 	#include <alphamap_fragment>
 	#include <alphatest_fragment>
 	#include <specularmap_fragment>
@@ -132,6 +128,25 @@ void main() {
 	#include <aomap_fragment>
 
 	vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
+
+	// Apply selection highlight with layered border: black -> white -> bright color
+	if (isSelected > 0.5) {
+		// Calculate rim factor (0 = facing camera, 1 = edge)
+		float rim = 1.0 - abs(dot(normal, rayDirection));
+		
+		vec3 coreColor = particleColor.rgb * 1.2;
+		
+		if (rim > 0.65) {
+			// Outermost: black border
+			outgoingLight = vec3(0.0);
+		} else if (rim > 0.5) {
+			// Middle: white band
+			outgoingLight = vec3(1.0);
+		} else {
+			// Inner: flat bright color
+			outgoingLight = coreColor;
+		}
+	}
 
 	#include <envmap_fragment>
 	#include <opaque_fragment>
