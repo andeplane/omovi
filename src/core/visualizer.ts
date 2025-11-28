@@ -49,6 +49,7 @@ const adjustCamera = (
 export interface ParticleClickEvent {
   particleIndex: number
   position: THREE.Vector3
+  shiftKey: boolean
 }
 
 interface VisualizerProps {
@@ -78,11 +79,14 @@ export default class Visualizer {
   private memoryStats: Stats
   private colorTexture: DataTexture
   private radiusTexture: DataTexture
+  private selectionTexture: DataTexture
   private pickingHandler: PickingHandler
   private onParticleClick?: (event: ParticleClickEvent) => void
   private currentParticles?: Particles
   private mouseDownPosition?: { x: number; y: number }
+  private mouseDownShiftKey: boolean = false
   private readonly clickDistanceThreshold = 5 // pixels
+  public debugPickingRender: boolean = false // Set to true to see picking visualization
 
   // @ts-ignore
   private latestRequestId?: number
@@ -133,6 +137,18 @@ export default class Visualizer {
         this.forceRender = true
       }
     )
+    this.selectionTexture = new DataTexture(
+      'selectionTexture',
+      maxParticleIndex,
+      'rgba',
+      () => {
+        this.forceRender = true
+      }
+    )
+    // Initialize selection texture to all unselected (black)
+    for (let i = 0; i < maxParticleIndex; i++) {
+      this.selectionTexture.setRGBA(i, 0, 0, 0, 255)
+    }
 
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b)
@@ -173,7 +189,9 @@ export default class Visualizer {
       particleVertexShader,
       particleFragmentShader,
       this.colorTexture,
-      this.radiusTexture
+      this.radiusTexture,
+      this.selectionTexture,
+      new THREE.Color(1.0, 0.84, 0.0) // Gold selection color
     )
     this.materials['bonds'] = createMaterial(
       'bonds',
@@ -281,6 +299,7 @@ export default class Visualizer {
 
   private handleMouseDown = (event: MouseEvent) => {
     this.mouseDownPosition = { x: event.clientX, y: event.clientY }
+    this.mouseDownShiftKey = event.shiftKey
   }
 
   private handleMouseUp = (event: MouseEvent) => {
@@ -319,8 +338,19 @@ export default class Visualizer {
 
     // Get click coordinates relative to the canvas
     const rect = this.canvas.getBoundingClientRect()
-    const x = (event.clientX - rect.left) * window.devicePixelRatio
-    const y = (event.clientY - rect.top) * window.devicePixelRatio
+    
+    // Get renderer size (in actual pixels)
+    const rendererSize = this.renderer.getSize()
+    const rendererWidth = rendererSize.width
+    const rendererHeight = rendererSize.height
+    
+    // Convert from client coordinates to renderer coordinates
+    const clientX = event.clientX - rect.left
+    const clientY = event.clientY - rect.top
+    
+    // Scale from client size to renderer size
+    const x = (clientX / rect.width) * rendererWidth
+    const y = (clientY / rect.height) * rendererHeight
 
     // Perform picking
     const result = this.pickingHandler.pick(
@@ -328,16 +358,34 @@ export default class Visualizer {
       y,
       this.camera,
       this.scene,
-      particleMeshes
+      particleMeshes,
+      false // Always do actual picking, debug mode just affects rendering
     )
 
     if (result) {
-      // Look up the actual position from the particles data
-      const position = this.currentParticles.getPosition(result.particleIndex)
+      // result.particleIndex is actually the atom ID (from particles.indices array)
+      // We need to find which array index has this ID
+      const atomId = result.particleIndex
+      let arrayIndex = -1
+      
+      for (let i = 0; i < this.currentParticles.count; i++) {
+        if (this.currentParticles.indices[i] === atomId) {
+          arrayIndex = i
+          break
+        }
+      }
+      
+      if (arrayIndex === -1) {
+        return
+      }
+      
+      // Look up the actual position from the particles data using array index
+      const position = this.currentParticles.getPosition(arrayIndex)
       
       this.onParticleClick({
-        particleIndex: result.particleIndex,
-        position
+        particleIndex: atomId,  // Return the actual atom ID
+        position,
+        shiftKey: this.mouseDownShiftKey
       })
     }
   }
@@ -380,6 +428,28 @@ export default class Visualizer {
     this.radiusTexture.setFloat(index, radius)
   }
 
+  /**
+   * Set the selection state of a particle by atom ID
+   * @param atomId The LAMMPS atom ID
+   * @param selected Whether the particle should be selected
+   */
+  setSelected = (atomId: number, selected: boolean) => {
+    // atomId is the actual LAMMPS atom ID, which is what's stored in the shader
+    // The shader reads from particles.indices which contains atom IDs
+    // So we can directly set the selection using the atomId
+    this.selectionTexture.setRGBA(atomId, selected ? 255 : 0, 0, 0, 255)
+  }
+
+  /**
+   * Clear all selections
+   */
+  clearSelection = () => {
+    const maxIndex = this.selectionTexture.maxParticleIndex
+    for (let i = 0; i < maxIndex; i++) {
+      this.selectionTexture.setRGBA(i, 0, 0, 0, 255)
+    }
+  }
+
   animate = () => {
     if (!this.idle) {
       this.memoryStats.update()
@@ -388,7 +458,24 @@ export default class Visualizer {
       this.controls.update(this.clock.getDelta())
 
       this.updateUniforms(this.camera)
-      this.renderer.render(this.scene, this.camera)
+      
+      // If debug picking is enabled, render with picking material instead
+      if (this.debugPickingRender) {
+        const particleMeshes: THREE.InstancedMesh[] = []
+        for (const mesh of Object.values(this.cachedMeshes)) {
+          if (mesh instanceof THREE.InstancedMesh && mesh.material === this.materials['particles']) {
+            particleMeshes.push(mesh)
+          }
+        }
+        // Trigger a debug render (this will render to screen)
+        if (particleMeshes.length > 0) {
+          this.pickingHandler.pick(0, 0, this.camera, this.scene, particleMeshes, true)
+        }
+      } else {
+        // Normal rendering with SSAO
+        this.renderer.render(this.scene, this.camera)
+      }
+      
       this.cpuStats.end()
 
       this.forceRender = false

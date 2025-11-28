@@ -75,7 +75,9 @@ const createMaterial = (
   vertexShader: string,
   fragmentShader: string,
   colorTexture: DataTexture,
-  radiusTexture: DataTexture
+  radiusTexture: DataTexture,
+  selectionTexture?: DataTexture,
+  selectionColor?: THREE.Color
 ) => {
   if (materialMap[type] != null) {
     return materialMap[type]
@@ -101,6 +103,12 @@ const createMaterial = (
     parameters.uniforms.dataTextureHeight = { value: colorTexture.height }
     parameters.uniforms[colorTexture.name] = { value: rawColorTexture }
     parameters.uniforms[radiusTexture.name] = { value: rawRadiusTexture }
+    
+    // Add selection texture and color if provided
+    if (selectionTexture) {
+      parameters.uniforms.selectionTexture = { value: selectionTexture.getTexture() }
+      parameters.uniforms.selectionColor = { value: selectionColor || new THREE.Color(1.0, 0.84, 0.0) } // Default gold
+    }
 
     material.uniforms = parameters.uniforms
 

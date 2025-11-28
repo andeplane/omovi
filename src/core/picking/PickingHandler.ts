@@ -10,6 +10,7 @@ export interface PickResult {
 export class PickingHandler {
   private renderer: THREE.WebGLRenderer
   private pickingTarget: THREE.WebGLRenderTarget
+  private debugTarget: THREE.WebGLRenderTarget
   private pixelBuffer: Uint8Array
   private pickingMaterial: THREE.ShaderMaterial
   private radiusTexture: DataTexture
@@ -20,6 +21,14 @@ export class PickingHandler {
 
     // Create 1x1 render target for picking
     this.pickingTarget = new THREE.WebGLRenderTarget(1, 1, {
+      minFilter: THREE.NearestFilter,
+      magFilter: THREE.NearestFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType
+    })
+
+    // Create full-screen debug target
+    this.debugTarget = new THREE.WebGLRenderTarget(800, 600, {
       minFilter: THREE.NearestFilter,
       magFilter: THREE.NearestFilter,
       format: THREE.RGBAFormat,
@@ -44,6 +53,7 @@ export class PickingHandler {
 
   dispose(): void {
     this.pickingTarget.dispose()
+    this.debugTarget.dispose()
     this.pickingMaterial.dispose()
   }
 
@@ -54,6 +64,7 @@ export class PickingHandler {
    * @param camera The camera to use for picking
    * @param scene The scene to pick from
    * @param particleMeshes Array of instanced meshes containing particles
+   * @param debugMode If true, render to screen instead of picking
    * @returns PickResult if a particle was hit, undefined otherwise
    */
   pick(
@@ -61,7 +72,8 @@ export class PickingHandler {
     y: number,
     camera: THREE.PerspectiveCamera | THREE.OrthographicCamera,
     scene: THREE.Scene,
-    particleMeshes: THREE.InstancedMesh[]
+    particleMeshes: THREE.InstancedMesh[],
+    debugMode: boolean = false
   ): PickResult | undefined {
     if (particleMeshes.length === 0) {
       return undefined
@@ -69,14 +81,43 @@ export class PickingHandler {
 
     const { width, height } = this.renderer.getSize(new THREE.Vector2())
 
-    // Create pick camera with view offset to render just the clicked pixel
-    const pickCamera = camera.clone() as THREE.PerspectiveCamera
-    pickCamera.setViewOffset(width, height, x, height - y - 1, 1, 1)
+    // Create pick camera
+    const pickCamera = debugMode 
+      ? camera  // For debug mode, use full camera
+      : (() => {
+          // For picking, use view offset to render just the clicked pixel
+          const cam = camera.clone() as THREE.PerspectiveCamera
+          cam.setViewOffset(width, height, x, y, 1, 1)
+          return cam
+        })()
 
     // Store original materials
     const originalMaterials = new Map<THREE.InstancedMesh, THREE.Material | THREE.Material[]>()
+    
+    // Store original visibility of all non-particle objects
+    const originalVisibility = new Map<THREE.Object3D, boolean>()
+    
+    // Create a set of objects to keep visible (particle meshes and their ancestors)
+    const keepVisible = new Set<THREE.Object3D>()
+    for (const mesh of particleMeshes) {
+      keepVisible.add(mesh)
+      // Keep all ancestors visible too
+      let parent = mesh.parent
+      while (parent) {
+        keepVisible.add(parent)
+        parent = parent.parent
+      }
+    }
+    
+    // Hide all objects except particle meshes and their parents
+    scene.traverse((obj) => {
+      if (!keepVisible.has(obj)) {
+        originalVisibility.set(obj, obj.visible)
+        obj.visible = false
+      }
+    })
 
-    // Swap to picking material
+    // Swap to picking material for particle meshes
     for (const mesh of particleMeshes) {
       originalMaterials.set(mesh, mesh.material)
       
@@ -91,25 +132,34 @@ export class PickingHandler {
       mesh.material = this.pickingMaterial
     }
 
-    // Render to picking target
+    // Render
     const originalRenderTarget = this.renderer.getRenderTarget()
     const originalClearColor = this.renderer.getClearColor(new THREE.Color())
     const originalClearAlpha = this.renderer.getClearAlpha()
 
-    this.renderer.setRenderTarget(this.pickingTarget)
-    this.renderer.setClearColor(0x000000, 0) // Clear with transparent black
-    this.renderer.clear()
-    this.renderer.render(scene, pickCamera)
+    if (debugMode) {
+      // Debug mode: render full screen to see picking visualization
+      this.renderer.setRenderTarget(null)
+      this.renderer.setClearColor(0xffffff, 1) // White background
+      this.renderer.clear()
+      this.renderer.render(scene, pickCamera)
+    } else {
+      // Normal mode: render to 1x1 target
+      this.renderer.setRenderTarget(this.pickingTarget)
+      this.renderer.setClearColor(0xffffff, 1) // White background so missed picks are obvious
+      this.renderer.clear()
+      this.renderer.render(scene, pickCamera)
 
-    // Read the pixel
-    this.renderer.readRenderTargetPixels(
-      this.pickingTarget,
-      0,
-      0,
-      1,
-      1,
-      this.pixelBuffer
-    )
+      // Read the pixel
+      this.renderer.readRenderTargetPixels(
+        this.pickingTarget,
+        0,
+        0,
+        1,
+        1,
+        this.pixelBuffer
+      )
+    }
 
     // Restore original state
     this.renderer.setRenderTarget(originalRenderTarget)
@@ -119,16 +169,29 @@ export class PickingHandler {
     for (const [mesh, material] of originalMaterials) {
       mesh.material = material
     }
-
-    // Decode the particle index from RGB
-    // Check if we hit anything (alpha > 0 means we hit a particle)
-    if (this.pixelBuffer[3] === 0) {
-      return undefined
+    
+    // Restore visibility of all objects
+    for (const [obj, visibility] of originalVisibility) {
+      obj.visible = visibility
     }
 
+    if (debugMode) {
+      return undefined // Don't actually pick in debug mode
+    }
+
+    // Decode the particle index from RGB
     const r = this.pixelBuffer[0]
     const g = this.pixelBuffer[1]
     const b = this.pixelBuffer[2]
+    const a = this.pixelBuffer[3]
+
+    console.log('[PickingHandler] Pixel color:', { r, g, b, a })
+
+    // Check if we hit the background (white = 255,255,255)
+    if (r === 255 && g === 255 && b === 255) {
+      console.log('[PickingHandler] Hit background (white)')
+      return undefined
+    }
 
     const particleIndex = r * 65536 + g * 256 + b
 
