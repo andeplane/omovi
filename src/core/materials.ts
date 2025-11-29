@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import DataTexture from 'core/datatexture'
-import { DEFAULT_SELECTION_COLOR } from './constants'
+import { DEFAULT_SELECTION_COLOR, OUTLINE_ALPHA_DIVISOR } from './constants'
 
 export interface Uniforms {
   [name: string]: THREE.IUniform
@@ -109,6 +109,7 @@ const createMaterial = (
     if (selectionTexture) {
       parameters.uniforms.selectionTexture = { value: selectionTexture.getTexture() }
       parameters.uniforms.selectionColor = { value: selectionColor || DEFAULT_SELECTION_COLOR }
+      parameters.uniforms.outlineAlphaDivisor = { value: OUTLINE_ALPHA_DIVISOR }
     }
 
     material.uniforms = parameters.uniforms

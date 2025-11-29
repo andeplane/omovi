@@ -14,7 +14,7 @@ import OMOVIRenderer from './renderer'
 import { VRButton } from '../utils/VRButton'
 import { PickingHandler, PickResult } from './picking'
 import { outlineVertexShader, outlineFragmentShader } from './post-processing/outlineShader'
-import { DEFAULT_SELECTION_COLOR } from './constants'
+import { DEFAULT_SELECTION_COLOR, OUTLINE_ALPHA_DIVISOR } from './constants'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -83,6 +83,7 @@ export default class Visualizer {
   private radiusTexture: DataTexture
   private selectionTexture: DataTexture
   private selectedCount: number = 0 // Track number of selected atoms for O(1) hasSelection
+  private atomIdToParticleInfo: Map<number, { particles: Particles; arrayIndex: number }> = new Map() // O(1) lookup for picking
   private pickingHandler: PickingHandler
   private onParticleClick?: (event: ParticleClickEvent) => void
   private currentParticles?: Particles
@@ -248,6 +249,11 @@ export default class Visualizer {
       this.object.add(this.cachedMeshes[object.id])
       if (object instanceof Particles) {
         this.currentParticles = object
+        // Populate atomIdToParticleInfo map for O(1) picking lookup
+        for (let i = 0; i < object.count; i++) {
+          const atomId = object.indices[i]
+          this.atomIdToParticleInfo.set(atomId, { particles: object, arrayIndex: i })
+        }
       }
       return
     }
@@ -256,6 +262,11 @@ export default class Visualizer {
     if (object instanceof Particles) {
       material = this.materials['particles']
       this.currentParticles = object
+      // Populate atomIdToParticleInfo map for O(1) picking lookup
+      for (let i = 0; i < object.count; i++) {
+        const atomId = object.indices[i]
+        this.atomIdToParticleInfo.set(atomId, { particles: object, arrayIndex: i })
+      }
     } else {
       material = this.materials['bonds']
     }
@@ -279,6 +290,15 @@ export default class Visualizer {
   remove = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {
       this.object.remove(this.cachedMeshes[object.id])
+      
+      // Clear atomIdToParticleInfo map entries for this Particles object
+      if (object instanceof Particles) {
+        for (let i = 0; i < object.count; i++) {
+          const atomId = object.indices[i]
+          this.atomIdToParticleInfo.delete(atomId)
+        }
+      }
+      
       return
     }
     throw new Error('Tried to remove object that never was added to the scene.')
@@ -383,27 +403,16 @@ export default class Visualizer {
 
     if (result) {
       // result.particleIndex is actually the atom ID (from particles.indices array)
-      // We need to find which array index has this ID
       const atomId = result.particleIndex
-      let arrayIndex = -1
       
-      // NOTE: This only searches currentParticles (the most recently added Particles object).
-      // If multiple Particles objects are added to the visualizer, picking will only work
-      // for particles in the most recent one. A more complete implementation would maintain
-      // a Map<atomId, Particles> to handle multiple particle groups.
-      for (let i = 0; i < this.currentParticles.count; i++) {
-        if (this.currentParticles.indices[i] === atomId) {
-          arrayIndex = i
-          break
-        }
-      }
-      
-      if (arrayIndex === -1) {
+      // O(1) lookup using atomIdToParticleInfo map (supports multiple Particles objects)
+      const particleInfo = this.atomIdToParticleInfo.get(atomId)
+      if (!particleInfo) {
         return
       }
-      
-      // Look up the actual position from the particles data using array index
-      const position = this.currentParticles.getPosition(arrayIndex)
+
+      const { particles, arrayIndex } = particleInfo
+      const position = particles.getPosition(arrayIndex)
       
       this.onParticleClick({
         particleIndex: atomId,  // Return the actual atom ID
@@ -507,7 +516,8 @@ export default class Visualizer {
       uniforms: {
         tDiffuse: { value: this.outlineRenderTarget.texture },
         resolution: { value: new THREE.Vector2(size.x, size.y) },
-        outlineOffset: { value: 1.5 } // 1-2 pixel offset for thin outline
+        outlineOffset: { value: 1.5 }, // 1-2 pixel offset for thin outline
+        outlineAlphaDivisor: { value: OUTLINE_ALPHA_DIVISOR }
       }
     })
     

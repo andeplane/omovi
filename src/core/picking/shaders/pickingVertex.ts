@@ -11,6 +11,10 @@ varying vec3 vCenter;
 varying float vRadius;
 varying float vParticleIndex;
 
+// NOTE: The following utility functions (unpack, makePerpendicular) are duplicated
+// across multiple shader files for convenience. These could be extracted to a shared
+// GLSL chunk file if the codebase grows, but for now the duplication is acceptable.
+
 float unpack(vec4 rgba) {
   float value = (rgba.r * 255. * 255. + rgba.g * 255. + rgba.b);
   if (rgba.a < 1.0) {
