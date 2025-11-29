@@ -13,8 +13,8 @@
     "node": ">=10"
   },
   "scripts": {
-    "build": "microbundle-crl --no-compress --format modern,cjs --target node",
-    "start": "microbundle-crl watch --no-compress --format modern,cjs",
+    "build": "vite build",
+    "start": "vite build --watch",
     "typecheck": "tsc --noEmit",
     "lint": "prettier --check 'src/**/*.{ts,tsx}'",
     "lint:fix": "prettier --write 'src/**/*.{ts,tsx}'",
@@ -27,6 +27,7 @@
     "@parcel/transformer-typescript-types": "^2.8.0",
     "@types/react": "^16.9.27",
     "@types/react-dom": "^16.9.7",
+    "@vitejs/plugin-react": "^4.3.4",
     "buffer": "^5.7.1",
     "gh-pages": "^6.3.0",
     "parcel": "^2.8.0",
@@ -34,7 +35,9 @@
     "process": "^0.11.10",
     "typescript": "^5.9.3",
     "util": "^0.12.5",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "vite": "^5.4.11",
+    "vite-plugin-dts": "^4.3.0"
   },
   "files": [
     "dist"
@@ -46,7 +49,6 @@
     "binary-parser": "^1.7.0",
     "easy-peasy": "^5.0.3",
     "kd-tree-javascript": "^1.0.3",
-    "microbundle-crl": "^0.13.11",
     "stats.js": "^0.17.0",
     "strict-uri-encode": "^1.1.0",
     "three": "^0.164.1"
