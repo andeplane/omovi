@@ -28,7 +28,7 @@
     "@types/react": "^16.9.27",
     "@types/react-dom": "^16.9.7",
     "buffer": "^5.7.1",
-    "gh-pages": "^2.2.0",
+    "gh-pages": "^6.3.0",
     "parcel": "^2.8.0",
     "prettier": "^3.7.2",
     "process": "^0.11.10",
