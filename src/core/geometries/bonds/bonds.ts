@@ -3,7 +3,7 @@ import fragmentShader from './shaders/fragment'
 import vertexShader from './shaders/vertex'
 import createMaterial from 'core/materials'
 //@ts-ignore
-import uuid from 'uuid';
+import uuid from 'uuid'
 
 class Bonds {
   id: string
@@ -36,7 +36,7 @@ class Bonds {
     x2: number,
     y2: number,
     z2: number,
-    radius: number,
+    radius: number
   ) {
     if (this.count === this.capacity) {
       console.log("Warning, can't add particle because arrays are full")
@@ -99,26 +99,32 @@ class Bonds {
     this.geometry.setAttribute('position', positionBufferAttribute)
     this.geometry.setAttribute('normal', positionBufferAttribute)
 
-    const position1Attribute = new THREE.InstancedBufferAttribute(this.positions1, 3, false, 1)
+    const position1Attribute = new THREE.InstancedBufferAttribute(
+      this.positions1,
+      3,
+      false,
+      1
+    )
     position1Attribute.setUsage(THREE.DynamicDrawUsage)
-    this.geometry.setAttribute(
-      'position1',
-      position1Attribute
-    )
+    this.geometry.setAttribute('position1', position1Attribute)
 
-    const position2Attribute = new THREE.InstancedBufferAttribute(this.positions2, 3, false, 1)
+    const position2Attribute = new THREE.InstancedBufferAttribute(
+      this.positions2,
+      3,
+      false,
+      1
+    )
     position2Attribute.setUsage(THREE.DynamicDrawUsage)
-    this.geometry.setAttribute(
-      'position2',
-      position2Attribute
-    )
+    this.geometry.setAttribute('position2', position2Attribute)
 
-    const bondRadiusAttribute = new THREE.InstancedBufferAttribute(this.radii, 1, false, 1)
-    bondRadiusAttribute.setUsage(THREE.DynamicDrawUsage)
-    this.geometry.setAttribute(
-      'bondRadius',
-      bondRadiusAttribute
+    const bondRadiusAttribute = new THREE.InstancedBufferAttribute(
+      this.radii,
+      1,
+      false,
+      1
     )
+    bondRadiusAttribute.setUsage(THREE.DynamicDrawUsage)
+    this.geometry.setAttribute('bondRadius', bondRadiusAttribute)
 
     return this.geometry
   }
@@ -129,7 +135,7 @@ class Bonds {
         attribute.needsUpdate = true
       })
     }
-    
+
     if (this.mesh) {
       this.mesh.count = this.count
     }

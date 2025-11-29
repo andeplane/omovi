@@ -8,7 +8,7 @@ void main() {
   vUv = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
-`;
+`
 
 export const outlineFragmentShader = /* glsl */ `
 uniform sampler2D tDiffuse;
@@ -65,5 +65,4 @@ void main() {
   // Not an edge - make it transparent so we don't overwrite SSAO render
   gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 }
-`;
-
+`

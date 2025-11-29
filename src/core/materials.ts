@@ -104,11 +104,15 @@ const createMaterial = (
     parameters.uniforms.dataTextureHeight = { value: colorTexture.height }
     parameters.uniforms[colorTexture.name] = { value: rawColorTexture }
     parameters.uniforms[radiusTexture.name] = { value: rawRadiusTexture }
-    
+
     // Add selection texture and color if provided
     if (selectionTexture) {
-      parameters.uniforms.selectionTexture = { value: selectionTexture.getTexture() }
-      parameters.uniforms.selectionColor = { value: selectionColor || DEFAULT_SELECTION_COLOR }
+      parameters.uniforms.selectionTexture = {
+        value: selectionTexture.getTexture()
+      }
+      parameters.uniforms.selectionColor = {
+        value: selectionColor || DEFAULT_SELECTION_COLOR
+      }
       parameters.uniforms.outlineAlphaDivisor = { value: OUTLINE_ALPHA_DIVISOR }
     }
 

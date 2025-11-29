@@ -27,7 +27,7 @@ export default class SimulationData {
   getUniqueParticleTypes = () => {
     const particleTypes: number[] = []
 
-    this.frames.forEach(frame => {
+    this.frames.forEach((frame) => {
       particleTypes.push(...frame.particleTypes)
     })
     return [...new Set(particleTypes)].sort()

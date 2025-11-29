@@ -13,4 +13,3 @@ export const DEFAULT_SELECTION_COLOR = new THREE.Color(0.392, 0.392, 1.0)
  * - index = floor((255 - alpha * 255) / OUTLINE_ALPHA_DIVISOR + 0.5)
  */
 export const OUTLINE_ALPHA_DIVISOR = 16.0
-
