@@ -6,7 +6,7 @@ import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
 
 import * as THREE from 'three'
 
-class ParseError extends Error { }
+class ParseError extends Error {}
 
 const ensureLineContains = (
   lineNumber: number,
@@ -41,9 +41,8 @@ const parseMolecular = (
   particles: Particles
 ) => {
   for (let j = 0; j < particles.capacity; j++) {
-    const [idStr, molIdStr, typeStr, xStr, yStr, zStr] = lines[
-      lineNumber + j
-    ].split(' ')
+    const [idStr, molIdStr, typeStr, xStr, yStr, zStr] =
+      lines[lineNumber + j].split(' ')
     ensureNotNull(lines, lineNumber, {
       x: xStr,
       y: yStr,
@@ -60,13 +59,7 @@ const parseMolecular = (
     const molId = parseInt(molIdStr)
     const type = parseInt(typeStr) - 1
     const radius = 1.0
-    particles.add(
-      x,
-      y,
-      z,
-      id,
-      type
-    )
+    particles.add(x, y, z, id, type)
   }
 }
 
@@ -91,13 +84,7 @@ const parseAtomic = (
     const id = parseInt(idStr)
     const type = parseInt(typeStr)
     const radius = 1.0
-    particles.add(
-      x,
-      y,
-      z,
-      id,
-      type,
-    )
+    particles.add(x, y, z, id, type)
   }
 }
 
@@ -210,7 +197,7 @@ const parseLAMMPSData = (data: string) => {
   lineNumber = getNextLineNumber(lines, lineNumber, 'Atoms')
   console.log(
     `Found Atoms on line ${lineNumber - 1} which is line ${
-    lines[lineNumber - 1]
+      lines[lineNumber - 1]
     }`
   )
 

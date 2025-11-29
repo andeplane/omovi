@@ -93,10 +93,8 @@ export default class OMOVIRenderer {
     this.rttScene = rttScene
     this.rttUniforms = rttUniforms
 
-    const {
-      scene: antiAliasScene,
-      uniforms: antiAliasUniforms
-    } = this.createAntialiasScene()
+    const { scene: antiAliasScene, uniforms: antiAliasUniforms } =
+      this.createAntialiasScene()
     this.antiAliasScene = antiAliasScene
     this.antiAliasUniforms = antiAliasUniforms
 
@@ -104,10 +102,8 @@ export default class OMOVIRenderer {
     this.ssaoScene = ssaoScene
     this.ssaoUniforms = ssaoUniforms
 
-    const {
-      scene: ssaoFinalScene,
-      uniforms: ssaoFinalUniforms
-    } = this.createSSAOFinalScene()
+    const { scene: ssaoFinalScene, uniforms: ssaoFinalUniforms } =
+      this.createSSAOFinalScene()
     this.ssaoFinalScene = ssaoFinalScene
     this.ssaoFinalUniforms = ssaoFinalUniforms
 

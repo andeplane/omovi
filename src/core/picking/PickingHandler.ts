@@ -72,13 +72,15 @@ export class PickingHandler {
     const { width, height } = this.renderer.getSize(new THREE.Vector2())
 
     // Create pick camera
-    const pickCamera = debugMode 
-      ? camera  // For debug mode, use full camera
+    const pickCamera = debugMode
+      ? camera // For debug mode, use full camera
       : (() => {
           // For picking, use view offset to render just the clicked pixel
           // setViewOffset is only available on PerspectiveCamera
           if (!(camera instanceof THREE.PerspectiveCamera)) {
-            throw new Error('Picking is currently only supported for PerspectiveCamera.')
+            throw new Error(
+              'Picking is currently only supported for PerspectiveCamera.'
+            )
           }
           const cam = camera.clone()
           cam.setViewOffset(width, height, x, y, 1, 1)
@@ -86,11 +88,14 @@ export class PickingHandler {
         })()
 
     // Store original materials
-    const originalMaterials = new Map<THREE.InstancedMesh, THREE.Material | THREE.Material[]>()
-    
+    const originalMaterials = new Map<
+      THREE.InstancedMesh,
+      THREE.Material | THREE.Material[]
+    >()
+
     // Store original visibility of all non-particle objects
     const originalVisibility = new Map<THREE.Object3D, boolean>()
-    
+
     // Create a set of objects to keep visible (particle meshes and their ancestors)
     const keepVisible = new Set<THREE.Object3D>()
     for (const mesh of particleMeshes) {
@@ -102,7 +107,7 @@ export class PickingHandler {
         parent = parent.parent
       }
     }
-    
+
     // Hide all objects except particle meshes and their parents
     scene.traverse((obj) => {
       if (!keepVisible.has(obj)) {
@@ -114,18 +119,21 @@ export class PickingHandler {
     // Swap to picking material for particle meshes
     for (const mesh of particleMeshes) {
       originalMaterials.set(mesh, mesh.material)
-      
+
       // Update picking material uniforms from the original material
       const originalMaterial = mesh.material as THREE.ShaderMaterial
       if (originalMaterial.uniforms) {
-        const invModelMatrixUniform = originalMaterial.uniforms.inverseModelMatrix
+        const invModelMatrixUniform =
+          originalMaterial.uniforms.inverseModelMatrix
         if (invModelMatrixUniform?.value) {
-          this.pickingMaterial.uniforms.inverseModelMatrix.value.copy(invModelMatrixUniform.value)
+          this.pickingMaterial.uniforms.inverseModelMatrix.value.copy(
+            invModelMatrixUniform.value
+          )
         } else {
           this.pickingMaterial.uniforms.inverseModelMatrix.value.identity()
         }
       }
-      
+
       mesh.material = this.pickingMaterial
     }
 
@@ -166,7 +174,7 @@ export class PickingHandler {
     for (const [mesh, material] of originalMaterials) {
       mesh.material = material
     }
-    
+
     // Restore visibility of all objects
     for (const [obj, visibility] of originalVisibility) {
       obj.visible = visibility
@@ -200,4 +208,3 @@ export class PickingHandler {
     }
   }
 }
-

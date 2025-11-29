@@ -567,8 +567,8 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     const moveForward = keyboard.isPressed('w')
       ? true
       : keyboard.isPressed('s')
-      ? false
-      : undefined
+        ? false
+        : undefined
     if (moveForward !== undefined) {
       this.dolly(
         0,
