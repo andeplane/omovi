@@ -1,19 +1,22 @@
 const keyMap: { [s: string]: string } = {
-  16: 'shift',
-  17: 'ctrl',
-  18: 'alt',
-  27: 'escape',
-  32: 'space',
-  37: 'left',
-  38: 'up',
-  39: 'right',
-  40: 'down',
-  65: 'a',
-  68: 'd',
-  69: 'e',
-  81: 'q',
-  83: 's',
-  87: 'w'
+  ShiftLeft: 'shift',
+  ShiftRight: 'shift',
+  ControlLeft: 'ctrl',
+  ControlRight: 'ctrl',
+  AltLeft: 'alt',
+  AltRight: 'alt',
+  Escape: 'escape',
+  Space: 'space',
+  ArrowLeft: 'left',
+  ArrowUp: 'up',
+  ArrowRight: 'right',
+  ArrowDown: 'down',
+  KeyA: 'a',
+  KeyD: 'd',
+  KeyE: 'e',
+  KeyQ: 'q',
+  KeyS: 's',
+  KeyW: 'w'
 }
 
 export default class Keyboard {
@@ -66,17 +69,17 @@ export default class Keyboard {
       return
     }
 
-    if (event.keyCode in keyMap) {
-      if (this.keys[keyMap[event.keyCode]] === 0) {
-        this.keys[keyMap[event.keyCode]] = 2
+    if (event.code in keyMap) {
+      if (this.keys[keyMap[event.code]] === 0) {
+        this.keys[keyMap[event.code]] = 2
       }
       event.preventDefault()
     }
   }
 
   private onKeyup = (event: KeyboardEvent) => {
-    if (event.keyCode in keyMap) {
-      this.keys[keyMap[event.keyCode]] = 0
+    if (event.code in keyMap) {
+      this.keys[keyMap[event.code]] = 0
     }
   }
 

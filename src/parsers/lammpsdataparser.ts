@@ -41,9 +41,8 @@ const parseMolecular = (
   particles: Particles
 ) => {
   for (let j = 0; j < particles.capacity; j++) {
-    const [idStr, molIdStr, typeStr, xStr, yStr, zStr] = lines[
-      lineNumber + j
-    ].split(' ')
+    const [idStr, molIdStr, typeStr, xStr, yStr, zStr] =
+      lines[lineNumber + j].split(' ')
     ensureNotNull(lines, lineNumber, {
       x: xStr,
       y: yStr,

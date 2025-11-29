@@ -2,8 +2,7 @@ import * as THREE from 'three'
 import fragmentShader from './shaders/fragment'
 import vertexShader from './shaders/vertex'
 import createMaterial from 'core/materials'
-//@ts-ignore
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 class Bonds {
   id: string
@@ -18,7 +17,7 @@ class Bonds {
   mesh?: THREE.InstancedMesh
 
   constructor(capacity: number) {
-    this.id = uuid()
+    this.id = uuidv4()
     this.positions1 = new Float32Array(3 * capacity)
     this.positions2 = new Float32Array(3 * capacity)
     this.indices = new Float32Array(capacity)

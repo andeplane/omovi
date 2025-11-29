@@ -1,8 +1,9 @@
 import * as THREE from 'three'
 
-function findTextureSizeFromNumPixels(
-  numPixels: number
-): { width: number; height: number } {
+function findTextureSizeFromNumPixels(numPixels: number): {
+  width: number
+  height: number
+} {
   const exp = Math.ceil(Math.log2(numPixels)) / 2
   const width = 2 ** Math.ceil(exp)
   const height = 2 ** Math.floor(exp)
@@ -66,9 +67,12 @@ export default class DataTexture {
 
   // Corresponds to packDistanceFloat and unpackDistanceFloat in data_pack.glsl and data_unpack.glsl
   // DistanceFloat is a value between 0 and 1
-  static rgbaFromDistanceFloat(
-    distanceFloat: number
-  ): { r: number; g: number; b: number; a: number } {
+  static rgbaFromDistanceFloat(distanceFloat: number): {
+    r: number
+    g: number
+    b: number
+    a: number
+  } {
     const r = Math.floor(distanceFloat * 255)
     const g = Math.floor(distanceFloat * 255 * 255) % 255
     const b = Math.floor(distanceFloat * 255 * 255 * 255) % 255
@@ -133,9 +137,12 @@ export default class DataTexture {
     this._texture.dispose()
   }
 
-  getRGBA(
-    particleIndex: number
-  ): { r: number; g: number; b: number; a: number } {
+  getRGBA(particleIndex: number): {
+    r: number
+    g: number
+    b: number
+    a: number
+  } {
     let index = 4 * particleIndex
     const r = this._texture.image.data[index++]
     const g = this._texture.image.data[index++]
