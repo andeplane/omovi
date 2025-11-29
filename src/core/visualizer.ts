@@ -376,14 +376,16 @@ export default class Visualizer {
       return
     }
 
-    // Get particle meshes from cached meshes
+    // Get particle and bond meshes from cached meshes in a single pass
     const particleMeshes: THREE.InstancedMesh[] = []
+    const bondMeshes: THREE.InstancedMesh[] = []
     for (const mesh of Object.values(this.cachedMeshes)) {
-      if (
-        mesh instanceof THREE.InstancedMesh &&
-        mesh.material === this.materials['particles']
-      ) {
-        particleMeshes.push(mesh)
+      if (mesh instanceof THREE.InstancedMesh) {
+        if (mesh.material === this.materials['particles']) {
+          particleMeshes.push(mesh)
+        } else if (mesh.material === this.materials['bonds']) {
+          bondMeshes.push(mesh)
+        }
       }
     }
 
@@ -408,15 +410,6 @@ export default class Visualizer {
     const y = (clientY / rect.height) * rendererHeight
 
     // Perform picking
-    const bondMeshes: THREE.InstancedMesh[] = []
-    for (const mesh of Object.values(this.cachedMeshes)) {
-      if (
-        mesh instanceof THREE.InstancedMesh &&
-        mesh.material === this.materials['bonds']
-      ) {
-        bondMeshes.push(mesh)
-      }
-    }
 
     const result = this.pickingHandler.pick(
       x,

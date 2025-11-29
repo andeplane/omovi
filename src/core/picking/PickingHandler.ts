@@ -12,6 +12,9 @@ export interface PickResult {
 }
 
 export class PickingHandler {
+  private static readonly BACKGROUND_ID = 0xffffff // RGB(255, 255, 255) - white background
+  private static readonly BOND_ID = 0xfffffe // RGB(255, 255, 254) - non-clickable bonds
+
   private renderer: THREE.WebGLRenderer
   private pickingTarget: THREE.WebGLRenderTarget
   private pixelBuffer: Uint8Array
@@ -134,47 +137,35 @@ export class PickingHandler {
       }
     })
 
-    // Swap to picking material for particle meshes
-    for (const mesh of particleMeshes) {
-      originalMaterials.set(mesh, mesh.material)
+    // Helper function to swap materials and update uniforms
+    const swapToPickingMaterial = (
+      meshes: THREE.InstancedMesh[],
+      pickingMaterial: THREE.ShaderMaterial
+    ) => {
+      for (const mesh of meshes) {
+        originalMaterials.set(mesh, mesh.material)
 
-      // Update picking material uniforms from the original material
-      const originalMaterial = mesh.material as THREE.ShaderMaterial
-      if (originalMaterial.uniforms) {
-        const invModelMatrixUniform =
-          originalMaterial.uniforms.inverseModelMatrix
-        if (invModelMatrixUniform?.value) {
-          this.pickingMaterial.uniforms.inverseModelMatrix.value.copy(
-            invModelMatrixUniform.value
-          )
-        } else {
-          this.pickingMaterial.uniforms.inverseModelMatrix.value.identity()
+        // Update picking material uniforms from the original material
+        const originalMaterial = mesh.material as THREE.ShaderMaterial
+        if (originalMaterial.uniforms) {
+          const invModelMatrixUniform =
+            originalMaterial.uniforms.inverseModelMatrix
+          if (invModelMatrixUniform?.value) {
+            pickingMaterial.uniforms.inverseModelMatrix.value.copy(
+              invModelMatrixUniform.value
+            )
+          } else {
+            pickingMaterial.uniforms.inverseModelMatrix.value.identity()
+          }
         }
-      }
 
-      mesh.material = this.pickingMaterial
+        mesh.material = pickingMaterial
+      }
     }
 
-    // Swap to bond picking material for bond meshes
-    for (const mesh of bondMeshes) {
-      originalMaterials.set(mesh, mesh.material)
-
-      // Update bond picking material uniforms from the original material
-      const originalMaterial = mesh.material as THREE.ShaderMaterial
-      if (originalMaterial.uniforms) {
-        const invModelMatrixUniform =
-          originalMaterial.uniforms.inverseModelMatrix
-        if (invModelMatrixUniform?.value) {
-          this.bondPickingMaterial.uniforms.inverseModelMatrix.value.copy(
-            invModelMatrixUniform.value
-          )
-        } else {
-          this.bondPickingMaterial.uniforms.inverseModelMatrix.value.identity()
-        }
-      }
-
-      mesh.material = this.bondPickingMaterial
-    }
+    // Swap to picking materials
+    swapToPickingMaterial(particleMeshes, this.pickingMaterial)
+    swapToPickingMaterial(bondMeshes, this.bondPickingMaterial)
 
     // Render
     const originalRenderTarget = this.renderer.getRenderTarget()
@@ -229,17 +220,20 @@ export class PickingHandler {
     const b = this.pixelBuffer[2]
     const a = this.pixelBuffer[3]
 
-    // Check if we hit the background (white = 255,255,255)
-    if (r === 255 && g === 255 && b === 255) {
+    // Calculate picked ID from RGB components
+    const pickedId = r * 65536 + g * 256 + b
+
+    // Check if we hit the background
+    if (pickedId === PickingHandler.BACKGROUND_ID) {
       return undefined
     }
 
-    // Check if we hit a bond (RGB = 255,255,254 encodes to 0xFFFFFE)
-    if (r === 255 && g === 255 && b === 254) {
-      return undefined // Bonds are not clickable
+    // Check if we hit a bond (bonds are not clickable)
+    if (pickedId === PickingHandler.BOND_ID) {
+      return undefined
     }
 
-    const particleIndex = r * 65536 + g * 256 + b
+    const particleIndex = pickedId
 
     // Get position from particles (we need to find which mesh contains this particle)
     // For now, return a zero position - the caller can look up the actual position
