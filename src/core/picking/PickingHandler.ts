@@ -1,6 +1,9 @@
 import * as THREE from 'three'
 import { pickingVertexShader, pickingFragmentShader } from './shaders'
-import { bondPickingVertexShader, bondPickingFragmentShader } from './shaders/bondPickingShaders'
+import {
+  bondPickingVertexShader,
+  bondPickingFragmentShader
+} from './shaders/bondPickingShaders'
 import DataTexture from '../datatexture'
 
 export interface PickResult {

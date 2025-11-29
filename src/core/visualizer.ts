@@ -417,7 +417,7 @@ export default class Visualizer {
         bondMeshes.push(mesh)
       }
     }
-    
+
     const result = this.pickingHandler.pick(
       x,
       y,
