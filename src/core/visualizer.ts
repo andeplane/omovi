@@ -234,6 +234,8 @@ export default class Visualizer {
     // Add click listeners for particle picking
     this.canvas.addEventListener('mousedown', this.handleMouseDown)
     this.canvas.addEventListener('mouseup', this.handleMouseUp)
+    this.canvas.addEventListener('touchstart', this.handleTouchStart)
+    this.canvas.addEventListener('touchend', this.handleTouchEnd)
 
     // Initialize outline post-processing
     this.initializeOutlinePostProcessing()
@@ -442,9 +444,117 @@ export default class Visualizer {
     }
   }
 
+  private handleTouchStart = (event: TouchEvent) => {
+    if (event.touches.length > 0) {
+      const touch = event.touches[0]
+      this.mouseDownPosition = { x: touch.clientX, y: touch.clientY }
+      // On mobile, always act as if shift is pressed (toggle selection)
+      this.mouseDownShiftKey = true
+    }
+  }
+
+  private handleTouchEnd = (event: TouchEvent) => {
+    if (!this.mouseDownPosition) {
+      return
+    }
+
+    if (event.changedTouches.length === 0) {
+      this.mouseDownPosition = undefined
+      return
+    }
+
+    const touch = event.changedTouches[0]
+
+    // Check if touch moved significantly (drag vs tap)
+    const dx = touch.clientX - this.mouseDownPosition.x
+    const dy = touch.clientY - this.mouseDownPosition.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // If it's a drag, don't pick
+    if (distance > this.clickDistanceThreshold) {
+      this.mouseDownPosition = undefined
+      return
+    }
+
+    this.mouseDownPosition = undefined
+
+    // Prevent default touch behavior to avoid double-firing or scrolling
+    event.preventDefault()
+
+    if (!this.onParticleClick || !this.currentParticles) {
+      return
+    }
+
+    // Get particle and bond meshes from cached meshes in a single pass
+    const particleMeshes: THREE.InstancedMesh[] = []
+    const bondMeshes: THREE.InstancedMesh[] = []
+    for (const mesh of Object.values(this.cachedMeshes)) {
+      if (mesh instanceof THREE.InstancedMesh) {
+        if (mesh.material === this.materials['particles']) {
+          particleMeshes.push(mesh)
+        } else if (mesh.material === this.materials['bonds']) {
+          bondMeshes.push(mesh)
+        }
+      }
+    }
+
+    if (particleMeshes.length === 0) {
+      return
+    }
+
+    // Get touch coordinates relative to the canvas
+    const rect = this.canvas.getBoundingClientRect()
+
+    // Get renderer size (in actual pixels)
+    const rendererSize = this.renderer.getSize()
+    const rendererWidth = rendererSize.width
+    const rendererHeight = rendererSize.height
+
+    // Convert from client coordinates to renderer coordinates
+    const clientX = touch.clientX - rect.left
+    const clientY = touch.clientY - rect.top
+
+    // Scale from client size to renderer size
+    const x = (clientX / rect.width) * rendererWidth
+    const y = (clientY / rect.height) * rendererHeight
+
+    // Perform picking
+    const result = this.pickingHandler.pick(
+      x,
+      y,
+      this.camera,
+      this.scene,
+      particleMeshes,
+      bondMeshes,
+      false // Always do actual picking, debug mode just affects rendering
+    )
+
+    if (result) {
+      // result.particleIndex is actually the atom ID (from particles.indices array)
+      const atomId = result.particleIndex
+
+      // O(1) lookup using atomIdToParticleInfo map (supports multiple Particles objects)
+      const particleInfo = this.atomIdToParticleInfo.get(atomId)
+      if (!particleInfo) {
+        return
+      }
+
+      const { particles, arrayIndex } = particleInfo
+      const position = particles.getPosition(arrayIndex)
+
+      this.onParticleClick({
+        particleIndex: atomId, // Return the actual atom ID
+        position,
+        shiftKey: this.mouseDownShiftKey // Always true on mobile for toggle behavior
+      })
+    }
+  }
+
   dispose = () => {
     this.canvas.removeEventListener('mousedown', this.handleMouseDown)
     this.canvas.removeEventListener('mouseup', this.handleMouseUp)
+    this.canvas.removeEventListener('touchstart', this.handleTouchStart)
+    this.canvas.removeEventListener('touchend', this.handleTouchEnd)
     this.pickingHandler.dispose()
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
