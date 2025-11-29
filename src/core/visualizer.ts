@@ -408,12 +408,23 @@ export default class Visualizer {
     const y = (clientY / rect.height) * rendererHeight
 
     // Perform picking
+    const bondMeshes: THREE.InstancedMesh[] = []
+    for (const mesh of Object.values(this.cachedMeshes)) {
+      if (
+        mesh instanceof THREE.InstancedMesh &&
+        mesh.material === this.materials['bonds']
+      ) {
+        bondMeshes.push(mesh)
+      }
+    }
+    
     const result = this.pickingHandler.pick(
       x,
       y,
       this.camera,
       this.scene,
       particleMeshes,
+      bondMeshes,
       false // Always do actual picking, debug mode just affects rendering
     )
 
@@ -562,12 +573,19 @@ export default class Visualizer {
       // If debug picking is enabled, render with picking material instead
       if (this.debugPickingRender) {
         const particleMeshes: THREE.InstancedMesh[] = []
+        const bondMeshes: THREE.InstancedMesh[] = []
         for (const mesh of Object.values(this.cachedMeshes)) {
           if (
             mesh instanceof THREE.InstancedMesh &&
             mesh.material === this.materials['particles']
           ) {
             particleMeshes.push(mesh)
+          }
+          if (
+            mesh instanceof THREE.InstancedMesh &&
+            mesh.material === this.materials['bonds']
+          ) {
+            bondMeshes.push(mesh)
           }
         }
         // Trigger a debug render (this will render to screen)
@@ -578,6 +596,7 @@ export default class Visualizer {
             this.camera,
             this.scene,
             particleMeshes,
+            bondMeshes,
             true
           )
         }

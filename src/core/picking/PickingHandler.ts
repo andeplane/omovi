@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { pickingVertexShader, pickingFragmentShader } from './shaders'
+import { bondPickingVertexShader, bondPickingFragmentShader } from './shaders/bondPickingShaders'
 import DataTexture from '../datatexture'
 
 export interface PickResult {
@@ -12,6 +13,7 @@ export class PickingHandler {
   private pickingTarget: THREE.WebGLRenderTarget
   private pixelBuffer: Uint8Array
   private pickingMaterial: THREE.ShaderMaterial
+  private bondPickingMaterial: THREE.ShaderMaterial
   private radiusTexture: DataTexture
 
   constructor(renderer: THREE.WebGLRenderer, radiusTexture: DataTexture) {
@@ -40,11 +42,22 @@ export class PickingHandler {
       fragmentShader: pickingFragmentShader,
       side: THREE.DoubleSide
     })
+
+    // Create bond picking material
+    this.bondPickingMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        inverseModelMatrix: { value: new THREE.Matrix4() }
+      },
+      vertexShader: bondPickingVertexShader,
+      fragmentShader: bondPickingFragmentShader,
+      side: THREE.DoubleSide
+    })
   }
 
   dispose(): void {
     this.pickingTarget.dispose()
     this.pickingMaterial.dispose()
+    this.bondPickingMaterial.dispose()
   }
 
   /**
@@ -54,6 +67,7 @@ export class PickingHandler {
    * @param camera The camera to use for picking
    * @param scene The scene to pick from
    * @param particleMeshes Array of instanced meshes containing particles
+   * @param bondMeshes Array of instanced meshes containing bonds (optional)
    * @param debugMode If true, render to screen instead of picking
    * @returns PickResult if a particle was hit, undefined otherwise
    */
@@ -63,6 +77,7 @@ export class PickingHandler {
     camera: THREE.PerspectiveCamera | THREE.OrthographicCamera,
     scene: THREE.Scene,
     particleMeshes: THREE.InstancedMesh[],
+    bondMeshes: THREE.InstancedMesh[] = [],
     debugMode: boolean = false
   ): PickResult | undefined {
     if (particleMeshes.length === 0) {
@@ -96,9 +111,9 @@ export class PickingHandler {
     // Store original visibility of all non-particle objects
     const originalVisibility = new Map<THREE.Object3D, boolean>()
 
-    // Create a set of objects to keep visible (particle meshes and their ancestors)
+    // Create a set of objects to keep visible (particle and bond meshes and their ancestors)
     const keepVisible = new Set<THREE.Object3D>()
-    for (const mesh of particleMeshes) {
+    for (const mesh of [...particleMeshes, ...bondMeshes]) {
       keepVisible.add(mesh)
       // Keep all ancestors visible too
       let parent = mesh.parent
@@ -108,7 +123,7 @@ export class PickingHandler {
       }
     }
 
-    // Hide all objects except particle meshes and their parents
+    // Hide all objects except particle/bond meshes and their parents
     scene.traverse((obj) => {
       if (!keepVisible.has(obj)) {
         originalVisibility.set(obj, obj.visible)
@@ -135,6 +150,27 @@ export class PickingHandler {
       }
 
       mesh.material = this.pickingMaterial
+    }
+
+    // Swap to bond picking material for bond meshes
+    for (const mesh of bondMeshes) {
+      originalMaterials.set(mesh, mesh.material)
+
+      // Update bond picking material uniforms from the original material
+      const originalMaterial = mesh.material as THREE.ShaderMaterial
+      if (originalMaterial.uniforms) {
+        const invModelMatrixUniform =
+          originalMaterial.uniforms.inverseModelMatrix
+        if (invModelMatrixUniform?.value) {
+          this.bondPickingMaterial.uniforms.inverseModelMatrix.value.copy(
+            invModelMatrixUniform.value
+          )
+        } else {
+          this.bondPickingMaterial.uniforms.inverseModelMatrix.value.identity()
+        }
+      }
+
+      mesh.material = this.bondPickingMaterial
     }
 
     // Render
@@ -193,6 +229,11 @@ export class PickingHandler {
     // Check if we hit the background (white = 255,255,255)
     if (r === 255 && g === 255 && b === 255) {
       return undefined
+    }
+
+    // Check if we hit a bond (RGB = 255,255,254 encodes to 0xFFFFFE)
+    if (r === 255 && g === 255 && b === 254) {
+      return undefined // Bonds are not clickable
     }
 
     const particleIndex = r * 65536 + g * 256 + b
