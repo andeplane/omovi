@@ -374,74 +374,8 @@ export default class Visualizer {
 
     this.mouseDownPosition = undefined
 
-    if (!this.onParticleClick || !this.currentParticles) {
-      return
-    }
-
-    // Get particle and bond meshes from cached meshes in a single pass
-    const particleMeshes: THREE.InstancedMesh[] = []
-    const bondMeshes: THREE.InstancedMesh[] = []
-    for (const mesh of Object.values(this.cachedMeshes)) {
-      if (mesh instanceof THREE.InstancedMesh) {
-        if (mesh.material === this.materials['particles']) {
-          particleMeshes.push(mesh)
-        } else if (mesh.material === this.materials['bonds']) {
-          bondMeshes.push(mesh)
-        }
-      }
-    }
-
-    if (particleMeshes.length === 0) {
-      return
-    }
-
-    // Get click coordinates relative to the canvas
-    const rect = this.canvas.getBoundingClientRect()
-
-    // Get renderer size (in actual pixels)
-    const rendererSize = this.renderer.getSize()
-    const rendererWidth = rendererSize.width
-    const rendererHeight = rendererSize.height
-
-    // Convert from client coordinates to renderer coordinates
-    const clientX = event.clientX - rect.left
-    const clientY = event.clientY - rect.top
-
-    // Scale from client size to renderer size
-    const x = (clientX / rect.width) * rendererWidth
-    const y = (clientY / rect.height) * rendererHeight
-
-    // Perform picking
-
-    const result = this.pickingHandler.pick(
-      x,
-      y,
-      this.camera,
-      this.scene,
-      particleMeshes,
-      bondMeshes,
-      false // Always do actual picking, debug mode just affects rendering
-    )
-
-    if (result) {
-      // result.particleIndex is actually the atom ID (from particles.indices array)
-      const atomId = result.particleIndex
-
-      // O(1) lookup using atomIdToParticleInfo map (supports multiple Particles objects)
-      const particleInfo = this.atomIdToParticleInfo.get(atomId)
-      if (!particleInfo) {
-        return
-      }
-
-      const { particles, arrayIndex } = particleInfo
-      const position = particles.getPosition(arrayIndex)
-
-      this.onParticleClick({
-        particleIndex: atomId, // Return the actual atom ID
-        position,
-        shiftKey: this.mouseDownShiftKey
-      })
-    }
+    // Perform picking at the event coordinates
+    this.performPick(event.clientX, event.clientY)
   }
 
   private handleTouchStart = (event: TouchEvent) => {
@@ -481,6 +415,16 @@ export default class Visualizer {
     // Prevent default touch behavior to avoid double-firing or scrolling
     event.preventDefault()
 
+    // Perform picking at the touch coordinates
+    this.performPick(touch.clientX, touch.clientY)
+  }
+
+  /**
+   * Shared picking logic used by both mouse and touch events
+   * @param clientX - X coordinate in client space
+   * @param clientY - Y coordinate in client space
+   */
+  private performPick = (clientX: number, clientY: number) => {
     if (!this.onParticleClick || !this.currentParticles) {
       return
     }
@@ -502,7 +446,7 @@ export default class Visualizer {
       return
     }
 
-    // Get touch coordinates relative to the canvas
+    // Get coordinates relative to the canvas
     const rect = this.canvas.getBoundingClientRect()
 
     // Get renderer size (in actual pixels)
@@ -511,12 +455,8 @@ export default class Visualizer {
     const rendererHeight = rendererSize.height
 
     // Convert from client coordinates to renderer coordinates
-    const clientX = touch.clientX - rect.left
-    const clientY = touch.clientY - rect.top
-
-    // Scale from client size to renderer size
-    const x = (clientX / rect.width) * rendererWidth
-    const y = (clientY / rect.height) * rendererHeight
+    const x = ((clientX - rect.left) / rect.width) * rendererWidth
+    const y = ((clientY - rect.top) / rect.height) * rendererHeight
 
     // Perform picking
     const result = this.pickingHandler.pick(
@@ -545,7 +485,7 @@ export default class Visualizer {
       this.onParticleClick({
         particleIndex: atomId, // Return the actual atom ID
         position,
-        shiftKey: this.mouseDownShiftKey // Always true on mobile for toggle behavior
+        shiftKey: this.mouseDownShiftKey
       })
     }
   }
