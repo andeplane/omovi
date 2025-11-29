@@ -234,6 +234,8 @@ export default class Visualizer {
     // Add click listeners for particle picking
     this.canvas.addEventListener('mousedown', this.handleMouseDown)
     this.canvas.addEventListener('mouseup', this.handleMouseUp)
+    this.canvas.addEventListener('touchstart', this.handleTouchStart)
+    this.canvas.addEventListener('touchend', this.handleTouchEnd)
 
     // Initialize outline post-processing
     this.initializeOutlinePostProcessing()
@@ -372,6 +374,57 @@ export default class Visualizer {
 
     this.mouseDownPosition = undefined
 
+    // Perform picking at the event coordinates
+    this.performPick(event.clientX, event.clientY)
+  }
+
+  private handleTouchStart = (event: TouchEvent) => {
+    if (event.touches.length > 0) {
+      const touch = event.touches[0]
+      this.mouseDownPosition = { x: touch.clientX, y: touch.clientY }
+      // On mobile, always act as if shift is pressed (toggle selection)
+      this.mouseDownShiftKey = true
+    }
+  }
+
+  private handleTouchEnd = (event: TouchEvent) => {
+    if (!this.mouseDownPosition) {
+      return
+    }
+
+    if (event.changedTouches.length === 0) {
+      this.mouseDownPosition = undefined
+      return
+    }
+
+    const touch = event.changedTouches[0]
+
+    // Check if touch moved significantly (drag vs tap)
+    const dx = touch.clientX - this.mouseDownPosition.x
+    const dy = touch.clientY - this.mouseDownPosition.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // If it's a drag, don't pick
+    if (distance > this.clickDistanceThreshold) {
+      this.mouseDownPosition = undefined
+      return
+    }
+
+    this.mouseDownPosition = undefined
+
+    // Prevent default touch behavior to avoid double-firing or scrolling
+    event.preventDefault()
+
+    // Perform picking at the touch coordinates
+    this.performPick(touch.clientX, touch.clientY)
+  }
+
+  /**
+   * Shared picking logic used by both mouse and touch events
+   * @param clientX - X coordinate in client space
+   * @param clientY - Y coordinate in client space
+   */
+  private performPick = (clientX: number, clientY: number) => {
     if (!this.onParticleClick || !this.currentParticles) {
       return
     }
@@ -393,7 +446,7 @@ export default class Visualizer {
       return
     }
 
-    // Get click coordinates relative to the canvas
+    // Get coordinates relative to the canvas
     const rect = this.canvas.getBoundingClientRect()
 
     // Get renderer size (in actual pixels)
@@ -402,15 +455,10 @@ export default class Visualizer {
     const rendererHeight = rendererSize.height
 
     // Convert from client coordinates to renderer coordinates
-    const clientX = event.clientX - rect.left
-    const clientY = event.clientY - rect.top
-
-    // Scale from client size to renderer size
-    const x = (clientX / rect.width) * rendererWidth
-    const y = (clientY / rect.height) * rendererHeight
+    const x = ((clientX - rect.left) / rect.width) * rendererWidth
+    const y = ((clientY - rect.top) / rect.height) * rendererHeight
 
     // Perform picking
-
     const result = this.pickingHandler.pick(
       x,
       y,
@@ -445,6 +493,8 @@ export default class Visualizer {
   dispose = () => {
     this.canvas.removeEventListener('mousedown', this.handleMouseDown)
     this.canvas.removeEventListener('mouseup', this.handleMouseUp)
+    this.canvas.removeEventListener('touchstart', this.handleTouchStart)
+    this.canvas.removeEventListener('touchend', this.handleTouchEnd)
     this.pickingHandler.dispose()
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
