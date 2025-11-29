@@ -530,17 +530,34 @@ export default class Visualizer {
         // Check if we need outline post-processing
         const needsOutline = this.hasSelection()
         
+        // Always render with SSAO first
+        this.renderer.render(this.scene, this.camera)
+        
+        // If selection active, do outline pass on top
         if (needsOutline && this.outlineRenderTarget && this.outlineMaterial && this.outlineScene && this.outlineCamera) {
-          // Render to intermediate target first
-          this.renderer.getRawRenderer().setRenderTarget(this.outlineRenderTarget)
-          this.renderer.render(this.scene, this.camera)
+          const rawRenderer = this.renderer.getRawRenderer()
           
-          // Apply outline post-processing to screen
-          this.renderer.getRawRenderer().setRenderTarget(null)
-          this.renderer.getRawRenderer().render(this.outlineScene, this.outlineCamera)
-        } else {
-          // Normal rendering without post-processing
-          this.renderer.render(this.scene, this.camera)
+          // Render selection mask to intermediate target (raw renderer, no SSAO needed)
+          rawRenderer.setRenderTarget(this.outlineRenderTarget)
+          rawRenderer.clear()
+          rawRenderer.render(this.scene, this.camera)
+          
+          // Apply outline-only pass on top
+          rawRenderer.setRenderTarget(null)
+          
+          // Configure material for blending on top
+          this.outlineMaterial.transparent = true
+          this.outlineMaterial.depthTest = false
+          this.outlineMaterial.depthWrite = false
+          
+          // Disable auto-clear so we don't erase the SSAO render
+          const autoClear = rawRenderer.autoClear
+          rawRenderer.autoClear = false
+          
+          rawRenderer.render(this.outlineScene, this.outlineCamera)
+          
+          // Restore auto-clear
+          rawRenderer.autoClear = autoClear
         }
       }
       

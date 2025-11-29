@@ -185,11 +185,8 @@ export class PickingHandler {
     const b = this.pixelBuffer[2]
     const a = this.pixelBuffer[3]
 
-    console.log('[PickingHandler] Pixel color:', { r, g, b, a })
-
     // Check if we hit the background (white = 255,255,255)
     if (r === 255 && g === 255 && b === 255) {
-      console.log('[PickingHandler] Hit background (white)')
       return undefined
     }
 

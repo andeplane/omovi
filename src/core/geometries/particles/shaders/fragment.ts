@@ -135,16 +135,17 @@ void main() {
 	vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
 
 	#include <envmap_fragment>
-	
-	// Encode outline index in alpha channel (bits 5-8)
-	// Selected particles get outline index 1, unselected get 0
-	float outlineIndex = isSelected > 0.5 ? 1.0 : 0.0;
-	gl_FragColor = vec4(outgoingLight, outlineIndex * 16.0 / 255.0);
-	
+	#include <opaque_fragment>
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 	#include <fog_fragment>
 	#include <premultiplied_alpha_fragment>
 	#include <dithering_fragment>
+	
+	// Encode outline index in alpha channel while keeping alpha mostly opaque
+	// Unselected: alpha = 1.0 (index = 0)
+	// Selected: alpha = ~0.94 (index = 1)
+	float outlineIndex = isSelected > 0.5 ? 1.0 : 0.0;
+	gl_FragColor.a = (255.0 - outlineIndex * 16.0) / 255.0;
 }
 `

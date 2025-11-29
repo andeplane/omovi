@@ -17,9 +17,12 @@ uniform float outlineOffset;
 
 varying vec2 vUv;
 
-// Decode outline index from alpha channel (bits 5-8)
+// Decode outline index from alpha channel
+// Alpha encoding: alpha = (255 - index * 16) / 255
+// So: alpha = 1.0 means index = 0, alpha ≈ 0.94 means index = 1
 int decodeOutlineIndex(float alpha) {
-  return int(floor((alpha * 255.0) + 0.5)) >> 4;
+  float rawValue = 255.0 - alpha * 255.0;
+  return int(rawValue / 16.0 + 0.5);
 }
 
 // Sample outline index at pixel offset
@@ -50,15 +53,15 @@ void main() {
                   (outlineE != outlineIndex) || 
                   (outlineW != outlineIndex);
     
-    // If it's an edge, draw white outline
+    // If it's an edge, draw white outline (opaque)
     if (isEdge) {
       gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
       return;
     }
   }
   
-  // Not an edge, keep original color
-  gl_FragColor = vec4(color.rgb, 1.0);
+  // Not an edge - make it transparent so we don't overwrite SSAO render
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 }
 `;
 
