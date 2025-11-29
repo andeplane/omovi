@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import DataTexture from 'core/datatexture'
+import { DEFAULT_SELECTION_COLOR, OUTLINE_ALPHA_DIVISOR } from './constants'
 
 export interface Uniforms {
   [name: string]: THREE.IUniform
@@ -75,7 +76,9 @@ const createMaterial = (
   vertexShader: string,
   fragmentShader: string,
   colorTexture: DataTexture,
-  radiusTexture: DataTexture
+  radiusTexture: DataTexture,
+  selectionTexture?: DataTexture,
+  selectionColor?: THREE.Color
 ) => {
   if (materialMap[type] != null) {
     return materialMap[type]
@@ -101,6 +104,13 @@ const createMaterial = (
     parameters.uniforms.dataTextureHeight = { value: colorTexture.height }
     parameters.uniforms[colorTexture.name] = { value: rawColorTexture }
     parameters.uniforms[radiusTexture.name] = { value: rawRadiusTexture }
+    
+    // Add selection texture and color if provided
+    if (selectionTexture) {
+      parameters.uniforms.selectionTexture = { value: selectionTexture.getTexture() }
+      parameters.uniforms.selectionColor = { value: selectionColor || DEFAULT_SELECTION_COLOR }
+      parameters.uniforms.outlineAlphaDivisor = { value: OUTLINE_ALPHA_DIVISOR }
+    }
 
     material.uniforms = parameters.uniforms
 

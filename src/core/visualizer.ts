@@ -12,6 +12,9 @@ import Bonds from './geometries/bonds/bonds'
 import { Color } from './types'
 import OMOVIRenderer from './renderer'
 import { VRButton } from '../utils/VRButton'
+import { PickingHandler, PickResult } from './picking'
+import { outlineVertexShader, outlineFragmentShader } from './post-processing/outlineShader'
+import { DEFAULT_SELECTION_COLOR, OUTLINE_ALPHA_DIVISOR } from './constants'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -45,9 +48,16 @@ const adjustCamera = (
   camera.updateProjectionMatrix()
 }
 
+export interface ParticleClickEvent {
+  particleIndex: number
+  position: THREE.Vector3
+  shiftKey: boolean
+}
+
 interface VisualizerProps {
   domElement?: HTMLElement
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+  onParticleClick?: (event: ParticleClickEvent) => void
   initialColors?: Color[]
 }
 
@@ -71,6 +81,22 @@ export default class Visualizer {
   private memoryStats: Stats
   private colorTexture: DataTexture
   private radiusTexture: DataTexture
+  private selectionTexture: DataTexture
+  private selectedCount: number = 0 // Track number of selected atoms for O(1) hasSelection
+  private atomIdToParticleInfo: Map<number, { particles: Particles; arrayIndex: number }> = new Map() // O(1) lookup for picking
+  private pickingHandler: PickingHandler
+  private onParticleClick?: (event: ParticleClickEvent) => void
+  private currentParticles?: Particles
+  private mouseDownPosition?: { x: number; y: number }
+  private mouseDownShiftKey: boolean = false
+  private readonly clickDistanceThreshold = 5 // pixels
+  public debugPickingRender: boolean = false // Set to true to see picking visualization
+  private selectionColor: THREE.Color
+  private outlineRenderTarget?: THREE.WebGLRenderTarget
+  private outlineMaterial?: THREE.ShaderMaterial
+  private outlineScene?: THREE.Scene
+  private outlineCamera?: THREE.OrthographicCamera
+  private outlineQuad?: THREE.Mesh
 
   // @ts-ignore
   private latestRequestId?: number
@@ -78,7 +104,8 @@ export default class Visualizer {
   constructor({
     domElement,
     initialColors,
-    onCameraChanged
+    onCameraChanged,
+    onParticleClick
   }: VisualizerProps = {}) {
     this.renderer = new OMOVIRenderer({
       alpha: false,
@@ -86,6 +113,7 @@ export default class Visualizer {
     })
     this.idle = false
     this.setRadiusCalled = false
+    this.onParticleClick = onParticleClick
     this.canvas = this.renderer.getRawRenderer().domElement
     if (domElement) {
       this.domElement = domElement
@@ -119,6 +147,24 @@ export default class Visualizer {
         this.forceRender = true
       }
     )
+    this.selectionTexture = new DataTexture(
+      'selectionTexture',
+      maxParticleIndex,
+      'rgba',
+      () => {
+        this.forceRender = true
+      }
+    )
+    // Initialize selection texture to all unselected (black with full alpha)
+    // Direct data manipulation for performance - avoid triggering _onChange per pixel
+    const selectionData = this.selectionTexture.getTexture().image.data as Uint8Array
+    for (let i = 0; i < selectionData.length; i += 4) {
+      selectionData[i] = 0       // R
+      selectionData[i + 1] = 0   // G
+      selectionData[i + 2] = 0   // B
+      selectionData[i + 3] = 255 // A
+    }
+    this.selectionTexture.getTexture().needsUpdate = true
 
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b)
@@ -154,12 +200,15 @@ export default class Visualizer {
     // document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
+    this.selectionColor = DEFAULT_SELECTION_COLOR
     this.materials['particles'] = createMaterial(
       'particle',
       particleVertexShader,
       particleFragmentShader,
       this.colorTexture,
-      this.radiusTexture
+      this.radiusTexture,
+      this.selectionTexture,
+      this.selectionColor
     )
     this.materials['bonds'] = createMaterial(
       'bonds',
@@ -168,6 +217,19 @@ export default class Visualizer {
       this.colorTexture,
       this.radiusTexture
     )
+
+    // Initialize picking handler
+    this.pickingHandler = new PickingHandler(
+      this.renderer.getRawRenderer(),
+      this.radiusTexture
+    )
+
+    // Add click listeners for particle picking
+    this.canvas.addEventListener('mousedown', this.handleMouseDown)
+    this.canvas.addEventListener('mouseup', this.handleMouseUp)
+    
+    // Initialize outline post-processing
+    this.initializeOutlinePostProcessing()
 
     this.animate()
     //@ts-ignore
@@ -185,12 +247,26 @@ export default class Visualizer {
   add = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {
       this.object.add(this.cachedMeshes[object.id])
+      if (object instanceof Particles) {
+        this.currentParticles = object
+        // Populate atomIdToParticleInfo map for O(1) picking lookup
+        for (let i = 0; i < object.count; i++) {
+          const atomId = object.indices[i]
+          this.atomIdToParticleInfo.set(atomId, { particles: object, arrayIndex: i })
+        }
+      }
       return
     }
 
     let material: THREE.Material
     if (object instanceof Particles) {
       material = this.materials['particles']
+      this.currentParticles = object
+      // Populate atomIdToParticleInfo map for O(1) picking lookup
+      for (let i = 0; i < object.count; i++) {
+        const atomId = object.indices[i]
+        this.atomIdToParticleInfo.set(atomId, { particles: object, arrayIndex: i })
+      }
     } else {
       material = this.materials['bonds']
     }
@@ -214,6 +290,15 @@ export default class Visualizer {
   remove = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {
       this.object.remove(this.cachedMeshes[object.id])
+      
+      // Clear atomIdToParticleInfo map entries for this Particles object
+      if (object instanceof Particles) {
+        for (let i = 0; i < object.count; i++) {
+          const atomId = object.indices[i]
+          this.atomIdToParticleInfo.delete(atomId)
+        }
+      }
+      
       return
     }
     throw new Error('Tried to remove object that never was added to the scene.')
@@ -251,7 +336,96 @@ export default class Visualizer {
     })
   }
 
+  private handleMouseDown = (event: MouseEvent) => {
+    this.mouseDownPosition = { x: event.clientX, y: event.clientY }
+    this.mouseDownShiftKey = event.shiftKey
+  }
+
+  private handleMouseUp = (event: MouseEvent) => {
+    if (!this.mouseDownPosition) {
+      return
+    }
+
+    // Check if mouse moved significantly (drag vs click)
+    const dx = event.clientX - this.mouseDownPosition.x
+    const dy = event.clientY - this.mouseDownPosition.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // If it's a drag, don't pick
+    if (distance > this.clickDistanceThreshold) {
+      this.mouseDownPosition = undefined
+      return
+    }
+
+    this.mouseDownPosition = undefined
+
+    if (!this.onParticleClick || !this.currentParticles) {
+      return
+    }
+
+    // Get particle meshes from cached meshes
+    const particleMeshes: THREE.InstancedMesh[] = []
+    for (const mesh of Object.values(this.cachedMeshes)) {
+      if (mesh instanceof THREE.InstancedMesh && mesh.material === this.materials['particles']) {
+        particleMeshes.push(mesh)
+      }
+    }
+
+    if (particleMeshes.length === 0) {
+      return
+    }
+
+    // Get click coordinates relative to the canvas
+    const rect = this.canvas.getBoundingClientRect()
+    
+    // Get renderer size (in actual pixels)
+    const rendererSize = this.renderer.getSize()
+    const rendererWidth = rendererSize.width
+    const rendererHeight = rendererSize.height
+    
+    // Convert from client coordinates to renderer coordinates
+    const clientX = event.clientX - rect.left
+    const clientY = event.clientY - rect.top
+    
+    // Scale from client size to renderer size
+    const x = (clientX / rect.width) * rendererWidth
+    const y = (clientY / rect.height) * rendererHeight
+
+    // Perform picking
+    const result = this.pickingHandler.pick(
+      x,
+      y,
+      this.camera,
+      this.scene,
+      particleMeshes,
+      false // Always do actual picking, debug mode just affects rendering
+    )
+
+    if (result) {
+      // result.particleIndex is actually the atom ID (from particles.indices array)
+      const atomId = result.particleIndex
+      
+      // O(1) lookup using atomIdToParticleInfo map (supports multiple Particles objects)
+      const particleInfo = this.atomIdToParticleInfo.get(atomId)
+      if (!particleInfo) {
+        return
+      }
+
+      const { particles, arrayIndex } = particleInfo
+      const position = particles.getPosition(arrayIndex)
+      
+      this.onParticleClick({
+        particleIndex: atomId,  // Return the actual atom ID
+        position,
+        shiftKey: this.mouseDownShiftKey
+      })
+    }
+  }
+
   dispose = () => {
+    this.canvas.removeEventListener('mousedown', this.handleMouseDown)
+    this.canvas.removeEventListener('mouseup', this.handleMouseUp)
+    this.pickingHandler.dispose()
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
     }
@@ -286,6 +460,80 @@ export default class Visualizer {
     this.radiusTexture.setFloat(index, radius)
   }
 
+  /**
+   * Set the selection state of a particle by atom ID
+   * @param atomId The LAMMPS atom ID
+   * @param selected Whether the particle should be selected
+   */
+  setSelected = (atomId: number, selected: boolean) => {
+    // atomId is the actual LAMMPS atom ID, which is what's stored in the shader
+    // The shader reads from particles.indices which contains atom IDs
+    // So we can directly set the selection using the atomId
+    const wasSelected = this.selectionTexture.getInteger(atomId) > 0
+    this.selectionTexture.setRGBA(atomId, selected ? 255 : 0, 0, 0, 255)
+    
+    // Update selection counter for O(1) hasSelection check
+    if (selected && !wasSelected) {
+      this.selectedCount++
+    } else if (!selected && wasSelected) {
+      this.selectedCount--
+    }
+  }
+
+  /**
+   * Clear all selections
+   */
+  clearSelection = () => {
+    // Direct data manipulation for performance - avoid O(n) setRGBA calls
+    const texture = this.selectionTexture.getTexture()
+    const data = texture.image.data as Uint8Array
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = 0       // R
+      data[i + 1] = 0   // G
+      data[i + 2] = 0   // B
+      data[i + 3] = 255 // A
+    }
+    texture.needsUpdate = true
+    this.selectedCount = 0 // Reset counter
+    this.forceRender = true
+  }
+
+  private initializeOutlinePostProcessing = () => {
+    const size = this.renderer.getRawRenderer().getSize(new THREE.Vector2())
+    
+    // Create render target for intermediate rendering
+    this.outlineRenderTarget = new THREE.WebGLRenderTarget(size.x, size.y, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType
+    })
+    
+    // Create outline material
+    this.outlineMaterial = new THREE.ShaderMaterial({
+      vertexShader: outlineVertexShader,
+      fragmentShader: outlineFragmentShader,
+      uniforms: {
+        tDiffuse: { value: this.outlineRenderTarget.texture },
+        resolution: { value: new THREE.Vector2(size.x, size.y) },
+        outlineOffset: { value: 1.5 }, // 1-2 pixel offset for thin outline
+        outlineAlphaDivisor: { value: OUTLINE_ALPHA_DIVISOR }
+      }
+    })
+    
+    // Create fullscreen quad for post-processing
+    this.outlineScene = new THREE.Scene()
+    this.outlineCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    const geometry = new THREE.PlaneGeometry(2, 2)
+    this.outlineQuad = new THREE.Mesh(geometry, this.outlineMaterial)
+    this.outlineScene.add(this.outlineQuad)
+  }
+
+  private hasSelection = (): boolean => {
+    // O(1) check using selectedCount counter
+    return this.selectedCount > 0
+  }
+
   animate = () => {
     if (!this.idle) {
       this.memoryStats.update()
@@ -294,7 +542,54 @@ export default class Visualizer {
       this.controls.update(this.clock.getDelta())
 
       this.updateUniforms(this.camera)
-      this.renderer.render(this.scene, this.camera)
+      
+      // If debug picking is enabled, render with picking material instead
+      if (this.debugPickingRender) {
+        const particleMeshes: THREE.InstancedMesh[] = []
+        for (const mesh of Object.values(this.cachedMeshes)) {
+          if (mesh instanceof THREE.InstancedMesh && mesh.material === this.materials['particles']) {
+            particleMeshes.push(mesh)
+          }
+        }
+        // Trigger a debug render (this will render to screen)
+        if (particleMeshes.length > 0) {
+          this.pickingHandler.pick(0, 0, this.camera, this.scene, particleMeshes, true)
+        }
+      } else {
+        // Check if we need outline post-processing
+        const needsOutline = this.hasSelection()
+        
+        // Always render with SSAO first
+        this.renderer.render(this.scene, this.camera)
+        
+        // If selection active, do outline pass on top
+        if (needsOutline && this.outlineRenderTarget && this.outlineMaterial && this.outlineScene && this.outlineCamera) {
+          const rawRenderer = this.renderer.getRawRenderer()
+          
+          // Render selection mask to intermediate target (raw renderer, no SSAO needed)
+          rawRenderer.setRenderTarget(this.outlineRenderTarget)
+          rawRenderer.clear()
+          rawRenderer.render(this.scene, this.camera)
+          
+          // Apply outline-only pass on top
+          rawRenderer.setRenderTarget(null)
+          
+          // Configure material for blending on top
+          this.outlineMaterial.transparent = true
+          this.outlineMaterial.depthTest = false
+          this.outlineMaterial.depthWrite = false
+          
+          // Disable auto-clear so we don't erase the SSAO render
+          const autoClear = rawRenderer.autoClear
+          rawRenderer.autoClear = false
+          
+          rawRenderer.render(this.outlineScene, this.outlineCamera)
+          
+          // Restore auto-clear
+          rawRenderer.autoClear = autoClear
+        }
+      }
+      
       this.cpuStats.end()
 
       this.forceRender = false
@@ -352,7 +647,23 @@ export default class Visualizer {
     this.renderer.setSize(width, height)
 
     adjustCamera(this.camera, width, height)
+    
+    // Resize outline render target if it exists
+    if (this.outlineRenderTarget && this.outlineMaterial) {
+      this.outlineRenderTarget.setSize(width, height)
+      this.outlineMaterial.uniforms.resolution.value.set(width, height)
+    }
 
     return true
+  }
+  
+  public setSelectionColor = (color: THREE.Color) => {
+    this.selectionColor.copy(color)
+    // Update the material uniform
+    const particleMaterial = this.materials['particles']
+    if (particleMaterial && particleMaterial.uniforms && particleMaterial.uniforms.selectionColor) {
+      particleMaterial.uniforms.selectionColor.value.copy(color)
+    }
+    this.forceRender = true
   }
 }

@@ -1,6 +1,6 @@
 import Particles from './core/geometries/particles/particles'
 import Bonds from './core/geometries/bonds/bonds'
-import Visualizer from './core/visualizer'
+import Visualizer, { ParticleClickEvent } from './core/visualizer'
 import parseXyz from './parsers/xyzparser'
 import parseLAMMPSBinaryDump from './parsers/lammpsbinarydumpparser'
 import parseLAMMPSData from './parsers/lammpsdataparser'
@@ -22,3 +22,5 @@ export {
   getColor,
   createBondsByDistance
 }
+
+export type { ParticleClickEvent }

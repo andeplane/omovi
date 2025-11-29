@@ -8,6 +8,9 @@ uniform float shininess;
 uniform float opacity;
 
 uniform sampler2D colorTexture;
+uniform sampler2D selectionTexture;
+uniform vec3 selectionColor;
+uniform float outlineAlphaDivisor;
 uniform mat4 projectionMatrix;
 uniform float dataTextureWidth;
 uniform float dataTextureHeight;
@@ -49,6 +52,14 @@ void main() {
 	float yCoord = (y + 0.5) / dataTextureHeight; // invert Y axis
 	vec2 textureIndex = vec2(xCoord, yCoord);
 	vec4 particleColor = texture2D(colorTexture, textureIndex);
+	
+	// Check if particle is selected (r channel > 0.5 means selected)
+	float isSelected = texture2D(selectionTexture, textureIndex).r;
+	
+	// Override particle color if selected (before lighting calculations)
+	if (isSelected > 0.5) {
+		particleColor.rgb = selectionColor;
+	}
 
 	#include <clipping_planes_fragment>
 
@@ -59,6 +70,7 @@ void main() {
 	#include <logdepthbuf_fragment>
 	#include <map_fragment>
 	
+	// Apply particle color to diffuse
 	diffuseColor.rgb *= particleColor.rgb;
 	#include <alphamap_fragment>
 	#include <alphatest_fragment>
@@ -130,5 +142,12 @@ void main() {
 	#include <fog_fragment>
 	#include <premultiplied_alpha_fragment>
 	#include <dithering_fragment>
+	
+	// Encode outline index in alpha channel while keeping alpha mostly opaque
+	// Unselected: alpha = 1.0 (index = 0)
+	// Selected: alpha = ~0.94 (index = 1)
+	// Note: outlineAlphaDivisor uniform comes from OUTLINE_ALPHA_DIVISOR in src/core/constants.ts
+	float outlineIndex = isSelected > 0.5 ? 1.0 : 0.0;
+	gl_FragColor.a = (255.0 - outlineIndex * outlineAlphaDivisor) / 255.0;
 }
 `
