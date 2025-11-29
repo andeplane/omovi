@@ -107,7 +107,8 @@ const createMaterial = (
     // Add selection texture and color if provided
     if (selectionTexture) {
       parameters.uniforms.selectionTexture = { value: selectionTexture.getTexture() }
-      parameters.uniforms.selectionColor = { value: selectionColor || new THREE.Color(1.0, 0.84, 0.0) } // Default gold
+      // Default to Reveal's light blue: RGB(0.392, 0.392, 1.0)
+      parameters.uniforms.selectionColor = { value: selectionColor || new THREE.Color(0.392, 0.392, 1.0) }
     }
 
     material.uniforms = parameters.uniforms

@@ -13,6 +13,7 @@ import { Color } from './types'
 import OMOVIRenderer from './renderer'
 import { VRButton } from '../utils/VRButton'
 import { PickingHandler, PickResult } from './picking'
+import { outlineVertexShader, outlineFragmentShader } from './post-processing/outlineShader'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -87,6 +88,12 @@ export default class Visualizer {
   private mouseDownShiftKey: boolean = false
   private readonly clickDistanceThreshold = 5 // pixels
   public debugPickingRender: boolean = false // Set to true to see picking visualization
+  private selectionColor: THREE.Color
+  private outlineRenderTarget?: THREE.WebGLRenderTarget
+  private outlineMaterial?: THREE.ShaderMaterial
+  private outlineScene?: THREE.Scene
+  private outlineCamera?: THREE.OrthographicCamera
+  private outlineQuad?: THREE.Mesh
 
   // @ts-ignore
   private latestRequestId?: number
@@ -184,6 +191,8 @@ export default class Visualizer {
     // document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
+    // Default to Reveal's light blue: RGB(0.392, 0.392, 1.0)
+    this.selectionColor = new THREE.Color(0.392, 0.392, 1.0)
     this.materials['particles'] = createMaterial(
       'particle',
       particleVertexShader,
@@ -191,7 +200,7 @@ export default class Visualizer {
       this.colorTexture,
       this.radiusTexture,
       this.selectionTexture,
-      new THREE.Color(1.0, 0.84, 0.0) // Gold selection color
+      this.selectionColor
     )
     this.materials['bonds'] = createMaterial(
       'bonds',
@@ -210,6 +219,9 @@ export default class Visualizer {
     // Add click listeners for particle picking
     this.canvas.addEventListener('mousedown', this.handleMouseDown)
     this.canvas.addEventListener('mouseup', this.handleMouseUp)
+    
+    // Initialize outline post-processing
+    this.initializeOutlinePostProcessing()
 
     this.animate()
     //@ts-ignore
@@ -450,6 +462,49 @@ export default class Visualizer {
     }
   }
 
+  private initializeOutlinePostProcessing = () => {
+    const size = this.renderer.getRawRenderer().getSize(new THREE.Vector2())
+    
+    // Create render target for intermediate rendering
+    this.outlineRenderTarget = new THREE.WebGLRenderTarget(size.x, size.y, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.UnsignedByteType
+    })
+    
+    // Create outline material
+    this.outlineMaterial = new THREE.ShaderMaterial({
+      vertexShader: outlineVertexShader,
+      fragmentShader: outlineFragmentShader,
+      uniforms: {
+        tDiffuse: { value: this.outlineRenderTarget.texture },
+        resolution: { value: new THREE.Vector2(size.x, size.y) },
+        outlineOffset: { value: 1.5 } // 1-2 pixel offset for thin outline
+      }
+    })
+    
+    // Create fullscreen quad for post-processing
+    this.outlineScene = new THREE.Scene()
+    this.outlineCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    const geometry = new THREE.PlaneGeometry(2, 2)
+    this.outlineQuad = new THREE.Mesh(geometry, this.outlineMaterial)
+    this.outlineScene.add(this.outlineQuad)
+  }
+
+  private hasSelection = (): boolean => {
+    // Check if any atoms are selected
+    if (!this.selectionTexture || !this.currentParticles) return false
+    
+    for (let i = 0; i < this.currentParticles.count; i++) {
+      const atomId = this.currentParticles.indices[i]
+      if (this.selectionTexture.getInteger(atomId) > 0) {
+        return true
+      }
+    }
+    return false
+  }
+
   animate = () => {
     if (!this.idle) {
       this.memoryStats.update()
@@ -472,8 +527,21 @@ export default class Visualizer {
           this.pickingHandler.pick(0, 0, this.camera, this.scene, particleMeshes, true)
         }
       } else {
-        // Normal rendering with SSAO
-        this.renderer.render(this.scene, this.camera)
+        // Check if we need outline post-processing
+        const needsOutline = this.hasSelection()
+        
+        if (needsOutline && this.outlineRenderTarget && this.outlineMaterial && this.outlineScene && this.outlineCamera) {
+          // Render to intermediate target first
+          this.renderer.getRawRenderer().setRenderTarget(this.outlineRenderTarget)
+          this.renderer.render(this.scene, this.camera)
+          
+          // Apply outline post-processing to screen
+          this.renderer.getRawRenderer().setRenderTarget(null)
+          this.renderer.getRawRenderer().render(this.outlineScene, this.outlineCamera)
+        } else {
+          // Normal rendering without post-processing
+          this.renderer.render(this.scene, this.camera)
+        }
       }
       
       this.cpuStats.end()
@@ -533,7 +601,23 @@ export default class Visualizer {
     this.renderer.setSize(width, height)
 
     adjustCamera(this.camera, width, height)
+    
+    // Resize outline render target if it exists
+    if (this.outlineRenderTarget && this.outlineMaterial) {
+      this.outlineRenderTarget.setSize(width, height)
+      this.outlineMaterial.uniforms.resolution.value.set(width, height)
+    }
 
     return true
+  }
+  
+  public setSelectionColor = (color: THREE.Color) => {
+    this.selectionColor.copy(color)
+    // Update the material uniform
+    const particleMaterial = this.materials['particles']
+    if (particleMaterial && particleMaterial.uniforms && particleMaterial.uniforms.selectionColor) {
+      particleMaterial.uniforms.selectionColor.value.copy(color)
+    }
+    this.forceRender = true
   }
 }

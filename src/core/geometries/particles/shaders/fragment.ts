@@ -54,6 +54,11 @@ void main() {
 	
 	// Check if particle is selected (r channel > 0.5 means selected)
 	float isSelected = texture2D(selectionTexture, textureIndex).r;
+	
+	// Override particle color if selected (before lighting calculations)
+	if (isSelected > 0.5) {
+		particleColor.rgb = selectionColor;
+	}
 
 	#include <clipping_planes_fragment>
 
@@ -64,7 +69,7 @@ void main() {
 	#include <logdepthbuf_fragment>
 	#include <map_fragment>
 	
-	// Selection highlight will be applied after we calculate the normal
+	// Apply particle color to diffuse
 	diffuseColor.rgb *= particleColor.rgb;
 	#include <alphamap_fragment>
 	#include <alphatest_fragment>
@@ -129,27 +134,13 @@ void main() {
 
 	vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
 
-	// Apply selection highlight with layered border: black -> white -> bright color
-	if (isSelected > 0.5) {
-		// Calculate rim factor (0 = facing camera, 1 = edge)
-		float rim = 1.0 - abs(dot(normal, rayDirection));
-		
-		vec3 coreColor = particleColor.rgb * 1.2;
-		
-		if (rim > 0.65) {
-			// Outermost: black border
-			outgoingLight = vec3(0.0);
-		} else if (rim > 0.5) {
-			// Middle: white band
-			outgoingLight = vec3(1.0);
-		} else {
-			// Inner: flat bright color
-			outgoingLight = coreColor;
-		}
-	}
-
 	#include <envmap_fragment>
-	#include <opaque_fragment>
+	
+	// Encode outline index in alpha channel (bits 5-8)
+	// Selected particles get outline index 1, unselected get 0
+	float outlineIndex = isSelected > 0.5 ? 1.0 : 0.0;
+	gl_FragColor = vec4(outgoingLight, outlineIndex * 16.0 / 255.0);
+	
 	#include <tonemapping_fragment>
 	#include <colorspace_fragment>
 	#include <fog_fragment>
