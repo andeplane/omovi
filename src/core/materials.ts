@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import DataTexture from 'core/datatexture'
+import { DEFAULT_SELECTION_COLOR } from './constants'
 
 export interface Uniforms {
   [name: string]: THREE.IUniform
@@ -107,8 +108,7 @@ const createMaterial = (
     // Add selection texture and color if provided
     if (selectionTexture) {
       parameters.uniforms.selectionTexture = { value: selectionTexture.getTexture() }
-      // Default to Reveal's light blue: RGB(0.392, 0.392, 1.0)
-      parameters.uniforms.selectionColor = { value: selectionColor || new THREE.Color(0.392, 0.392, 1.0) }
+      parameters.uniforms.selectionColor = { value: selectionColor || DEFAULT_SELECTION_COLOR }
     }
 
     material.uniforms = parameters.uniforms

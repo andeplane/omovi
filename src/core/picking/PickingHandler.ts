@@ -10,7 +10,6 @@ export interface PickResult {
 export class PickingHandler {
   private renderer: THREE.WebGLRenderer
   private pickingTarget: THREE.WebGLRenderTarget
-  private debugTarget: THREE.WebGLRenderTarget
   private pixelBuffer: Uint8Array
   private pickingMaterial: THREE.ShaderMaterial
   private radiusTexture: DataTexture
@@ -21,14 +20,6 @@ export class PickingHandler {
 
     // Create 1x1 render target for picking
     this.pickingTarget = new THREE.WebGLRenderTarget(1, 1, {
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-      format: THREE.RGBAFormat,
-      type: THREE.UnsignedByteType
-    })
-
-    // Create full-screen debug target
-    this.debugTarget = new THREE.WebGLRenderTarget(800, 600, {
       minFilter: THREE.NearestFilter,
       magFilter: THREE.NearestFilter,
       format: THREE.RGBAFormat,
@@ -53,7 +44,6 @@ export class PickingHandler {
 
   dispose(): void {
     this.pickingTarget.dispose()
-    this.debugTarget.dispose()
     this.pickingMaterial.dispose()
   }
 
@@ -86,7 +76,11 @@ export class PickingHandler {
       ? camera  // For debug mode, use full camera
       : (() => {
           // For picking, use view offset to render just the clicked pixel
-          const cam = camera.clone() as THREE.PerspectiveCamera
+          // setViewOffset is only available on PerspectiveCamera
+          if (!(camera instanceof THREE.PerspectiveCamera)) {
+            throw new Error('Picking is currently only supported for PerspectiveCamera.')
+          }
+          const cam = camera.clone()
           cam.setViewOffset(width, height, x, y, 1, 1)
           return cam
         })()
@@ -124,9 +118,12 @@ export class PickingHandler {
       // Update picking material uniforms from the original material
       const originalMaterial = mesh.material as THREE.ShaderMaterial
       if (originalMaterial.uniforms) {
-        this.pickingMaterial.uniforms.inverseModelMatrix.value.copy(
-          originalMaterial.uniforms.inverseModelMatrix?.value || new THREE.Matrix4()
-        )
+        const invModelMatrixUniform = originalMaterial.uniforms.inverseModelMatrix
+        if (invModelMatrixUniform?.value) {
+          this.pickingMaterial.uniforms.inverseModelMatrix.value.copy(invModelMatrixUniform.value)
+        } else {
+          this.pickingMaterial.uniforms.inverseModelMatrix.value.identity()
+        }
       }
       
       mesh.material = this.pickingMaterial

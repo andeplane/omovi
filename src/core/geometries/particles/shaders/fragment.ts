@@ -145,6 +145,8 @@ void main() {
 	// Encode outline index in alpha channel while keeping alpha mostly opaque
 	// Unselected: alpha = 1.0 (index = 0)
 	// Selected: alpha = ~0.94 (index = 1)
+	// Note: OUTLINE_ALPHA_DIVISOR (16.0) is defined in src/core/constants.ts
+	// and must match the value used in outlineShader.ts for decoding
 	float outlineIndex = isSelected > 0.5 ? 1.0 : 0.0;
 	gl_FragColor.a = (255.0 - outlineIndex * 16.0) / 255.0;
 }

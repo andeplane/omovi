@@ -20,6 +20,8 @@ varying vec2 vUv;
 // Decode outline index from alpha channel
 // Alpha encoding: alpha = (255 - index * 16) / 255
 // So: alpha = 1.0 means index = 0, alpha ≈ 0.94 means index = 1
+// Note: OUTLINE_ALPHA_DIVISOR (16.0) is defined in src/core/constants.ts
+// and must match the value used in fragment.ts for encoding
 int decodeOutlineIndex(float alpha) {
   float rawValue = 255.0 - alpha * 255.0;
   return int(rawValue / 16.0 + 0.5);

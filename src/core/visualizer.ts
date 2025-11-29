@@ -14,6 +14,7 @@ import OMOVIRenderer from './renderer'
 import { VRButton } from '../utils/VRButton'
 import { PickingHandler, PickResult } from './picking'
 import { outlineVertexShader, outlineFragmentShader } from './post-processing/outlineShader'
+import { DEFAULT_SELECTION_COLOR } from './constants'
 
 // @ts-ignore
 import Stats from 'stats.js'
@@ -81,6 +82,7 @@ export default class Visualizer {
   private colorTexture: DataTexture
   private radiusTexture: DataTexture
   private selectionTexture: DataTexture
+  private selectedCount: number = 0 // Track number of selected atoms for O(1) hasSelection
   private pickingHandler: PickingHandler
   private onParticleClick?: (event: ParticleClickEvent) => void
   private currentParticles?: Particles
@@ -152,10 +154,16 @@ export default class Visualizer {
         this.forceRender = true
       }
     )
-    // Initialize selection texture to all unselected (black)
-    for (let i = 0; i < maxParticleIndex; i++) {
-      this.selectionTexture.setRGBA(i, 0, 0, 0, 255)
+    // Initialize selection texture to all unselected (black with full alpha)
+    // Direct data manipulation for performance - avoid triggering _onChange per pixel
+    const selectionData = this.selectionTexture.getTexture().image.data as Uint8Array
+    for (let i = 0; i < selectionData.length; i += 4) {
+      selectionData[i] = 0       // R
+      selectionData[i + 1] = 0   // G
+      selectionData[i + 2] = 0   // B
+      selectionData[i + 3] = 255 // A
     }
+    this.selectionTexture.getTexture().needsUpdate = true
 
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b)
@@ -191,8 +199,7 @@ export default class Visualizer {
     // document.body.appendChild(this.memoryStats.dom)
 
     this.materials = {}
-    // Default to Reveal's light blue: RGB(0.392, 0.392, 1.0)
-    this.selectionColor = new THREE.Color(0.392, 0.392, 1.0)
+    this.selectionColor = DEFAULT_SELECTION_COLOR
     this.materials['particles'] = createMaterial(
       'particle',
       particleVertexShader,
@@ -380,6 +387,10 @@ export default class Visualizer {
       const atomId = result.particleIndex
       let arrayIndex = -1
       
+      // NOTE: This only searches currentParticles (the most recently added Particles object).
+      // If multiple Particles objects are added to the visualizer, picking will only work
+      // for particles in the most recent one. A more complete implementation would maintain
+      // a Map<atomId, Particles> to handle multiple particle groups.
       for (let i = 0; i < this.currentParticles.count; i++) {
         if (this.currentParticles.indices[i] === atomId) {
           arrayIndex = i
@@ -449,17 +460,33 @@ export default class Visualizer {
     // atomId is the actual LAMMPS atom ID, which is what's stored in the shader
     // The shader reads from particles.indices which contains atom IDs
     // So we can directly set the selection using the atomId
+    const wasSelected = this.selectionTexture.getInteger(atomId) > 0
     this.selectionTexture.setRGBA(atomId, selected ? 255 : 0, 0, 0, 255)
+    
+    // Update selection counter for O(1) hasSelection check
+    if (selected && !wasSelected) {
+      this.selectedCount++
+    } else if (!selected && wasSelected) {
+      this.selectedCount--
+    }
   }
 
   /**
    * Clear all selections
    */
   clearSelection = () => {
-    const maxIndex = this.selectionTexture.maxParticleIndex
-    for (let i = 0; i < maxIndex; i++) {
-      this.selectionTexture.setRGBA(i, 0, 0, 0, 255)
+    // Direct data manipulation for performance - avoid O(n) setRGBA calls
+    const texture = this.selectionTexture.getTexture()
+    const data = texture.image.data as Uint8Array
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = 0       // R
+      data[i + 1] = 0   // G
+      data[i + 2] = 0   // B
+      data[i + 3] = 255 // A
     }
+    texture.needsUpdate = true
+    this.selectedCount = 0 // Reset counter
+    this.forceRender = true
   }
 
   private initializeOutlinePostProcessing = () => {
@@ -493,16 +520,8 @@ export default class Visualizer {
   }
 
   private hasSelection = (): boolean => {
-    // Check if any atoms are selected
-    if (!this.selectionTexture || !this.currentParticles) return false
-    
-    for (let i = 0; i < this.currentParticles.count; i++) {
-      const atomId = this.currentParticles.indices[i]
-      if (this.selectionTexture.getInteger(atomId) > 0) {
-        return true
-      }
-    }
-    return false
+    // O(1) check using selectedCount counter
+    return this.selectedCount > 0
   }
 
   animate = () => {
