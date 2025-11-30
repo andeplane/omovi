@@ -62,7 +62,9 @@ export default class OMOVIRenderer {
     const { alpha, ssao } = options
     this.alpha = alpha
     this.renderer = new THREE.WebGLRenderer({ alpha })
-    this.renderer.useLegacyLights = true
+    // Removed useLegacyLights - using modern lighting system (physically correct)
+    // this.renderer.useLegacyLights = true
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace // Fix washed-out colors with modern lighting
     this.renderer.localClippingEnabled = true
 
     this.modelTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
