@@ -141,7 +141,7 @@ export default class Visualizer {
 
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.0) // Disabled - using point light only
     // Point light with modern lighting (candela units, physically correct)
-    // Modern lighting needs much higher intensities - trying 10 candela initially
+    // Intensity: 10.0 candela (working value for modern lighting)
     // Decay=2 is physically correct (inverse square law)
     this.pointLight = new THREE.PointLight(0xffffff, 10.0, 200, 2)
     // Note: Ambient light is not added to scene because Three.js has a bug where ambient light
