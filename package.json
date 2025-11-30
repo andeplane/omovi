@@ -49,6 +49,8 @@
     "binary-parser": "^1.7.0",
     "easy-peasy": "^5.0.3",
     "kd-tree-javascript": "^1.0.3",
+    "n8ao": "^1.7.0",
+    "postprocessing": "^6.35.0",
     "stats.js": "^0.17.0",
     "strict-uri-encode": "^1.1.0",
     "three": "^0.164.1"
