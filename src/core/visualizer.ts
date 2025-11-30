@@ -139,14 +139,12 @@ export default class Visualizer {
     this.forceRender = false
     this.cachedMeshes = {}
 
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.0) // Disabled - using point light only
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
     // Point light with modern lighting (candela units, physically correct)
     // Intensity: 10.0 candela (working value for modern lighting)
     // Decay=2 is physically correct (inverse square law)
-    this.pointLight = new THREE.PointLight(0xffffff, 10.0, 200, 2)
-    // Note: Ambient light is not added to scene because Three.js has a bug where ambient light
-    // intensity is ignored when using custom shaders. We disable it and rely solely on point lights.
-    // this.scene.add(this.ambientLight)
+    this.pointLight = new THREE.PointLight(0xffffff, 10.0, 200, 1)
+    this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
 
     const maxParticleIndex = 4096 * 4096
