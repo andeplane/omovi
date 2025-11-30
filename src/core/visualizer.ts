@@ -882,4 +882,5 @@ export default class Visualizer {
     }
     this.forceRender = true
   }
+
 }
