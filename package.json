@@ -14,6 +14,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "build:watch": "vite build --watch",
     "start": "vite build --watch",
     "typecheck": "tsc --noEmit",
     "lint": "prettier --check 'src/**/*.{ts,tsx}'",
