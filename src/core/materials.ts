@@ -84,7 +84,7 @@ const createMaterial = (
     return materialMap[type]
   }
 
-  const material = new Material(type, { color: 0xffffff })
+  const material = new Material(type, { color: 0xffffff, emissive: 0x222222 }) // Temporary: add emissive to debug black screen
   material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
   material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
 
