@@ -144,10 +144,11 @@ export default class DataTexture {
     a: number
   } {
     let index = 4 * particleIndex
-    const r = this._texture.image.data[index++]
-    const g = this._texture.image.data[index++]
-    const b = this._texture.image.data[index++]
-    const a = this._texture.image.data[index++]
+    const data = this._texture.image as unknown as Uint8Array
+    const r = data[index++]
+    const g = data[index++]
+    const b = data[index++]
+    const a = data[index++]
     return { r, g, b, a }
   }
 
@@ -159,10 +160,11 @@ export default class DataTexture {
     a: number = 255
   ) {
     let index = 4 * particleIndex
-    this._texture.image.data[index++] = r
-    this._texture.image.data[index++] = g
-    this._texture.image.data[index++] = b
-    this._texture.image.data[index++] = a
+    const data = this._texture.image as unknown as Uint8Array
+    data[index++] = r
+    data[index++] = g
+    data[index++] = b
+    data[index++] = a
     this._texture.needsUpdate = true
     this._onChange()
   }

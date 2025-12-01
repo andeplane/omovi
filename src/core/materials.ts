@@ -14,6 +14,7 @@ class Material extends THREE.MeshPhongMaterial {
   materialType: string
   uniforms: Uniforms
   extensions: Extensions
+  defines: { [key: string]: any }
 
   constructor(
     materialType: string,
@@ -90,7 +91,7 @@ const createMaterial = (
 
   if (fragDepthSupported()) {
     material.extensions.fragDepth = true
-    material.defines!.FRAG_DEPTH = 1
+    material.defines.FRAG_DEPTH = 1
   }
 
   material.onBeforeCompile = (
