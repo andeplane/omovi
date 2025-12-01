@@ -17,8 +17,7 @@ export default class SimulationDataFrame {
       particleTypeMap[particleType] = true
     })
 
-    // @ts-ignore
-    this.particleTypes = Object.keys(particleTypeMap)
+    this.particleTypes = Object.keys(particleTypeMap).map(Number)
 
     if (simulationCell) {
       this.simulationCell = simulationCell

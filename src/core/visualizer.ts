@@ -17,9 +17,22 @@ import {
   outlineVertexShader,
   outlineFragmentShader
 } from './post-processing/outlineShader'
-import { DEFAULT_SELECTION_COLOR, OUTLINE_ALPHA_DIVISOR } from './constants'
+import {
+  DEFAULT_SELECTION_COLOR,
+  OUTLINE_ALPHA_DIVISOR,
+  MAX_PARTICLE_INDEX,
+  MAX_TEXTURE_SIZE,
+  CLICK_DISTANCE_THRESHOLD,
+  DEFAULT_CAMERA_FOV,
+  DEFAULT_CAMERA_NEAR,
+  DEFAULT_CAMERA_FAR
+} from './constants'
+import { SelectionManager } from './selection/SelectionManager'
+import {
+  InputHandler,
+  ParticleClickEvent as InputParticleClickEvent
+} from './input/InputHandler'
 
-// @ts-ignore
 import Stats from 'stats.js'
 
 const inverseModelMatrix = new THREE.Matrix4()
@@ -51,19 +64,52 @@ const adjustCamera = (
   camera.updateProjectionMatrix()
 }
 
+/**
+ * Event data passed when a particle is clicked.
+ */
 export interface ParticleClickEvent {
+  /** The LAMMPS atom ID of the clicked particle */
   particleIndex: number
+  /** 3D position of the clicked particle */
   position: THREE.Vector3
+  /** Whether the shift key was pressed during the click */
   shiftKey: boolean
 }
 
+/**
+ * Configuration options for the Visualizer.
+ */
 interface VisualizerProps {
+  /** DOM element to attach the visualizer to */
   domElement?: HTMLElement
+  /** Callback fired when camera position or target changes */
   onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+  /** Callback fired when a particle is clicked */
   onParticleClick?: (event: ParticleClickEvent) => void
+  /** Initial colors for particle types (indexed by type) */
   initialColors?: Color[]
 }
 
+/**
+ * Main visualization class for rendering molecular dynamics simulations.
+ *
+ * Manages a Three.js scene with camera controls, particle/bond rendering,
+ * selection, and post-processing effects like SSAO and outlines.
+ *
+ * @example
+ * ```typescript
+ * const visualizer = new Visualizer({
+ *   domElement: container,
+ *   onParticleClick: (event) => {
+ *     console.log('Clicked particle:', event.particleIndex)
+ *     visualizer.setSelected(event.particleIndex, true)
+ *   }
+ * })
+ *
+ * visualizer.add(particles)
+ * visualizer.setColor(1, { r: 255, g: 0, b: 0 })
+ * ```
+ */
 export default class Visualizer {
   private canvas: HTMLCanvasElement
   public scene: THREE.Scene
@@ -85,17 +131,14 @@ export default class Visualizer {
   private colorTexture: DataTexture
   private radiusTexture: DataTexture
   private selectionTexture: DataTexture
-  private selectedCount: number = 0 // Track number of selected atoms for O(1) hasSelection
+  private selectionManager: SelectionManager
   private atomIdToParticleInfo: Map<
     number,
     { particles: Particles; arrayIndex: number }
   > = new Map() // O(1) lookup for picking
   private pickingHandler: PickingHandler
-  private onParticleClick?: (event: ParticleClickEvent) => void
+  private inputHandler: InputHandler
   private currentParticles?: Particles
-  private mouseDownPosition?: { x: number; y: number }
-  private mouseDownShiftKey: boolean = false
-  private readonly clickDistanceThreshold = 5 // pixels
   public debugPickingRender: boolean = false // Set to true to see picking visualization
   private selectionColor: THREE.Color
   private outlineRenderTarget?: THREE.WebGLRenderTarget
@@ -112,9 +155,6 @@ export default class Visualizer {
   private _v1 = new THREE.Vector3()
   private _v2 = new THREE.Vector3()
 
-  // @ts-ignore
-  private latestRequestId?: number
-
   constructor({
     domElement,
     initialColors,
@@ -127,7 +167,6 @@ export default class Visualizer {
     })
     this.idle = false
     this.setRadiusCalled = false
-    this.onParticleClick = onParticleClick
     this.canvas = this.renderer.getRawRenderer().domElement
     if (domElement) {
       this.domElement = domElement
@@ -145,10 +184,9 @@ export default class Visualizer {
     this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
 
-    const maxParticleIndex = 4096 * 4096
     this.colorTexture = new DataTexture(
       'colorTexture',
-      maxParticleIndex,
+      MAX_PARTICLE_INDEX,
       'rgba',
       () => {
         this.forceRender = true
@@ -156,7 +194,7 @@ export default class Visualizer {
     )
     this.radiusTexture = new DataTexture(
       'radiusTexture',
-      maxParticleIndex,
+      MAX_PARTICLE_INDEX,
       'float',
       () => {
         this.forceRender = true
@@ -164,31 +202,30 @@ export default class Visualizer {
     )
     this.selectionTexture = new DataTexture(
       'selectionTexture',
-      maxParticleIndex,
+      MAX_PARTICLE_INDEX,
       'rgba',
       () => {
         this.forceRender = true
       }
     )
-    // Initialize selection texture to all unselected (black with full alpha)
-    // Direct data manipulation for performance - avoid triggering _onChange per pixel
-    const selectionData = this.selectionTexture.getData()
-    for (let i = 0; i < selectionData.length; i += 4) {
-      selectionData[i] = 0 // R
-      selectionData[i + 1] = 0 // G
-      selectionData[i + 2] = 0 // B
-      selectionData[i + 3] = 255 // A
-    }
-    this.selectionTexture.getTexture().needsUpdate = true
+    // Initialize selection manager
+    this.selectionManager = new SelectionManager(this.selectionTexture, () => {
+      this.forceRender = true
+    })
 
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b)
     })
 
-    this.camera = new THREE.PerspectiveCamera(60, 640 / 480, 0.1, 10000)
+    this.camera = new THREE.PerspectiveCamera(
+      DEFAULT_CAMERA_FOV,
+      640 / 480,
+      DEFAULT_CAMERA_NEAR,
+      DEFAULT_CAMERA_FAR
+    )
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
-    this.controls.addEventListener('cameraChange', (event: any) => {
+    this.controls.addEventListener('cameraChange', (event) => {
       const { position, target } = event.camera
 
       // Update light position
@@ -199,7 +236,6 @@ export default class Visualizer {
       }
     })
 
-    this.latestRequestId = undefined
     this.clock = new THREE.Clock()
     this.object = new THREE.Object3D()
     this.scene.add(this.object)
@@ -240,20 +276,23 @@ export default class Visualizer {
       this.radiusTexture
     )
 
-    // Add click listeners for particle picking
-    this.canvas.addEventListener('mousedown', this.handleMouseDown)
-    this.canvas.addEventListener('mouseup', this.handleMouseUp)
-    this.canvas.addEventListener('touchstart', this.handleTouchStart)
-    this.canvas.addEventListener('touchend', this.handleTouchEnd)
+    // Initialize input handler for particle picking
+    this.inputHandler = new InputHandler(
+      this.canvas,
+      this.pickingHandler,
+      this.camera,
+      this.scene,
+      this.particlesObjects,
+      this.bondsObjects,
+      this.renderer,
+      this.atomIdToParticleInfo,
+      onParticleClick
+    )
 
     // Initialize outline post-processing
     this.initializeOutlinePostProcessing()
 
     this.animate()
-    //@ts-ignore
-    window.visualizer = this
-    //@ts-ignore
-    window.THREE = THREE
 
     // this.renderer.getRawRenderer().xr.enabled = true
     // document.body.appendChild(
@@ -262,11 +301,24 @@ export default class Visualizer {
     this.renderer.getRawRenderer().setAnimationLoop(this.animate)
   }
 
+  /**
+   * Add particles or bonds to the scene.
+   *
+   * @param object - Particles or Bonds object to add
+   *
+   * @example
+   * ```typescript
+   * const particles = new Particles(100)
+   * particles.add(0, 0, 0, 0, 1)
+   * visualizer.add(particles)
+   * ```
+   */
   add = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {
       this.object.add(this.cachedMeshes[object.id])
       if (object instanceof Particles) {
         this.currentParticles = object
+        this.inputHandler.setCurrentParticles(object)
         // Populate atomIdToParticleInfo map for O(1) picking lookup
         for (let i = 0; i < object.count; i++) {
           const atomId = object.indices[i]
@@ -283,6 +335,7 @@ export default class Visualizer {
     if (object instanceof Particles) {
       material = this.materials['particles']
       this.currentParticles = object
+      this.inputHandler.setCurrentParticles(object)
       // Track particles object for bounds calculation
       if (!this.particlesObjects.includes(object)) {
         this.particlesObjects.push(object)
@@ -323,6 +376,12 @@ export default class Visualizer {
     this.updatePointLightPosition()
   }
 
+  /**
+   * Remove particles or bonds from the scene.
+   *
+   * @param object - Particles or Bonds object to remove
+   * @throws Error if the object was never added to the scene
+   */
   remove = (object: Particles | Bonds) => {
     if (this.cachedMeshes[object.id]) {
       this.object.remove(this.cachedMeshes[object.id])
@@ -387,150 +446,12 @@ export default class Visualizer {
     })
   }
 
-  private handleMouseDown = (event: MouseEvent) => {
-    this.mouseDownPosition = { x: event.clientX, y: event.clientY }
-    this.mouseDownShiftKey = event.shiftKey
-  }
-
-  private handleMouseUp = (event: MouseEvent) => {
-    if (!this.mouseDownPosition) {
-      return
-    }
-
-    // Check if mouse moved significantly (drag vs click)
-    const dx = event.clientX - this.mouseDownPosition.x
-    const dy = event.clientY - this.mouseDownPosition.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-
-    // If it's a drag, don't pick
-    if (distance > this.clickDistanceThreshold) {
-      this.mouseDownPosition = undefined
-      return
-    }
-
-    this.mouseDownPosition = undefined
-
-    // Perform picking at the event coordinates
-    this.performPick(event.clientX, event.clientY)
-  }
-
-  private handleTouchStart = (event: TouchEvent) => {
-    if (event.touches.length > 0) {
-      const touch = event.touches[0]
-      this.mouseDownPosition = { x: touch.clientX, y: touch.clientY }
-      // On mobile, always act as if shift is pressed (toggle selection)
-      this.mouseDownShiftKey = true
-    }
-  }
-
-  private handleTouchEnd = (event: TouchEvent) => {
-    if (!this.mouseDownPosition) {
-      return
-    }
-
-    if (event.changedTouches.length === 0) {
-      this.mouseDownPosition = undefined
-      return
-    }
-
-    const touch = event.changedTouches[0]
-
-    // Check if touch moved significantly (drag vs tap)
-    const dx = touch.clientX - this.mouseDownPosition.x
-    const dy = touch.clientY - this.mouseDownPosition.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-
-    // If it's a drag, don't pick
-    if (distance > this.clickDistanceThreshold) {
-      this.mouseDownPosition = undefined
-      return
-    }
-
-    this.mouseDownPosition = undefined
-
-    // Prevent default touch behavior to avoid double-firing or scrolling
-    event.preventDefault()
-
-    // Perform picking at the touch coordinates
-    this.performPick(touch.clientX, touch.clientY)
-  }
-
   /**
-   * Shared picking logic used by both mouse and touch events
-   * @param clientX - X coordinate in client space
-   * @param clientY - Y coordinate in client space
+   * Clean up resources and remove event listeners.
+   * Call this when the visualizer is no longer needed.
    */
-  private performPick = (clientX: number, clientY: number) => {
-    if (!this.onParticleClick || !this.currentParticles) {
-      return
-    }
-
-    // Get particle and bond meshes from cached meshes in a single pass
-    const particleMeshes: THREE.InstancedMesh[] = []
-    const bondMeshes: THREE.InstancedMesh[] = []
-    for (const mesh of Object.values(this.cachedMeshes)) {
-      if (mesh instanceof THREE.InstancedMesh) {
-        if (mesh.material === this.materials['particles']) {
-          particleMeshes.push(mesh)
-        } else if (mesh.material === this.materials['bonds']) {
-          bondMeshes.push(mesh)
-        }
-      }
-    }
-
-    if (particleMeshes.length === 0) {
-      return
-    }
-
-    // Get coordinates relative to the canvas
-    const rect = this.canvas.getBoundingClientRect()
-
-    // Get renderer size (in actual pixels)
-    const rendererSize = this.renderer.getSize()
-    const rendererWidth = rendererSize.width
-    const rendererHeight = rendererSize.height
-
-    // Convert from client coordinates to renderer coordinates
-    const x = ((clientX - rect.left) / rect.width) * rendererWidth
-    const y = ((clientY - rect.top) / rect.height) * rendererHeight
-
-    // Perform picking
-    const result = this.pickingHandler.pick(
-      x,
-      y,
-      this.camera,
-      this.scene,
-      particleMeshes,
-      bondMeshes,
-      false // Always do actual picking, debug mode just affects rendering
-    )
-
-    if (result) {
-      // result.particleIndex is actually the atom ID (from particles.indices array)
-      const atomId = result.particleIndex
-
-      // O(1) lookup using atomIdToParticleInfo map (supports multiple Particles objects)
-      const particleInfo = this.atomIdToParticleInfo.get(atomId)
-      if (!particleInfo) {
-        return
-      }
-
-      const { particles, arrayIndex } = particleInfo
-      const position = particles.getPosition(arrayIndex)
-
-      this.onParticleClick({
-        particleIndex: atomId, // Return the actual atom ID
-        position,
-        shiftKey: this.mouseDownShiftKey
-      })
-    }
-  }
-
   dispose = () => {
-    this.canvas.removeEventListener('mousedown', this.handleMouseDown)
-    this.canvas.removeEventListener('mouseup', this.handleMouseUp)
-    this.canvas.removeEventListener('touchstart', this.handleTouchStart)
-    this.canvas.removeEventListener('touchend', this.handleTouchEnd)
+    this.inputHandler.dispose()
     this.pickingHandler.dispose()
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
@@ -541,66 +462,110 @@ export default class Visualizer {
     this.renderer.dispose()
   }
 
+  /**
+   * Get the current camera position.
+   *
+   * @returns Camera position as a Three.js Vector3
+   */
   getCameraPosition = () => {
     return this.controls.getState().position
   }
 
+  /**
+   * Get the current camera target (look-at point).
+   *
+   * @returns Camera target as a Three.js Vector3
+   */
   getCameraTarget = () => {
     return this.controls.getState().target
   }
 
+  /**
+   * Set the camera position.
+   *
+   * @param position - New camera position
+   *
+   * @example
+   * ```typescript
+   * visualizer.setCameraPosition(new THREE.Vector3(10, 10, 10))
+   * ```
+   */
   setCameraPosition = (position: THREE.Vector3) => {
     this.controls.setState(position, this.getCameraTarget())
   }
 
+  /**
+   * Set the camera target (look-at point).
+   *
+   * @param target - New camera target
+   *
+   * @example
+   * ```typescript
+   * visualizer.setCameraTarget(new THREE.Vector3(0, 0, 0))
+   * ```
+   */
   setCameraTarget = (target: THREE.Vector3) => {
     this.controls.setState(this.getCameraPosition(), target)
   }
 
+  /**
+   * Set the color for a particle type.
+   *
+   * @param index - Particle type index
+   * @param color - RGB color with values 0-255
+   *
+   * @example
+   * ```typescript
+   * visualizer.setColor(1, { r: 255, g: 0, b: 0 }) // Red
+   * ```
+   */
   setColor = (index: number, color: Color) => {
     this.colorTexture.setRGBA(index, color.r, color.g, color.b)
   }
 
+  /**
+   * Set the radius for a particle type.
+   *
+   * @param index - Particle type index
+   * @param radius - Particle radius in simulation units
+   *
+   * @example
+   * ```typescript
+   * visualizer.setRadius(1, 0.5) // Half unit radius
+   * ```
+   */
   setRadius = (index: number, radius: number) => {
     this.setRadiusCalled = true
     this.radiusTexture.setFloat(index, radius)
   }
 
   /**
-   * Set the selection state of a particle by atom ID
-   * @param atomId The LAMMPS atom ID
-   * @param selected Whether the particle should be selected
+   * Set the selection state of a particle by atom ID.
+   * Selected particles are highlighted with an outline.
+   *
+   * @param atomId - The LAMMPS atom ID
+   * @param selected - Whether the particle should be selected
+   *
+   * @example
+   * ```typescript
+   * visualizer.setSelected(42, true)  // Select particle with ID 42
+   * visualizer.setSelected(42, false) // Deselect it
+   * ```
    */
   setSelected = (atomId: number, selected: boolean) => {
-    // atomId is the actual LAMMPS atom ID, which is what's stored in the shader
-    // The shader reads from particles.indices which contains atom IDs
-    // So we can directly set the selection using the atomId
-    const wasSelected = this.selectionTexture.getInteger(atomId) > 0
-    this.selectionTexture.setRGBA(atomId, selected ? 255 : 0, 0, 0, 255)
-
-    // Update selection counter for O(1) hasSelection check
-    if (selected && !wasSelected) {
-      this.selectedCount++
-    } else if (!selected && wasSelected) {
-      this.selectedCount--
-    }
+    this.selectionManager.setSelected(atomId, selected)
   }
 
   /**
-   * Clear all selections
+   * Clear all particle selections.
+   *
+   * @example
+   * ```typescript
+   * visualizer.clearSelection()
+   * ```
    */
   clearSelection = () => {
-    // Direct data manipulation for performance - avoid O(n) setRGBA calls
-    const data = this.selectionTexture.getData()
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] = 0 // R
-      data[i + 1] = 0 // G
-      data[i + 2] = 0 // B
-      data[i + 3] = 255 // A
-    }
-    this.selectionTexture.getTexture().needsUpdate = true
-    this.selectedCount = 0 // Reset counter
-    this.forceRender = true
+    this.selectionManager.clearSelection()
   }
 
   private initializeOutlinePostProcessing = () => {
@@ -635,8 +600,7 @@ export default class Visualizer {
   }
 
   private hasSelection = (): boolean => {
-    // O(1) check using selectedCount counter
-    return this.selectedCount > 0
+    return this.selectionManager.hasSelection()
   }
 
   private calculateSystemBounds = () => {
@@ -806,11 +770,6 @@ export default class Visualizer {
   }
 
   resizeIfNeeded = () => {
-    // The maxTextureSize is chosen from testing on low-powered hardware,
-    // and could be increased in the future.
-    // TODO Increase maxTextureSize if SSAO performance is improved
-    const maxTextureSize = 1.4e6
-
     const rendererSize = this.renderer.getSize()
     const rendererPixelWidth = rendererSize.width
     const rendererPixelHeight = rendererSize.height
@@ -836,8 +795,8 @@ export default class Visualizer {
     const clientTextureSize = clientPixelWidth * clientPixelHeight
 
     const scale =
-      clientTextureSize > maxTextureSize
-        ? Math.sqrt(maxTextureSize / clientTextureSize)
+      clientTextureSize > MAX_TEXTURE_SIZE
+        ? Math.sqrt(MAX_TEXTURE_SIZE / clientTextureSize)
         : 1
 
     const width = clientPixelWidth * scale
@@ -865,6 +824,17 @@ export default class Visualizer {
     return true
   }
 
+  /**
+   * Set the color used for highlighting selected particles.
+   *
+   * @param color - Three.js Color object
+   *
+   * @example
+   * ```typescript
+   * import * as THREE from 'three'
+   * visualizer.setSelectionColor(new THREE.Color(1.0, 0.5, 0.0)) // Orange
+   * ```
+   */
   public setSelectionColor = (color: THREE.Color) => {
     this.selectionColor.copy(color)
     // Update the material uniform

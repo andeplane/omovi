@@ -27,7 +27,6 @@ const ensureNotNull = (
 ) => {
   for (const key in values) {
     if (values[key] == null) {
-      console.log('Found null value on line ', lines[lineNumber])
       throw new ParseError(
         `Error parsing LAMMPS Data File. Expected non-null value for ${key} on line ${lineNumber}. Line: ${lines[lineNumber]}`
       )
@@ -182,24 +181,14 @@ const parseLAMMPSData = (data: string) => {
   let xy = 0
   let xz = 0
   let yz = 0
-  if (lines[lineNumber + 1].includes('xy xz yz')) {
-    lineNumber = findNext(
-      lines,
-      lineNumber + 1,
-      ' xy xz yz',
-      (line: string) => {
-        ;[xy, xz, yz] = line.split(' ').map(parseFloat)
-      }
-    )
+  if (lineNumber < lines.length && lines[lineNumber].includes('xy xz yz')) {
+    lineNumber = findNext(lines, lineNumber, ' xy xz yz', (line: string) => {
+      ;[xy, xz, yz] = line.split(' ').map(parseFloat)
+    })
   }
 
   // Ignore other fields as Masses and Pair Coeffs etc
   lineNumber = getNextLineNumber(lines, lineNumber, 'Atoms')
-  console.log(
-    `Found Atoms on line ${lineNumber - 1} which is line ${
-      lines[lineNumber - 1]
-    }`
-  )
 
   let isMolecular = false
   lineNumber = findNext(lines, lineNumber, 'Atoms', (line) => {

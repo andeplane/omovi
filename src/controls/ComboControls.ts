@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import {
   EventDispatcher,
   MathUtils as ThreeMath,
@@ -42,7 +43,8 @@ function getPinchInfo(domElement: HTMLElement, touches: TouchList) {
 }
 
 const defaultPointerRotationSpeed = Math.PI / 360 // half degree per pixel
-const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 10
+// Keyboard rotation speed in radians per second (scaled for 60fps baseline)
+const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 7 * 60
 
 export interface CameraUpdateEvent {
   cameraChange: {
@@ -73,8 +75,8 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
   public keyboardRotationSpeedAzimuth: number = defaultKeyboardRotationSpeed
   public keyboardRotationSpeedPolar: number = defaultKeyboardRotationSpeed
   public mouseFirstPersonRotationSpeed: number = defaultPointerRotationSpeed * 2
-  public keyboardDollySpeed: number = 2
-  public keyboardPanSpeed: number = 10
+  public keyboardDollySpeed: number = 1.5
+  public keyboardPanSpeed: number = 7
   public keyboardSpeedFactor: number = 3 // how much quicker keyboard navigation will be with 'shift' pressed
   public pinchEpsilon: number = 2
   public pinchPanSpeed: number = 1
@@ -171,7 +173,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     const actualFPS = Math.min(1 / deltaTime, targetFPS)
     this.targetFPSOverActualFPS = targetFPS / actualFPS
 
-    handleKeyboard()
+    handleKeyboard(deltaTime)
 
     if (this._accumulatedMouseMove.lengthSq() > 0) {
       this.rotate(this._accumulatedMouseMove.x, this._accumulatedMouseMove.y)
@@ -293,17 +295,19 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     event.preventDefault()
 
     let delta = 0
-    // @ts-ignore event.wheelDelta is only part of WebKit / Opera / Explorer 9
-    if (event.wheelDelta) {
-      // @ts-ignore event.wheelDelta is only part of WebKit / Opera / Explorer 9
-      delta = -event.wheelDelta / 40
-    } else if (event.detail) {
+    const wheelEvent = event as WheelEvent & {
+      wheelDelta?: number
+      detail?: number
+    }
+    if (wheelEvent.wheelDelta) {
+      delta = -wheelEvent.wheelDelta / 40
+    } else if (wheelEvent.detail) {
       // Firefox
-      delta = event.detail
-    } else if (event.deltaY) {
+      delta = wheelEvent.detail
+    } else if (wheelEvent.deltaY) {
       // Firefox / Explorer + event target is SVG.
       const factor = isFirefox ? 1 : 40
-      delta = event.deltaY / factor
+      delta = wheelEvent.deltaY / factor
     }
 
     const { domElement } = this
@@ -314,8 +318,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
 
     const dollyIn = delta < 0
     const deltaDistance =
-      // @ts-ignore
-      this.camera.isPerspectiveCamera
+      this.camera instanceof THREE.PerspectiveCamera
         ? this.getDollyDeltaDistance(dollyIn, Math.abs(delta))
         : Math.sign(delta) * this.orthographicCameraDollyFactor
     this.dolly(x, y, deltaDistance)
@@ -532,7 +535,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     document.addEventListener('touchend', onTouchEnd)
   }
 
-  private handleKeyboard = () => {
+  private handleKeyboard = (deltaTime: number) => {
     if (!this.enabled || !this.enableKeyboardNavigation || !this.isFocused) {
       return
     }
@@ -544,12 +547,14 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
       keyboardSpeedFactor
     } = this
 
-    // rotate
+    // rotate - multiply by deltaTime to make frame-rate independent
     const azimuthAngle =
       this.keyboardRotationSpeedAzimuth *
+      deltaTime *
       (Number(keyboard.isPressed('left')) - Number(keyboard.isPressed('right')))
     let polarAngle =
       this.keyboardRotationSpeedPolar *
+      deltaTime *
       (Number(keyboard.isPressed('up')) - Number(keyboard.isPressed('down')))
     if (azimuthAngle !== 0 || polarAngle !== 0) {
       const { sphericalEnd } = this
@@ -652,11 +657,9 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     )
 
     // half of the fov is center to top of screen
-    // @ts-ignore
-    if (camera.isPerspectiveCamera) {
-      targetDistance *= Math.tan(
-        (((camera as PerspectiveCamera).fov / 2) * Math.PI) / 180
-      )
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const perspCamera = camera as THREE.PerspectiveCamera
+      targetDistance *= Math.tan(((perspCamera.fov / 2) * Math.PI) / 180)
     }
 
     // we actually don't use screenWidth, since perspective camera is fixed to screen height
@@ -702,7 +705,6 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     const ratio = distFromCameraToCursor / distFromCameraToScreenCenter
     const distToTarget = reusableVector3.setFromSpherical(sphericalEnd).length()
 
-    // @ts-ignore
     reusableCamera.copy(camera)
     reusableCamera.position.setFromSpherical(sphericalEnd).add(targetEnd)
     reusableCamera.lookAt(targetEnd)
@@ -741,11 +743,9 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
 
   private dolly = (x: number, y: number, deltaDistance: number) => {
     const { camera } = this
-    // @ts-ignore
-    if (camera.isOrthographicCamera) {
+    if (camera instanceof THREE.OrthographicCamera) {
       this.dollyOrthographicCamera(x, y, deltaDistance)
-      // @ts-ignore
-    } else if (camera.isPerspectiveCamera) {
+    } else if (camera instanceof THREE.PerspectiveCamera) {
       this.dollyPerspectiveCamera(x, y, deltaDistance)
     }
   }

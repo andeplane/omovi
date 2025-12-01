@@ -27,10 +27,9 @@ class Particles {
     this.geometry = undefined
   }
 
-  add(x: number, y: number, z: number, id: number, type: number) {
+  add(x: number, y: number, z: number, id: number, type: number): boolean {
     if (this.count === this.capacity) {
-      console.log("Warning, can't add particle because arrays are full")
-      return
+      return false
     }
 
     const index = this.count
@@ -42,6 +41,7 @@ class Particles {
     this.types[index] = type
 
     this.count += 1
+    return true
   }
 
   getPosition = (index: number) => {
