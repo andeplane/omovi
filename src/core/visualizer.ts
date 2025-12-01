@@ -320,7 +320,7 @@ export default class Visualizer {
     this.cachedMeshes[object.id] = mesh
 
     this.object.add(mesh)
-    
+
     // Recalculate bounds and update light position when objects are added
     this.calculateSystemBounds()
     this.updatePointLightPosition()
@@ -687,7 +687,11 @@ export default class Visualizer {
     const cameraPosition = this.camera.position
 
     // Calculate point light position based on system bounds
-    if (this.systemBounds && this.systemCenter && this.systemDiagonal !== undefined) {
+    if (
+      this.systemBounds &&
+      this.systemCenter &&
+      this.systemDiagonal !== undefined
+    ) {
       // Direction from center to camera
       const direction = this._v1.subVectors(cameraPosition, this.systemCenter)
       const distanceToCenter = direction.length()
@@ -878,5 +882,4 @@ export default class Visualizer {
     }
     this.forceRender = true
   }
-
 }

@@ -102,14 +102,14 @@ export default class OMOVIRenderer {
       const tempScene = new THREE.Scene()
       const tempCamera = new THREE.PerspectiveCamera()
       this.n8aoPass = new N8AOPass(tempScene, tempCamera, 1, 1)
-      
+
       // Configure N8AO to use our existing render target
       this.n8aoPass.beautyRenderTarget = this.modelTarget
       this.n8aoPass.configuration.autoRenderBeauty = false
-      
+
       // Set quality preset (Medium is a good balance)
       this.n8aoPass.setQualityMode('Medium')
-      
+
       // Configure AO parameters for molecular visualization
       // Adjust these based on your scene scale
       this.n8aoPass.configuration.aoRadius = 5.0
@@ -244,7 +244,7 @@ export default class OMOVIRenderer {
     target?: THREE.WebGLRenderTarget
   ) {
     this.onBeforeModelRender()
-    
+
     // Render scene to modelTarget (which has depth buffer)
     this.renderer.setRenderTarget(this.modelTarget)
     this.renderer.render(scene, camera)
@@ -254,7 +254,7 @@ export default class OMOVIRenderer {
       // N8AO reads from modelTarget and outputs AO-composited result
       // Update camera for N8AO
       this.n8aoPass.camera = camera
-      
+
       // Render N8AO pass directly to the target (or screen if target is null)
       // N8AO will read from beautyRenderTarget (modelTarget) when autoRenderBeauty=false
       // The render signature is: render(renderer, inputBuffer, outputBuffer, deltaTime, stencilBuffer)
