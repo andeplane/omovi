@@ -191,8 +191,7 @@ export default class Visualizer {
     this.controls.addEventListener('cameraChange', (event: any) => {
       const { position, target } = event.camera
 
-      // Update system bounds and light position
-      this.calculateSystemBounds()
+      // Update light position
       this.updatePointLightPosition()
 
       if (onCameraChanged) {
