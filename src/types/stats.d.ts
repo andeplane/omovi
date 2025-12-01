@@ -9,4 +9,3 @@ declare module 'stats.js' {
     domElement: HTMLDivElement
   }
 }
-

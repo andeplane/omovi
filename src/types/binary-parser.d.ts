@@ -5,4 +5,3 @@ declare module 'binary-parser' {
     saveOffset(name: string): this
   }
 }
-

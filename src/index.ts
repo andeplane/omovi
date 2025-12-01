@@ -1,9 +1,9 @@
 /**
  * OMOVI - Online Molecular Visualizer
- * 
+ *
  * A high-performance library for 3D visualization of molecular dynamics simulations
  * in the browser using WebGL via Three.js.
- * 
+ *
  * @packageDocumentation
  */
 
@@ -20,7 +20,7 @@ import AtomTypes, { getColor } from './core/atomtypes'
 
 /**
  * Main visualization class that manages the 3D scene, camera, and rendering.
- * 
+ *
  * @example
  * ```typescript
  * const visualizer = new Visualizer({ domElement: container })
@@ -31,7 +31,7 @@ export { Visualizer }
 
 /**
  * Represents bonds between particles.
- * 
+ *
  * @example
  * ```typescript
  * const bonds = new Bonds(100)
@@ -42,7 +42,7 @@ export { Bonds }
 
 /**
  * Represents a collection of particles (atoms).
- * 
+ *
  * @example
  * ```typescript
  * const particles = new Particles(1000)
@@ -53,10 +53,10 @@ export { Particles }
 
 /**
  * Parse XYZ format molecular data files.
- * 
+ *
  * @param data - String content of XYZ file
  * @returns SimulationData containing parsed frames
- * 
+ *
  * @example
  * ```typescript
  * const data = await fetch('molecule.xyz').then(r => r.text())
@@ -67,10 +67,10 @@ export { parseXyz }
 
 /**
  * Parse LAMMPS data files (atomic or molecular style).
- * 
+ *
  * @param data - String content of LAMMPS data file
  * @returns SimulationData containing parsed frame
- * 
+ *
  * @example
  * ```typescript
  * const data = await fetch('system.data').then(r => r.text())
@@ -81,10 +81,10 @@ export { parseLAMMPSData }
 
 /**
  * Parse LAMMPS binary dump files.
- * 
+ *
  * @param buffer - ArrayBuffer containing binary dump data
  * @returns SimulationData containing parsed frames
- * 
+ *
  * @example
  * ```typescript
  * const buffer = await fetch('dump.bin').then(r => r.arrayBuffer())
@@ -110,10 +110,10 @@ export { AtomTypes }
 
 /**
  * Get default color for a particle type.
- * 
+ *
  * @param particleType - Integer particle type index
  * @returns RGB color values (0-255)
- * 
+ *
  * @example
  * ```typescript
  * const color = getColor(1)
@@ -124,7 +124,7 @@ export { getColor }
 
 /**
  * Create a bond creator function based on distance criteria.
- * 
+ *
  * @example
  * ```typescript
  * const bondCreator = createBondsByDistance({

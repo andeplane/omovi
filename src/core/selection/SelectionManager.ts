@@ -2,7 +2,7 @@ import DataTexture from '../datatexture'
 
 /**
  * Manages particle selection state and rendering.
- * 
+ *
  * Handles selection tracking, clearing, and provides O(1) selection checks.
  */
 export class SelectionManager {
@@ -12,7 +12,7 @@ export class SelectionManager {
 
   /**
    * Create a new SelectionManager.
-   * 
+   *
    * @param selectionTexture - Data texture storing selection state
    * @param onUpdate - Callback triggered when selection state changes
    */
@@ -33,7 +33,7 @@ export class SelectionManager {
 
   /**
    * Set the selection state of a particle by atom ID.
-   * 
+   *
    * @param atomId - The LAMMPS atom ID
    * @param selected - Whether the particle should be selected
    */
@@ -70,7 +70,7 @@ export class SelectionManager {
 
   /**
    * Check if any particles are currently selected.
-   * 
+   *
    * @returns True if at least one particle is selected
    */
   hasSelection(): boolean {
@@ -79,11 +79,10 @@ export class SelectionManager {
 
   /**
    * Get the selection texture.
-   * 
+   *
    * @returns The data texture storing selection state
    */
   getTexture(): DataTexture {
     return this.selectionTexture
   }
 }
-
