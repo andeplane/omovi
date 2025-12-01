@@ -152,8 +152,8 @@ Main visualization class that manages the 3D scene, camera, and rendering.
 ```typescript
 new Visualizer({
   domElement?: HTMLElement,
-  onCameraChanged?: (position, target) => void,
-  onParticleClick?: (event) => void,
+  onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void,
+  onParticleClick?: (event: ParticleClickEvent) => void,
   initialColors?: Color[]
 })
 ```

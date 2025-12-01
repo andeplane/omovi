@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { PickingHandler } from '../picking'
 import Particles from '../geometries/particles/particles'
-import { Material } from '../materials'
+import Bonds from '../geometries/bonds/bonds'
 import { CLICK_DISTANCE_THRESHOLD } from '../constants'
 
 /**
@@ -15,7 +15,7 @@ export interface ParticleClickEvent {
 
 /**
  * Handles mouse and touch input for particle picking.
- * 
+ *
  * Manages click/tap detection, drag threshold checking, and coordinates
  * with the PickingHandler to identify clicked particles.
  */
@@ -24,8 +24,8 @@ export class InputHandler {
   private pickingHandler: PickingHandler
   private camera: THREE.PerspectiveCamera
   private scene: THREE.Scene
-  private materials: { [key: string]: Material }
-  private cachedMeshes: { [key: string]: THREE.Mesh }
+  private particlesObjects: Particles[]
+  private bondsObjects: Bonds[]
   private renderer: { getSize: () => { width: number; height: number } }
   private currentParticles?: Particles
   private atomIdToParticleInfo: Map<
@@ -40,13 +40,13 @@ export class InputHandler {
 
   /**
    * Create a new InputHandler.
-   * 
+   *
    * @param canvas - Canvas element to attach event listeners to
    * @param pickingHandler - Picking handler for ray-particle intersection
    * @param camera - Camera for picking calculations
    * @param scene - Scene containing particles and bonds
-   * @param materials - Material map for identifying particle/bond meshes
-   * @param cachedMeshes - Map of cached meshes
+   * @param particlesObjects - Array of Particles objects
+   * @param bondsObjects - Array of Bonds objects
    * @param renderer - Renderer for size calculations
    * @param atomIdToParticleInfo - Map for O(1) particle lookup
    * @param onParticleClick - Callback for particle clicks
@@ -56,8 +56,8 @@ export class InputHandler {
     pickingHandler: PickingHandler,
     camera: THREE.PerspectiveCamera,
     scene: THREE.Scene,
-    materials: { [key: string]: Material },
-    cachedMeshes: { [key: string]: THREE.Mesh },
+    particlesObjects: Particles[],
+    bondsObjects: Bonds[],
     renderer: { getSize: () => { width: number; height: number } },
     atomIdToParticleInfo: Map<
       number,
@@ -69,8 +69,8 @@ export class InputHandler {
     this.pickingHandler = pickingHandler
     this.camera = camera
     this.scene = scene
-    this.materials = materials
-    this.cachedMeshes = cachedMeshes
+    this.particlesObjects = particlesObjects
+    this.bondsObjects = bondsObjects
     this.renderer = renderer
     this.atomIdToParticleInfo = atomIdToParticleInfo
     this.onParticleClick = onParticleClick
@@ -84,7 +84,7 @@ export class InputHandler {
 
   /**
    * Set the current particles object.
-   * 
+   *
    * @param particles - Current particles to use for picking
    */
   setCurrentParticles(particles: Particles): void {
@@ -171,7 +171,7 @@ export class InputHandler {
 
   /**
    * Shared picking logic used by both mouse and touch events.
-   * 
+   *
    * @param clientX - X coordinate in client space
    * @param clientY - Y coordinate in client space
    */
@@ -180,18 +180,13 @@ export class InputHandler {
       return
     }
 
-    // Get particle and bond meshes from cached meshes in a single pass
-    const particleMeshes: THREE.InstancedMesh[] = []
-    const bondMeshes: THREE.InstancedMesh[] = []
-    for (const mesh of Object.values(this.cachedMeshes)) {
-      if (mesh instanceof THREE.InstancedMesh) {
-        if (mesh.material === this.materials['particles']) {
-          particleMeshes.push(mesh)
-        } else if (mesh.material === this.materials['bonds']) {
-          bondMeshes.push(mesh)
-        }
-      }
-    }
+    // Get particle and bond meshes directly from objects
+    const particleMeshes = this.particlesObjects
+      .map((p) => p.mesh)
+      .filter((m): m is THREE.InstancedMesh => !!m)
+    const bondMeshes = this.bondsObjects
+      .map((b) => b.mesh)
+      .filter((m): m is THREE.InstancedMesh => !!m)
 
     if (particleMeshes.length === 0) {
       return
@@ -241,4 +236,3 @@ export class InputHandler {
     }
   }
 }
-

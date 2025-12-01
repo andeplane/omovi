@@ -28,7 +28,10 @@ import {
   DEFAULT_CAMERA_FAR
 } from './constants'
 import { SelectionManager } from './selection/SelectionManager'
-import { InputHandler, ParticleClickEvent as InputParticleClickEvent } from './input/InputHandler'
+import {
+  InputHandler,
+  ParticleClickEvent as InputParticleClickEvent
+} from './input/InputHandler'
 
 import Stats from 'stats.js'
 
@@ -89,10 +92,10 @@ interface VisualizerProps {
 
 /**
  * Main visualization class for rendering molecular dynamics simulations.
- * 
+ *
  * Manages a Three.js scene with camera controls, particle/bond rendering,
  * selection, and post-processing effects like SSAO and outlines.
- * 
+ *
  * @example
  * ```typescript
  * const visualizer = new Visualizer({
@@ -102,7 +105,7 @@ interface VisualizerProps {
  *     visualizer.setSelected(event.particleIndex, true)
  *   }
  * })
- * 
+ *
  * visualizer.add(particles)
  * visualizer.setColor(1, { r: 255, g: 0, b: 0 })
  * ```
@@ -279,8 +282,8 @@ export default class Visualizer {
       this.pickingHandler,
       this.camera,
       this.scene,
-      this.materials,
-      this.cachedMeshes,
+      this.particlesObjects,
+      this.bondsObjects,
       this.renderer,
       this.atomIdToParticleInfo,
       onParticleClick
@@ -300,9 +303,9 @@ export default class Visualizer {
 
   /**
    * Add particles or bonds to the scene.
-   * 
+   *
    * @param object - Particles or Bonds object to add
-   * 
+   *
    * @example
    * ```typescript
    * const particles = new Particles(100)
@@ -375,7 +378,7 @@ export default class Visualizer {
 
   /**
    * Remove particles or bonds from the scene.
-   * 
+   *
    * @param object - Particles or Bonds object to remove
    * @throws Error if the object was never added to the scene
    */
@@ -461,7 +464,7 @@ export default class Visualizer {
 
   /**
    * Get the current camera position.
-   * 
+   *
    * @returns Camera position as a Three.js Vector3
    */
   getCameraPosition = () => {
@@ -470,7 +473,7 @@ export default class Visualizer {
 
   /**
    * Get the current camera target (look-at point).
-   * 
+   *
    * @returns Camera target as a Three.js Vector3
    */
   getCameraTarget = () => {
@@ -479,9 +482,9 @@ export default class Visualizer {
 
   /**
    * Set the camera position.
-   * 
+   *
    * @param position - New camera position
-   * 
+   *
    * @example
    * ```typescript
    * visualizer.setCameraPosition(new THREE.Vector3(10, 10, 10))
@@ -493,9 +496,9 @@ export default class Visualizer {
 
   /**
    * Set the camera target (look-at point).
-   * 
+   *
    * @param target - New camera target
-   * 
+   *
    * @example
    * ```typescript
    * visualizer.setCameraTarget(new THREE.Vector3(0, 0, 0))
@@ -507,10 +510,10 @@ export default class Visualizer {
 
   /**
    * Set the color for a particle type.
-   * 
+   *
    * @param index - Particle type index
    * @param color - RGB color with values 0-255
-   * 
+   *
    * @example
    * ```typescript
    * visualizer.setColor(1, { r: 255, g: 0, b: 0 }) // Red
@@ -522,10 +525,10 @@ export default class Visualizer {
 
   /**
    * Set the radius for a particle type.
-   * 
+   *
    * @param index - Particle type index
    * @param radius - Particle radius in simulation units
-   * 
+   *
    * @example
    * ```typescript
    * visualizer.setRadius(1, 0.5) // Half unit radius
@@ -539,10 +542,10 @@ export default class Visualizer {
   /**
    * Set the selection state of a particle by atom ID.
    * Selected particles are highlighted with an outline.
-   * 
+   *
    * @param atomId - The LAMMPS atom ID
    * @param selected - Whether the particle should be selected
-   * 
+   *
    * @example
    * ```typescript
    * visualizer.setSelected(42, true)  // Select particle with ID 42
@@ -555,7 +558,7 @@ export default class Visualizer {
 
   /**
    * Clear all particle selections.
-   * 
+   *
    * @example
    * ```typescript
    * visualizer.clearSelection()
@@ -823,9 +826,9 @@ export default class Visualizer {
 
   /**
    * Set the color used for highlighting selected particles.
-   * 
+   *
    * @param color - Three.js Color object
-   * 
+   *
    * @example
    * ```typescript
    * import * as THREE from 'three'
