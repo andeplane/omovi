@@ -3,7 +3,6 @@ import { N8AOPass } from 'n8ao'
 
 import { rttFragment, rttVertex } from './shaders/rtt'
 import { antialiasFragment, antialiasVertex } from './shaders/antialias'
-import { passThroughVertex } from './shaders/passThrough'
 
 interface SceneInfo {
   scene: THREE.Scene
@@ -60,7 +59,7 @@ export default class OMOVIRenderer {
     const { alpha, ssao } = options
     this.alpha = alpha
     this.renderer = new THREE.WebGLRenderer({ alpha })
-    this.renderer.useLegacyLights = true
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace // Fix washed-out colors with modern lighting
     this.renderer.localClippingEnabled = true
 
     this.modelTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later

@@ -69,6 +69,7 @@ void main() {
 
 	#include <logdepthbuf_fragment>
 	#include <map_fragment>
+	#include <color_fragment>
 	
 	// Apply particle color to diffuse
 	diffuseColor.rgb *= particleColor.rgb;
