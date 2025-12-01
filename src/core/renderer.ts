@@ -107,11 +107,11 @@ export default class OMOVIRenderer {
       this.n8aoPass.configuration.autoRenderBeauty = false
 
       // Set quality preset (Medium is a good balance)
-      this.n8aoPass.setQualityMode('Medium')
+      this.n8aoPass.setQualityMode('Ultra')
 
       // Configure AO parameters for molecular visualization
       // Adjust these based on your scene scale
-      this.n8aoPass.configuration.aoRadius = 5.0
+      this.n8aoPass.configuration.aoRadius = 10.0
       this.n8aoPass.configuration.distanceFalloff = 1.0
       this.n8aoPass.configuration.intensity = 5.0
     }
