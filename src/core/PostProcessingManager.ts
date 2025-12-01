@@ -97,7 +97,7 @@ export class PostProcessingManager {
   }
 
   /**
-   * Deep merge settings with defaults.
+   * Merges settings with defaults.
    */
   private mergeSettings(
     defaults: PostProcessingSettings,
