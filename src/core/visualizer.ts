@@ -143,7 +143,7 @@ export default class Visualizer {
     // Point light with modern lighting (candela units, physically correct)
     // Intensity: 10.0 candela (working value for modern lighting)
     // Decay=2 is physically correct (inverse square law)
-    this.pointLight = new THREE.PointLight(0xffffff, 10.0, 100, 0.5)
+    this.pointLight = new THREE.PointLight(0xffffff, 20.0, 200, 0.8)
     this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
 
