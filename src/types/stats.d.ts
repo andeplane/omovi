@@ -3,6 +3,8 @@ declare module 'stats.js' {
     constructor()
     showPanel(id: number): void
     update(): void
+    begin(): void
+    end(): void
     dom: HTMLDivElement
     domElement: HTMLDivElement
   }

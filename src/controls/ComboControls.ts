@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import {
   EventDispatcher,
   MathUtils as ThreeMath,
@@ -651,7 +652,8 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
 
     // half of the fov is center to top of screen
     if (camera instanceof THREE.PerspectiveCamera) {
-      targetDistance *= Math.tan(((camera.fov / 2) * Math.PI) / 180)
+      const perspCamera = camera as THREE.PerspectiveCamera
+      targetDistance *= Math.tan(((perspCamera.fov / 2) * Math.PI) / 180)
     }
 
     // we actually don't use screenWidth, since perspective camera is fixed to screen height

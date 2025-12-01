@@ -164,7 +164,6 @@ export default class Visualizer {
     })
     this.idle = false
     this.setRadiusCalled = false
-    this.onParticleClick = onParticleClick
     this.canvas = this.renderer.getRawRenderer().domElement
     if (domElement) {
       this.domElement = domElement
@@ -223,7 +222,7 @@ export default class Visualizer {
     )
     this.setupCamera(this.camera)
     this.controls = new ComboControls(this.camera, this.canvas)
-    this.controls.addEventListener('cameraChange', (event: CameraUpdateEvent) => {
+    this.controls.addEventListener('cameraChange', (event) => {
       const { position, target } = event.camera
 
       // Update light position

@@ -65,9 +65,9 @@ Atoms # atomic
       const result = parseLAMMPSData(data)
       const cell = result.frames[0].simulationCell
 
-      expect(cell.a.x).toBe(2.0) // xhi - xlo
-      expect(cell.b.y).toBe(2.0) // yhi - ylo
-      expect(cell.c.z).toBe(5.0) // zhi - zlo
+      expect(cell.vector1.x).toBe(2.0) // xhi - xlo
+      expect(cell.vector2.y).toBe(2.0) // yhi - ylo
+      expect(cell.vector3.z).toBe(5.0) // zhi - zlo
       expect(cell.origin.x).toBe(1.0)
       expect(cell.origin.y).toBe(2.0)
       expect(cell.origin.z).toBe(5.0)
@@ -91,9 +91,9 @@ Atoms # atomic
       const result = parseLAMMPSData(data)
       const cell = result.frames[0].simulationCell
 
-      expect(cell.b.x).toBe(1.0) // xy
-      expect(cell.c.x).toBe(2.0) // xz
-      expect(cell.c.y).toBe(3.0) // yz
+      expect(cell.vector2.x).toBe(1.0) // xy
+      expect(cell.vector3.x).toBe(2.0) // xz
+      expect(cell.vector3.y).toBe(3.0) // yz
     })
 
     it('should parse particle coordinates correctly', () => {
