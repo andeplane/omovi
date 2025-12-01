@@ -103,6 +103,14 @@ export default class Visualizer {
   private outlineScene?: THREE.Scene
   private outlineCamera?: THREE.OrthographicCamera
   private outlineQuad?: THREE.Mesh
+  private systemBounds?: THREE.Box3
+  private systemCenter?: THREE.Vector3
+  private systemDiagonal?: number
+  private particlesObjects: Particles[] = []
+  private bondsObjects: Bonds[] = []
+  // Reusable Vector3 instances for calculations to reduce allocations
+  private _v1 = new THREE.Vector3()
+  private _v2 = new THREE.Vector3()
 
   // @ts-ignore
   private latestRequestId?: number
@@ -131,9 +139,12 @@ export default class Visualizer {
     this.forceRender = false
     this.cachedMeshes = {}
 
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
-    this.pointLight = new THREE.PointLight(0xffffff, 0.5, 150, 1)
-    this.scene.add(this.ambientLight)
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.0) // Disabled - using point light only
+    this.pointLight = new THREE.PointLight(0xffffff, 0.5, 200, 2)
+    // Note: Ambient light is not added to scene because Three.js has a bug where ambient light
+    // intensity is ignored when using custom shaders with useLegacyLights=true. We disable it
+    // and rely solely on point lights for lighting control.
+    // this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
 
     const maxParticleIndex = 4096 * 4096
@@ -183,7 +194,8 @@ export default class Visualizer {
     this.controls.addEventListener('cameraChange', (event: any) => {
       const { position, target } = event.camera
 
-      this.pointLight.position.set(position.x, position.y, position.z)
+      // Update light position
+      this.updatePointLightPosition()
 
       if (onCameraChanged) {
         onCameraChanged(position, target)
@@ -274,6 +286,10 @@ export default class Visualizer {
     if (object instanceof Particles) {
       material = this.materials['particles']
       this.currentParticles = object
+      // Track particles object for bounds calculation
+      if (!this.particlesObjects.includes(object)) {
+        this.particlesObjects.push(object)
+      }
       // Populate atomIdToParticleInfo map for O(1) picking lookup
       for (let i = 0; i < object.count; i++) {
         const atomId = object.indices[i]
@@ -284,6 +300,10 @@ export default class Visualizer {
       }
     } else {
       material = this.materials['bonds']
+      // Track bonds object for bounds calculation
+      if (!this.bondsObjects.includes(object)) {
+        this.bondsObjects.push(object)
+      }
     }
 
     const geometry = object.getGeometry()
@@ -300,6 +320,10 @@ export default class Visualizer {
     this.cachedMeshes[object.id] = mesh
 
     this.object.add(mesh)
+
+    // Recalculate bounds and update light position when objects are added
+    this.calculateSystemBounds()
+    this.updatePointLightPosition()
   }
 
   remove = (object: Particles | Bonds) => {
@@ -312,7 +336,22 @@ export default class Visualizer {
           const atomId = object.indices[i]
           this.atomIdToParticleInfo.delete(atomId)
         }
+        // Remove from particles objects tracking
+        const particlesIndex = this.particlesObjects.indexOf(object)
+        if (particlesIndex !== -1) {
+          this.particlesObjects.splice(particlesIndex, 1)
+        }
+      } else {
+        // Remove from bonds objects tracking
+        const bondsIndex = this.bondsObjects.indexOf(object)
+        if (bondsIndex !== -1) {
+          this.bondsObjects.splice(bondsIndex, 1)
+        }
       }
+
+      // Recalculate bounds and update light position when objects are removed
+      this.calculateSystemBounds()
+      this.updatePointLightPosition()
 
       return
     }
@@ -602,6 +641,85 @@ export default class Visualizer {
   private hasSelection = (): boolean => {
     // O(1) check using selectedCount counter
     return this.selectedCount > 0
+  }
+
+  private calculateSystemBounds = () => {
+    const box = new THREE.Box3()
+    let hasAnyPositions = false
+    const position = new THREE.Vector3()
+
+    // Add all particle positions
+    for (const particles of this.particlesObjects) {
+      const positions = particles.positions
+      for (let i = 0; i < particles.count; i++) {
+        position.fromArray(positions, i * 3)
+        box.expandByPoint(position)
+        hasAnyPositions = true
+      }
+    }
+
+    // Add all bond endpoint positions
+    for (const bonds of this.bondsObjects) {
+      const positions1 = bonds.positions1
+      const positions2 = bonds.positions2
+      for (let i = 0; i < bonds.count; i++) {
+        position.fromArray(positions1, i * 3)
+        box.expandByPoint(position)
+        position.fromArray(positions2, i * 3)
+        box.expandByPoint(position)
+        hasAnyPositions = true
+      }
+    }
+
+    if (hasAnyPositions) {
+      this.systemBounds = box.clone()
+      this.systemCenter = box.getCenter(new THREE.Vector3())
+      const size = box.getSize(new THREE.Vector3())
+      this.systemDiagonal = size.length()
+    } else {
+      this.systemBounds = undefined
+      this.systemCenter = undefined
+      this.systemDiagonal = undefined
+    }
+  }
+
+  private updatePointLightPosition = () => {
+    const cameraPosition = this.camera.position
+
+    // Calculate point light position based on system bounds
+    if (
+      this.systemBounds &&
+      this.systemCenter &&
+      this.systemDiagonal !== undefined
+    ) {
+      // Direction from center to camera
+      const direction = this._v1.subVectors(cameraPosition, this.systemCenter)
+      const distanceToCenter = direction.length()
+
+      // Max distance from center: position light so the box subtends 90 degrees (45° half-angle)
+      // tan(45°) = radius / distance, so distance = radius
+      // Using systemDiagonal / 2 as conservative estimate of perpendicular extent
+      const maxDistanceFromCenter = this.systemDiagonal / 2
+
+      if (distanceToCenter < 1e-6) {
+        // Camera is at center, use a default direction (e.g., +Z)
+        this.pointLight.position
+          .copy(this.systemCenter)
+          .add(this._v2.set(0, 0, maxDistanceFromCenter))
+      } else {
+        const normalizedDirection = this._v2.copy(direction).normalize()
+
+        // Light is along camera-center axis, but never further than maxDistanceFromCenter
+        // Use camera distance if closer, otherwise clamp to max
+        const lightDistance = Math.min(distanceToCenter, maxDistanceFromCenter)
+        this.pointLight.position
+          .copy(this.systemCenter)
+          .addScaledVector(normalizedDirection, lightDistance)
+      }
+    } else {
+      // Fall back to current behavior if no system bounds available
+      this.pointLight.position.copy(cameraPosition)
+    }
   }
 
   animate = () => {

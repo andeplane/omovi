@@ -1,10 +1,9 @@
 import * as THREE from 'three'
+import { N8AOPass } from 'n8ao'
 
 import { rttFragment, rttVertex } from './shaders/rtt'
 import { antialiasFragment, antialiasVertex } from './shaders/antialias'
 import { passThroughVertex } from './shaders/passThrough'
-
-import { ssao, ssaoFinal } from './shaders/ssao'
 
 interface SceneInfo {
   scene: THREE.Scene
@@ -56,10 +55,7 @@ export default class OMOVIRenderer {
   private rttUniforms: any
   private antiAliasScene: THREE.Scene
   private antiAliasUniforms: any
-  private ssaoScene: THREE.Scene
-  private ssaoUniforms: any
-  private ssaoFinalScene: THREE.Scene
-  private ssaoFinalUniforms: any
+  private n8aoPass: N8AOPass | null = null
   constructor(options: { alpha: boolean; ssao: boolean }) {
     const { alpha, ssao } = options
     this.alpha = alpha
@@ -78,6 +74,7 @@ export default class OMOVIRenderer {
 
     this.rttTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
 
+    // Keep these for backwards compatibility, but they're not used with N8AO
     this.ssaoTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
     this.ssaoTarget.depthBuffer = false
     this.ssaoTarget.stencilBuffer = false
@@ -98,14 +95,27 @@ export default class OMOVIRenderer {
     this.antiAliasScene = antiAliasScene
     this.antiAliasUniforms = antiAliasUniforms
 
-    const { scene: ssaoScene, uniforms: ssaoUniforms } = this.createSSAOScene()
-    this.ssaoScene = ssaoScene
-    this.ssaoUniforms = ssaoUniforms
+    // Initialize N8AO if SSAO is enabled
+    if (ssao) {
+      // Create a temporary scene and camera for N8AO initialization
+      // N8AO will be properly sized in setSize()
+      const tempScene = new THREE.Scene()
+      const tempCamera = new THREE.PerspectiveCamera()
+      this.n8aoPass = new N8AOPass(tempScene, tempCamera, 1, 1)
 
-    const { scene: ssaoFinalScene, uniforms: ssaoFinalUniforms } =
-      this.createSSAOFinalScene()
-    this.ssaoFinalScene = ssaoFinalScene
-    this.ssaoFinalUniforms = ssaoFinalUniforms
+      // Configure N8AO to use our existing render target
+      this.n8aoPass.beautyRenderTarget = this.modelTarget
+      this.n8aoPass.configuration.autoRenderBeauty = false
+
+      // Set quality preset (Medium is a good balance)
+      this.n8aoPass.setQualityMode('Medium')
+
+      // Configure AO parameters for molecular visualization
+      // Adjust these based on your scene scale
+      this.n8aoPass.configuration.aoRadius = 5.0
+      this.n8aoPass.configuration.distanceFalloff = 1.0
+      this.n8aoPass.configuration.intensity = 5.0
+    }
 
     this.onBeforeModelRender = () => {}
     this.onBeforeSelectRender = () => {}
@@ -120,6 +130,7 @@ export default class OMOVIRenderer {
     this.rttTarget.dispose()
     this.ssaoTarget.dispose()
     this.ssaoFinalTarget.dispose()
+    this.n8aoPass?.dispose()
   }
 
   addGUIComponent(object: THREE.Object3D) {
@@ -154,74 +165,6 @@ export default class OMOVIRenderer {
     return { scene, uniforms }
   }
 
-  createKernel(kernelSize: number): THREE.Vector3[] {
-    const result: THREE.Vector3[] = []
-    for (let i = 0; i < kernelSize; i++) {
-      const sample = new THREE.Vector3()
-      while (sample.length() < 1.0) {
-        // Ensure some distance in samples
-        sample.x = Math.random() * 2 - 1
-        sample.y = Math.random() * 2 - 1
-        sample.z = Math.random()
-      }
-      sample.normalize()
-      let scale = i / kernelSize
-      scale = lerp(0.1, 1, scale * scale)
-      sample.multiplyScalar(scale)
-      result.push(sample)
-    }
-    return result
-
-    function lerp(value1: number, value2: number, amount: number) {
-      amount = amount < 0 ? 0 : amount
-      amount = amount > 1 ? 1 : amount
-      return value1 + (value2 - value1) * amount
-    }
-  }
-
-  createSSAOScene(): SceneInfo {
-    const defines = {
-      MAX_KERNEL_SIZE: 32
-    }
-
-    const uniforms = {
-      tDepth: { value: this.modelTarget.depthTexture },
-      tDiffuse: { value: this.rttTarget.texture },
-      size: { value: new THREE.Vector2() },
-      sampleRadius: { value: 5 },
-      bias: { value: 0.5 },
-      kernel: { value: this.createKernel(defines.MAX_KERNEL_SIZE) },
-      projMatrix: { value: new THREE.Matrix4() },
-      inverseProjectionMatrix: { value: new THREE.Matrix4() },
-      time: { value: 0.0 }
-    }
-
-    const { scene, material } = setupRenderingPass({
-      uniforms,
-      defines,
-      vertexShader: passThroughVertex,
-      fragmentShader: ssao
-    })
-    return { scene, uniforms }
-  }
-
-  createSSAOFinalScene(): SceneInfo {
-    const uniforms = {
-      tDiffuse: { value: this.rttTarget.texture },
-      ssaoTexture: { value: this.ssaoTarget.texture },
-      size: { value: new THREE.Vector2() }
-    }
-
-    const { scene, material } = setupRenderingPass({
-      uniforms,
-      defines: {},
-      vertexShader: passThroughVertex,
-      fragmentShader: ssaoFinal
-    })
-
-    return { scene, uniforms }
-  }
-
   setSize(width: number, height: number) {
     // width = Math.floor(width)
     // height = Math.floor(height)
@@ -233,16 +176,10 @@ export default class OMOVIRenderer {
     this.rttUniforms.texelSize.value.set(1.75 / width, 1.75 / height)
     this.antiAliasUniforms.resolution.value.set(width, height)
 
-    // const halfWidth = Math.floor(width * 0.5);
-    // const halfHeight = Math.floor(height * 0.5);
-    const halfWidth = width * 0.5
-    const halfHeight = height * 0.5
-    // this.ssaoTarget.setSize(width, height);
-    this.ssaoTarget.setSize(halfWidth, halfHeight)
-    this.ssaoUniforms.size.value.set(halfWidth, halfHeight)
-
-    this.ssaoFinalTarget.setSize(halfWidth, halfHeight)
-    this.ssaoFinalUniforms.size.value.set(halfWidth, halfHeight)
+    // Update N8AO size if it exists
+    if (this.n8aoPass) {
+      this.n8aoPass.setSize(width, height)
+    }
   }
 
   getSize(): { width: number; height: number } {
@@ -306,27 +243,28 @@ export default class OMOVIRenderer {
     camera: THREE.PerspectiveCamera | THREE.OrthographicCamera,
     target?: THREE.WebGLRenderTarget
   ) {
-    this.ssaoUniforms.inverseProjectionMatrix.value =
-      camera.projectionMatrixInverse
-    this.ssaoUniforms.projMatrix.value = camera.projectionMatrix
-    this.ssaoUniforms.time.value = Date.now() % 1000
-
     this.onBeforeModelRender()
+
+    // Render scene to modelTarget (which has depth buffer)
     this.renderer.setRenderTarget(this.modelTarget)
     this.renderer.render(scene, camera)
     this.onBeforeSelectRender()
 
-    this.renderer.setRenderTarget(
-      this.renderSsao ? this.rttTarget : this.ssaoFinalTarget
-    )
-    this.renderer.render(this.rttScene, quadCamera)
+    if (this.renderSsao && this.n8aoPass) {
+      // N8AO reads from modelTarget and outputs AO-composited result
+      // Update camera for N8AO
+      this.n8aoPass.camera = camera
 
-    // ssao
-    if (this.renderSsao) {
-      this.renderer.setRenderTarget(this.ssaoTarget)
-      this.renderer.render(this.ssaoScene, quadCamera)
-      this.renderer.setRenderTarget(null)
-      this.renderer.render(this.ssaoFinalScene, quadCamera)
+      // Render N8AO pass directly to the target (or screen if target is null)
+      // N8AO will read from beautyRenderTarget (modelTarget) when autoRenderBeauty=false
+      // The render signature is: render(renderer, inputBuffer, outputBuffer, deltaTime, stencilBuffer)
+      // Pass target as outputBuffer so N8AO renders directly to it
+      // If target is null, N8AO will render to screen
+      this.n8aoPass.render(this.renderer, null, target || null, 0, null)
+    } else {
+      // No SSAO - just render RTT scene
+      this.renderer.setRenderTarget(target || null)
+      this.renderer.render(this.rttScene, quadCamera)
     }
 
     // antialias

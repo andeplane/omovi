@@ -1,5 +1,5 @@
 export default /* glsl */ `
-#define LAMBERT
+#define PHONG
 varying vec3 vViewPosition;
 
 #ifndef FLAT_SHADED
