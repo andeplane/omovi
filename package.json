@@ -19,18 +19,23 @@
     "typecheck": "tsc --noEmit",
     "lint": "prettier --check 'src/**/*.{ts,tsx}'",
     "lint:fix": "prettier --write 'src/**/*.{ts,tsx}'",
-    "test": "echo \"Tests will be added later\" && exit 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
     "@parcel/packager-ts": "^2.8.0",
     "@parcel/transformer-typescript-types": "^2.8.0",
+    "@testing-library/jest-dom": "^6.9.1",
     "@types/react": "^16.9.27",
     "@types/react-dom": "^16.9.7",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "^4.0.14",
     "buffer": "^5.7.1",
     "gh-pages": "^6.3.0",
+    "jsdom": "^27.2.0",
     "parcel": "^2.8.0",
     "prettier": "^3.7.2",
     "process": "^0.11.10",
@@ -38,7 +43,8 @@
     "util": "^0.12.5",
     "uuid": "^13.0.0",
     "vite": "^5.4.11",
-    "vite-plugin-dts": "^4.3.0"
+    "vite-plugin-dts": "^4.3.0",
+    "vitest": "^4.0.14"
   },
   "files": [
     "dist"
