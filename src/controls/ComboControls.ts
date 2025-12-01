@@ -44,7 +44,7 @@ function getPinchInfo(domElement: HTMLElement, touches: TouchList) {
 
 const defaultPointerRotationSpeed = Math.PI / 360 // half degree per pixel
 // Keyboard rotation speed in radians per second (scaled for 60fps baseline)
-const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 5 * 60
+const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 7 * 60
 
 export interface CameraUpdateEvent {
   cameraChange: {
