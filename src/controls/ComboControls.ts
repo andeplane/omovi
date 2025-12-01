@@ -44,7 +44,7 @@ function getPinchInfo(domElement: HTMLElement, touches: TouchList) {
 
 const defaultPointerRotationSpeed = Math.PI / 360 // half degree per pixel
 // Keyboard rotation speed in radians per second (scaled for 60fps baseline)
-const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 10 * 60
+const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 5 * 60
 
 export interface CameraUpdateEvent {
   cameraChange: {
@@ -75,8 +75,8 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
   public keyboardRotationSpeedAzimuth: number = defaultKeyboardRotationSpeed
   public keyboardRotationSpeedPolar: number = defaultKeyboardRotationSpeed
   public mouseFirstPersonRotationSpeed: number = defaultPointerRotationSpeed * 2
-  public keyboardDollySpeed: number = 2
-  public keyboardPanSpeed: number = 10
+  public keyboardDollySpeed: number = 1.5
+  public keyboardPanSpeed: number = 7
   public keyboardSpeedFactor: number = 3 // how much quicker keyboard navigation will be with 'shift' pressed
   public pinchEpsilon: number = 2
   public pinchPanSpeed: number = 1
@@ -295,7 +295,10 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     event.preventDefault()
 
     let delta = 0
-    const wheelEvent = event as WheelEvent & { wheelDelta?: number; detail?: number }
+    const wheelEvent = event as WheelEvent & {
+      wheelDelta?: number
+      detail?: number
+    }
     if (wheelEvent.wheelDelta) {
       delta = -wheelEvent.wheelDelta / 40
     } else if (wheelEvent.detail) {
