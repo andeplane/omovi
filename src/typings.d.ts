@@ -54,8 +54,12 @@ declare module 'n8ao' {
     )
 
     setSize(width: number, height: number): void
-    setQualityMode(mode: 'Low' | 'Medium' | 'High' | 'Ultra' | 'Performance'): void
-    setDisplayMode(mode: 'Combined' | 'AO' | 'No AO' | 'Split' | 'Split AO'): void
+    setQualityMode(
+      mode: 'Low' | 'Medium' | 'High' | 'Ultra' | 'Performance'
+    ): void
+    setDisplayMode(
+      mode: 'Combined' | 'AO' | 'No AO' | 'Split' | 'Split AO'
+    ): void
     render(
       renderer: THREE.WebGLRenderer,
       inputBuffer: THREE.Texture | null,
