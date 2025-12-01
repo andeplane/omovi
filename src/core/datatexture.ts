@@ -114,9 +114,7 @@ export default class DataTexture {
     this.height = height
     this._data = new Uint8Array(4 * width * height)
     if (type === 'rgba') {
-      for (let i = 0; i < this._data.length; i++) {
-        this._data[i] = 255
-      }
+      this._data.fill(255)
     } else {
       for (let i = 0; i < maxParticleIndex; i++) {
         // Pack as RGBA
@@ -128,7 +126,12 @@ export default class DataTexture {
         this._data[4 * i + 3] = a
       }
     }
-    this._texture = new THREE.DataTexture(this._data, width, height, THREE.RGBAFormat)
+    this._texture = new THREE.DataTexture(
+      this._data,
+      width,
+      height,
+      THREE.RGBAFormat
+    )
     this._texture.needsUpdate = true
   }
 
@@ -142,13 +145,13 @@ export default class DataTexture {
     b: number
     a: number
   } {
-    let index = 4 * particleIndex
-    const data = this._data
-    const r = data[index++]
-    const g = data[index++]
-    const b = data[index++]
-    const a = data[index++]
-    return { r, g, b, a }
+    const index = 4 * particleIndex
+    return {
+      r: this._data[index],
+      g: this._data[index + 1],
+      b: this._data[index + 2],
+      a: this._data[index + 3]
+    }
   }
 
   setRGBA(
@@ -158,12 +161,11 @@ export default class DataTexture {
     b: number,
     a: number = 255
   ) {
-    let index = 4 * particleIndex
-    const data = this._data
-    data[index++] = r
-    data[index++] = g
-    data[index++] = b
-    data[index++] = a
+    const index = 4 * particleIndex
+    this._data[index] = r
+    this._data[index + 1] = g
+    this._data[index + 2] = b
+    this._data[index + 3] = a
     this._texture.needsUpdate = true
     this._onChange()
   }

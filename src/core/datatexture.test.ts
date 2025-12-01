@@ -5,13 +5,18 @@ import * as THREE from 'three'
 // Mock Three.js DataTexture
 vi.mock('three', async () => {
   const actual = await vi.importActual<typeof THREE>('three')
-  
+
   class MockDataTexture {
     image: { data: Uint8Array; width: number; height: number }
     needsUpdate: boolean
     dispose: ReturnType<typeof vi.fn>
 
-    constructor(data: Uint8Array, width: number, height: number, format: unknown) {
+    constructor(
+      data: Uint8Array,
+      width: number,
+      height: number,
+      format: unknown
+    ) {
       this.image = { data, width, height }
       this.needsUpdate = false
       this.dispose = vi.fn()
@@ -306,7 +311,7 @@ describe('DataTexture', () => {
   })
 
   describe('DataTexture class instance methods', () => {
-    let onChangeMock: ReturnType<typeof vi.fn>
+    let onChangeMock: () => void
 
     beforeEach(() => {
       onChangeMock = vi.fn()
@@ -323,7 +328,7 @@ describe('DataTexture', () => {
         expect(texture.maxParticleIndex).toBe(10)
         expect(texture.width).toBeGreaterThan(0)
         expect(texture.height).toBeGreaterThan(0)
-        
+
         // Check that rgba values are initialized to 255
         const data = texture.getData()
         expect(data[0]).toBe(255)
@@ -343,7 +348,12 @@ describe('DataTexture', () => {
 
       it('should calculate appropriate texture dimensions', () => {
         // Arrange & Act
-        const texture = new DataTexture('testTexture', 100, 'rgba', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          100,
+          'rgba',
+          onChangeMock
+        )
 
         // Assert - dimensions should be powers of 2 and accommodate all particles
         const totalPixels = texture.width * texture.height
@@ -476,7 +486,12 @@ describe('DataTexture', () => {
         { value: -50.25 }
       ])('should roundtrip float value $value', ({ value }) => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
 
         // Act
         texture.setFloat(0, value)
@@ -488,7 +503,12 @@ describe('DataTexture', () => {
 
       it('should trigger onChange callback when setting float', () => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
 
         // Act
         texture.setFloat(0, 42.5)
@@ -499,7 +519,12 @@ describe('DataTexture', () => {
 
       it('should handle multiple particle indices', () => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
 
         // Act
         texture.setFloat(0, 1.5)
@@ -524,7 +549,12 @@ describe('DataTexture', () => {
         { value: -16581375 }
       ])('should roundtrip integer value $value', ({ value }) => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
 
         // Act
         texture.setInteger(0, value)
@@ -536,7 +566,12 @@ describe('DataTexture', () => {
 
       it('should trigger onChange callback when setting integer', () => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
 
         // Act
         texture.setInteger(0, 42)
@@ -547,7 +582,12 @@ describe('DataTexture', () => {
 
       it('should handle multiple particle indices', () => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
 
         // Act
         texture.setInteger(0, 100)
@@ -592,7 +632,12 @@ describe('DataTexture', () => {
 
       it('should set needsUpdate flag when setting float', () => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
         const threeTexture = texture.getTexture()
         threeTexture.needsUpdate = false
 
@@ -605,7 +650,12 @@ describe('DataTexture', () => {
 
       it('should set needsUpdate flag when setting integer', () => {
         // Arrange
-        const texture = new DataTexture('testTexture', 10, 'float', onChangeMock)
+        const texture = new DataTexture(
+          'testTexture',
+          10,
+          'float',
+          onChangeMock
+        )
         const threeTexture = texture.getTexture()
         threeTexture.needsUpdate = false
 
