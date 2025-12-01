@@ -108,6 +108,9 @@ export default class Visualizer {
   private systemDiagonal?: number
   private particlesObjects: Particles[] = []
   private bondsObjects: Bonds[] = []
+  // Reusable Vector3 instances for calculations to reduce allocations
+  private _v1 = new THREE.Vector3()
+  private _v2 = new THREE.Vector3()
 
   // @ts-ignore
   private latestRequestId?: number
@@ -686,7 +689,7 @@ export default class Visualizer {
     // Calculate point light position based on system bounds
     if (this.systemBounds && this.systemCenter && this.systemDiagonal !== undefined) {
       // Direction from center to camera
-      const direction = new THREE.Vector3().subVectors(cameraPosition, this.systemCenter)
+      const direction = this._v1.subVectors(cameraPosition, this.systemCenter)
       const distanceToCenter = direction.length()
 
       // Max distance from center: position light so the box subtends 90 degrees (45° half-angle)
@@ -696,20 +699,18 @@ export default class Visualizer {
 
       if (distanceToCenter < 1e-6) {
         // Camera is at center, use a default direction (e.g., +Z)
-        const defaultLightPosition = new THREE.Vector3()
+        this.pointLight.position
           .copy(this.systemCenter)
-          .add(new THREE.Vector3(0, 0, maxDistanceFromCenter))
-        this.pointLight.position.copy(defaultLightPosition)
+          .add(this._v2.set(0, 0, maxDistanceFromCenter))
       } else {
-        const normalizedDirection = direction.clone().normalize()
+        const normalizedDirection = this._v2.copy(direction).normalize()
 
         // Light is along camera-center axis, but never further than maxDistanceFromCenter
         // Use camera distance if closer, otherwise clamp to max
         const lightDistance = Math.min(distanceToCenter, maxDistanceFromCenter)
-        const lightPosition = new THREE.Vector3()
+        this.pointLight.position
           .copy(this.systemCenter)
           .addScaledVector(normalizedDirection, lightDistance)
-        this.pointLight.position.copy(lightPosition)
       }
     } else {
       // Fall back to current behavior if no system bounds available
