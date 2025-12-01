@@ -139,10 +139,8 @@ export default class Visualizer {
     this.forceRender = false
     this.cachedMeshes = {}
 
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
     // Point light with modern lighting (candela units, physically correct)
-    // Intensity: 10.0 candela (working value for modern lighting)
-    // Decay=2 is physically correct (inverse square law)
     this.pointLight = new THREE.PointLight(0xffffff, 20.0, 200, 0.8)
     this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
