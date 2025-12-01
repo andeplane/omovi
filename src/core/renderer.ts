@@ -1,8 +1,12 @@
 import * as THREE from 'three'
-import { N8AOPass } from 'n8ao'
 
 import { rttFragment, rttVertex } from './shaders/rtt'
 import { antialiasFragment, antialiasVertex } from './shaders/antialias'
+import {
+  PostProcessingManager,
+  PostProcessingSettings,
+  DEFAULT_POST_PROCESSING_SETTINGS
+} from './PostProcessingManager'
 
 interface SceneInfo {
   scene: THREE.Scene
@@ -47,41 +51,35 @@ export default class OMOVIRenderer {
   private modelTarget: THREE.WebGLRenderTarget
   private screenshotTarget: THREE.WebGLRenderTarget
   private rttTarget: THREE.WebGLRenderTarget
-  private ssaoTarget: THREE.WebGLRenderTarget
-  private ssaoFinalTarget: THREE.WebGLRenderTarget
   private GUIScene: THREE.Scene
   private rttScene: THREE.Scene
   private rttUniforms: { [name: string]: THREE.IUniform }
   private antiAliasScene: THREE.Scene
   private antiAliasUniforms: { [name: string]: THREE.IUniform }
-  private n8aoPass: N8AOPass | null = null
+  
+  // Post-processing manager
+  private postProcessingManager: PostProcessingManager | null = null
+  private postProcessingScene: THREE.Scene | null = null
+  private postProcessingCamera: THREE.PerspectiveCamera | null = null
+
   constructor(options: { alpha: boolean; ssao: boolean }) {
     const { alpha, ssao } = options
     this.alpha = alpha
+    this.renderSsao = ssao
     this.renderer = new THREE.WebGLRenderer({ alpha })
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace // Fix washed-out colors with modern lighting
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.localClippingEnabled = true
 
-    this.modelTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
+    this.modelTarget = new THREE.WebGLRenderTarget(0, 0)
     this.modelTarget.depthBuffer = true
-    this.modelTarget.depthTexture = new THREE.DepthTexture(0, 0) // size will be set by the first render
+    this.modelTarget.depthTexture = new THREE.DepthTexture(0, 0)
     this.modelTarget.depthTexture.type = THREE.UnsignedIntType
 
-    this.screenshotTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
+    this.screenshotTarget = new THREE.WebGLRenderTarget(0, 0)
     this.screenshotTarget.depthBuffer = false
     this.screenshotTarget.stencilBuffer = false
 
-    this.rttTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
-
-    // Keep these for backwards compatibility, but they're not used with N8AO
-    this.ssaoTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
-    this.ssaoTarget.depthBuffer = false
-    this.ssaoTarget.stencilBuffer = false
-
-    this.ssaoFinalTarget = new THREE.WebGLRenderTarget(0, 0) // adjust size later
-    this.ssaoFinalTarget.depthBuffer = false
-    this.ssaoFinalTarget.stencilBuffer = false
-    this.renderSsao = ssao
+    this.rttTarget = new THREE.WebGLRenderTarget(0, 0)
 
     this.GUIScene = new THREE.Scene()
 
@@ -94,28 +92,6 @@ export default class OMOVIRenderer {
     this.antiAliasScene = antiAliasScene
     this.antiAliasUniforms = antiAliasUniforms
 
-    // Initialize N8AO if SSAO is enabled
-    if (ssao) {
-      // Create a temporary scene and camera for N8AO initialization
-      // N8AO will be properly sized in setSize()
-      const tempScene = new THREE.Scene()
-      const tempCamera = new THREE.PerspectiveCamera()
-      this.n8aoPass = new N8AOPass(tempScene, tempCamera, 1, 1)
-
-      // Configure N8AO to use our existing render target
-      this.n8aoPass.beautyRenderTarget = this.modelTarget
-      this.n8aoPass.configuration.autoRenderBeauty = false
-
-      // Set quality preset (Medium is a good balance)
-      this.n8aoPass.setQualityMode('Ultra')
-
-      // Configure AO parameters for molecular visualization
-      // Adjust these based on your scene scale
-      this.n8aoPass.configuration.aoRadius = 10.0
-      this.n8aoPass.configuration.distanceFalloff = 1.0
-      this.n8aoPass.configuration.intensity = 5.0
-    }
-
     this.onBeforeModelRender = () => {}
     this.onBeforeSelectRender = () => {}
     this.onAfterRender = () => {}
@@ -127,9 +103,7 @@ export default class OMOVIRenderer {
     this.modelTarget.dispose()
     this.screenshotTarget.dispose()
     this.rttTarget.dispose()
-    this.ssaoTarget.dispose()
-    this.ssaoFinalTarget.dispose()
-    this.n8aoPass?.dispose()
+    this.postProcessingManager?.dispose()
   }
 
   addGUIComponent(object: THREE.Object3D) {
@@ -141,7 +115,7 @@ export default class OMOVIRenderer {
       tBase: { value: this.modelTarget.texture },
       texelSize: { value: new THREE.Vector2() }
     }
-    const { scene, material } = setupRenderingPass({
+    const { scene } = setupRenderingPass({
       uniforms,
       defines: {},
       vertexShader: rttVertex,
@@ -152,10 +126,10 @@ export default class OMOVIRenderer {
 
   createAntialiasScene(): SceneInfo {
     const uniforms = {
-      tDiffuse: { value: this.ssaoFinalTarget.texture },
+      tDiffuse: { value: null },
       resolution: { value: new THREE.Vector2() }
     }
-    const { scene, material } = setupRenderingPass({
+    const { scene } = setupRenderingPass({
       uniforms,
       defines: {},
       vertexShader: antialiasVertex,
@@ -165,8 +139,6 @@ export default class OMOVIRenderer {
   }
 
   setSize(width: number, height: number) {
-    // width = Math.floor(width)
-    // height = Math.floor(height)
     this.renderer.setSize(width, height, false)
 
     this.modelTarget.setSize(width, height)
@@ -175,10 +147,8 @@ export default class OMOVIRenderer {
     this.rttUniforms.texelSize.value.set(1.75 / width, 1.75 / height)
     this.antiAliasUniforms.resolution.value.set(width, height)
 
-    // Update N8AO size if it exists
-    if (this.n8aoPass) {
-      this.n8aoPass.setSize(width, height)
-    }
+    // Update post-processing manager size
+    this.postProcessingManager?.setSize(width, height)
   }
 
   getSize(): { width: number; height: number } {
@@ -197,7 +167,7 @@ export default class OMOVIRenderer {
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
-    const ctx = canvas.getContext('2d')! // 2d is always a valid context, so we can assert non-null
+    const ctx = canvas.getContext('2d')!
     const imageData = ctx.createImageData(width, 1)
 
     const pixelBuffer = new Uint8Array(width * 4)
@@ -214,15 +184,13 @@ export default class OMOVIRenderer {
       )
 
       if (!this.alpha) {
-        // we need to fill in the background color to the screenshot
         for (let x = 0; x < width; x++) {
-          let idx = x * 4 + 3 // idx to 'a'-value of the color
-          // check for transparency
+          let idx = x * 4 + 3
           if (pixelBuffer[idx] === 0) {
-            pixelBuffer[idx--] = 255 // a
-            pixelBuffer[idx--] = 0 // b
-            pixelBuffer[idx--] = 0 // g
-            pixelBuffer[idx--] = 0 // r
+            pixelBuffer[idx--] = 255
+            pixelBuffer[idx--] = 0
+            pixelBuffer[idx--] = 0
+            pixelBuffer[idx--] = 0
           }
         }
       }
@@ -244,33 +212,40 @@ export default class OMOVIRenderer {
   ) {
     this.onBeforeModelRender()
 
-    // Render scene to modelTarget (which has depth buffer)
-    this.renderer.setRenderTarget(this.modelTarget)
-    this.renderer.render(scene, camera)
-    this.onBeforeSelectRender()
-
-    if (this.renderSsao && this.n8aoPass) {
-      // N8AO reads from modelTarget and outputs AO-composited result
-      // Update camera for N8AO
-      this.n8aoPass.camera = camera
-
-      // Render N8AO pass directly to the target (or screen if target is null)
-      // N8AO will read from beautyRenderTarget (modelTarget) when autoRenderBeauty=false
-      // The render signature is: render(renderer, inputBuffer, outputBuffer, deltaTime, stencilBuffer)
-      // Pass target as outputBuffer so N8AO renders directly to it
-      // If target is null, N8AO will render to screen
-      this.n8aoPass.render(this.renderer, null, target || null, 0, null)
+    // Use PostProcessingManager if available and SSAO is enabled
+    if (this.postProcessingManager && this.renderSsao) {
+      // Update camera in case it changed
+      if (camera instanceof THREE.PerspectiveCamera) {
+        this.postProcessingManager.setCamera(camera)
+      }
+      
+      // ALWAYS render scene to modelTarget first
+      // This ensures consistent lighting/material behavior
+      this.renderer.setRenderTarget(this.modelTarget)
+      this.renderer.render(scene, camera)
+      this.onBeforeSelectRender()
+      
+      // Then apply post-processing
+      if (target) {
+        // For screenshots, render post-processing, then copy to target
+        this.postProcessingManager.render()
+        this.renderer.setRenderTarget(target)
+        this.renderer.render(this.rttScene, quadCamera)
+      } else {
+        // Render post-processing directly to screen
+        this.postProcessingManager.render()
+      }
     } else {
-      // No SSAO - just render RTT scene
+      // No post-processing - render directly
+      this.renderer.setRenderTarget(this.modelTarget)
+      this.renderer.render(scene, camera)
+      this.onBeforeSelectRender()
+
       this.renderer.setRenderTarget(target || null)
       this.renderer.render(this.rttScene, quadCamera)
     }
 
-    // antialias
-    // this.renderer.setRenderTarget(target ? target : null);
-    // this.renderer.render(this.antiAliasScene, quadCamera);
-
-    // gui
+    // GUI overlay
     this.renderer.autoClear = false
     this.renderer.render(this.GUIScene, camera)
     this.renderer.autoClear = true
@@ -280,5 +255,85 @@ export default class OMOVIRenderer {
 
   getRawRenderer() {
     return this.renderer
+  }
+
+  /**
+   * Initialize the post-processing pipeline.
+   *
+   * @param scene - The scene to render
+   * @param camera - The camera to use
+   * @param settings - Optional post-processing settings
+   */
+  initPostProcessing(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    settings?: Partial<PostProcessingSettings>
+  ): void {
+    this.postProcessingScene = scene
+    this.postProcessingCamera = camera
+
+    // Apply initial SSAO enabled state from settings
+    if (settings?.ssao?.enabled !== undefined) {
+      this.renderSsao = settings.ssao.enabled
+    }
+
+    // Pass the modelTarget so N8AO can reuse it instead of re-rendering
+    this.postProcessingManager = new PostProcessingManager(
+      this.renderer,
+      scene,
+      camera,
+      settings,
+      this.modelTarget
+    )
+
+    // Sync size
+    const size = this.getSize()
+    if (size.width > 0 && size.height > 0) {
+      this.postProcessingManager.setSize(size.width, size.height)
+    }
+  }
+
+  /**
+   * Update post-processing settings.
+   *
+   * @param settings - Partial settings to update
+   */
+  updatePostProcessingSettings(settings: Partial<PostProcessingSettings>): void {
+    if (settings.ssao?.enabled !== undefined) {
+      this.renderSsao = settings.ssao.enabled
+    }
+    this.postProcessingManager?.updateSettings(settings)
+  }
+
+  /**
+   * Get current post-processing settings.
+   *
+   * @returns Current settings or defaults if not initialized
+   */
+  getPostProcessingSettings(): PostProcessingSettings {
+    return this.postProcessingManager
+      ? this.postProcessingManager.getSettings()
+      : DEFAULT_POST_PROCESSING_SETTINGS
+  }
+
+  /**
+   * Check if post-processing is enabled.
+   *
+   * @returns True if post-processing pipeline is active
+   */
+  isPostProcessingEnabled(): boolean {
+    return this.postProcessingManager !== null
+  }
+
+  /**
+   * Enable or disable SSAO rendering.
+   *
+   * @param enabled - Whether to enable SSAO
+   */
+  setSSAOEnabled(enabled: boolean): void {
+    this.renderSsao = enabled
+    this.postProcessingManager?.updateSettings({
+      ssao: { ...this.getPostProcessingSettings().ssao, enabled }
+    })
   }
 }

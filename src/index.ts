@@ -17,6 +17,11 @@ import SimulationData from './core/simulationdata/simulationdata'
 import SimulationDataFrame from './core/simulationdata/simulationdataframe'
 import { createBondsByDistance } from './utils/bondcreators'
 import AtomTypes, { getColor } from './core/atomtypes'
+import {
+  PostProcessingSettings,
+  SSAOSettings,
+  DEFAULT_POST_PROCESSING_SETTINGS
+} from './core/PostProcessingManager'
 
 /**
  * Main visualization class that manages the 3D scene, camera, and rendering.
@@ -142,3 +147,14 @@ export { createBondsByDistance }
  * Event data passed when a particle is clicked.
  */
 export type { ParticleClickEvent }
+
+/**
+ * Post-processing settings interface.
+ * Use with visualizer.initPostProcessing() and visualizer.updatePostProcessingSettings().
+ */
+export type { PostProcessingSettings, SSAOSettings }
+
+/**
+ * Default post-processing settings.
+ */
+export { DEFAULT_POST_PROCESSING_SETTINGS }

@@ -11,6 +11,7 @@ import Particles from './geometries/particles/particles'
 import Bonds from './geometries/bonds/bonds'
 import { Color } from './types'
 import OMOVIRenderer from './renderer'
+import { PostProcessingSettings } from './PostProcessingManager'
 import { VRButton } from '../utils/VRButton'
 import { PickingHandler, PickResult } from './picking'
 import {
@@ -847,5 +848,93 @@ export default class Visualizer {
       particleMaterial.uniforms.selectionColor.value.copy(color)
     }
     this.forceRender = true
+  }
+
+  // ============================================
+  // Post-Processing Methods
+  // ============================================
+
+  /**
+   * Initialize the post-processing pipeline.
+   * This sets up EffectComposer with configurable effects.
+   *
+   * @param settings - Optional initial settings for post-processing effects
+   *
+   * @example
+   * ```typescript
+   * visualizer.initPostProcessing({
+   *   ssao: { enabled: true, radius: 15, intensity: 3 }
+   * })
+   * ```
+   */
+  public initPostProcessing = (
+    settings?: Partial<PostProcessingSettings>
+  ): void => {
+    this.renderer.initPostProcessing(this.scene, this.camera, settings)
+    this.forceRender = true
+  }
+
+  /**
+   * Update post-processing settings.
+   *
+   * @param settings - Partial settings to update
+   *
+   * @example
+   * ```typescript
+   * visualizer.updatePostProcessingSettings({
+   *   ssao: { intensity: 8 }
+   * })
+   * ```
+   */
+  public updatePostProcessingSettings = (
+    settings: Partial<PostProcessingSettings>
+  ): void => {
+    this.renderer.updatePostProcessingSettings(settings)
+    this.forceRender = true
+  }
+
+  /**
+   * Get current post-processing settings.
+   *
+   * @returns Current post-processing settings
+   */
+  public getPostProcessingSettings = (): PostProcessingSettings => {
+    return this.renderer.getPostProcessingSettings()
+  }
+
+  /**
+   * Check if post-processing is enabled.
+   *
+   * @returns True if post-processing pipeline is active
+   */
+  public isPostProcessingEnabled = (): boolean => {
+    return this.renderer.isPostProcessingEnabled()
+  }
+
+  /**
+   * Enable or disable SSAO rendering.
+   *
+   * @param enabled - Whether to enable SSAO
+   */
+  public setPostProcessingEnabled = (enabled: boolean): void => {
+    this.renderer.setSSAOEnabled(enabled)
+    this.forceRender = true
+  }
+
+  /**
+   * Enable or disable SSAO (ambient occlusion).
+   *
+   * @param enabled - Whether to enable SSAO
+   *
+   * @example
+   * ```typescript
+   * visualizer.setSSAO(true)
+   * ```
+   */
+  public setSSAO = (enabled: boolean): void => {
+    const currentSettings = this.getPostProcessingSettings()
+    this.updatePostProcessingSettings({
+      ssao: { ...currentSettings.ssao, enabled }
+    })
   }
 }
