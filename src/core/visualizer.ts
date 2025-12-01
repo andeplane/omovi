@@ -912,16 +912,6 @@ export default class Visualizer {
   }
 
   /**
-   * Enable or disable SSAO rendering.
-   *
-   * @param enabled - Whether to enable SSAO
-   */
-  public setPostProcessingEnabled = (enabled: boolean): void => {
-    this.renderer.setSSAOEnabled(enabled)
-    this.forceRender = true
-  }
-
-  /**
    * Enable or disable SSAO (ambient occlusion).
    *
    * @param enabled - Whether to enable SSAO

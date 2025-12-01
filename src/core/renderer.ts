@@ -212,8 +212,8 @@ export default class OMOVIRenderer {
   ) {
     this.onBeforeModelRender()
 
-    // Use PostProcessingManager if available and SSAO is enabled
-    if (this.postProcessingManager && this.renderSsao) {
+    // Use PostProcessingManager if available and has active effects
+    if (this.postProcessingManager && this.postProcessingManager.hasActiveEffects()) {
       // Update camera in case it changed
       if (camera instanceof THREE.PerspectiveCamera) {
         this.postProcessingManager.setCamera(camera)
@@ -227,10 +227,13 @@ export default class OMOVIRenderer {
       
       // Then apply post-processing
       if (target) {
-        // For screenshots, render post-processing, then copy to target
+        // For screenshots, render post-processing, then copy result to target
         this.postProcessingManager.render()
+        const originalTexture = this.rttUniforms.tBase.value
+        this.rttUniforms.tBase.value = this.postProcessingManager.getOutputTexture()
         this.renderer.setRenderTarget(target)
         this.renderer.render(this.rttScene, quadCamera)
+        this.rttUniforms.tBase.value = originalTexture
       } else {
         // Render post-processing directly to screen
         this.postProcessingManager.render()

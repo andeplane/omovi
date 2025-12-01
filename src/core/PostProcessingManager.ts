@@ -255,6 +255,16 @@ export class PostProcessingManager {
   }
 
   /**
+   * Get the output texture from the composer.
+   * This contains the result of the post-processing pipeline.
+   *
+   * @returns The final texture after all post-processing effects
+   */
+  getOutputTexture(): THREE.Texture {
+    return this.composer.readBuffer.texture
+  }
+
+  /**
    * Dispose of all resources.
    */
   dispose(): void {
