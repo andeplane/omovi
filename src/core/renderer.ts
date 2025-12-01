@@ -45,7 +45,6 @@ export default class OMOVIRenderer {
   onBeforeModelRender: () => void
   onBeforeSelectRender: () => void
   onAfterRender: () => void
-  public renderSsao: boolean
   private alpha: boolean
   private renderer: THREE.WebGLRenderer
   private modelTarget: THREE.WebGLRenderTarget
@@ -62,10 +61,9 @@ export default class OMOVIRenderer {
   private postProcessingScene: THREE.Scene | null = null
   private postProcessingCamera: THREE.PerspectiveCamera | null = null
 
-  constructor(options: { alpha: boolean; ssao: boolean }) {
-    const { alpha, ssao } = options
+  constructor(options: { alpha: boolean }) {
+    const { alpha } = options
     this.alpha = alpha
-    this.renderSsao = ssao
     this.renderer = new THREE.WebGLRenderer({ alpha })
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.localClippingEnabled = true
@@ -279,11 +277,6 @@ export default class OMOVIRenderer {
     this.postProcessingScene = scene
     this.postProcessingCamera = camera
 
-    // Apply initial SSAO enabled state from settings
-    if (settings?.ssao?.enabled !== undefined) {
-      this.renderSsao = settings.ssao.enabled
-    }
-
     // Pass the modelTarget so N8AO can reuse it instead of re-rendering
     this.postProcessingManager = new PostProcessingManager(
       this.renderer,
@@ -308,9 +301,6 @@ export default class OMOVIRenderer {
   updatePostProcessingSettings(
     settings: Partial<PostProcessingSettings>
   ): void {
-    if (settings.ssao?.enabled !== undefined) {
-      this.renderSsao = settings.ssao.enabled
-    }
     this.postProcessingManager?.updateSettings(settings)
   }
 
@@ -340,7 +330,6 @@ export default class OMOVIRenderer {
    * @param enabled - Whether to enable SSAO
    */
   setSSAOEnabled(enabled: boolean): void {
-    this.renderSsao = enabled
     this.postProcessingManager?.updateSettings({
       ssao: { ...this.getPostProcessingSettings().ssao, enabled }
     })
