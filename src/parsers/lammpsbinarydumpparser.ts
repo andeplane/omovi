@@ -4,10 +4,43 @@ import SimulationDataFrame from '../core/simulationdata/simulationdataframe'
 import SimulationCell from '../core/simulationdata/simulationcell'
 import * as THREE from 'three'
 import { getColor } from '../core/atomtypes'
-// @ts-ignore
 import { Parser } from 'binary-parser'
 
-const parseHeader = (buffer: Buffer, offset: number = 0) => {
+interface TriclinicData {
+  xy: number
+  xz: number
+  yz: number
+}
+
+interface HeaderData {
+  numTimesteps: bigint
+  numAtoms: bigint
+  isTriclinic: number
+  boundary0: number
+  boundary1: number
+  boundary2: number
+  boundary3: number
+  boundary4: number
+  boundary5: number
+  xlo: number
+  xhi: number
+  ylo: number
+  yhi: number
+  zlo: number
+  zhi: number
+  triclinic?: TriclinicData
+  sizeOne: number
+  numChunks: number
+  headerOffset: number
+}
+
+interface ChunkData {
+  bufferSize: number
+  buffer: number[]
+  chunkOffset: number
+}
+
+const parseHeader = (buffer: Buffer, offset: number = 0): HeaderData => {
   const triclinicParser = new Parser()
     .endianess('little')
     .doublele('xy')
@@ -44,7 +77,6 @@ const parseHeader = (buffer: Buffer, offset: number = 0) => {
     })
     .int32('sizeOne')
     .int32('numChunks')
-    // @ts-ignore
     .saveOffset('headerOffset')
 
   return ipHeader.parse(buffer)
@@ -53,21 +85,17 @@ const parseHeader = (buffer: Buffer, offset: number = 0) => {
 const parseFrame = (buffer: Buffer, offset: number = 0) => {
   const header = parseHeader(buffer, offset)
 
-  // @ts-ignore
   offset = header.headerOffset // This new offset includes the header
   const particles = new Particles(Number(header.numAtoms))
 
-  // @ts-ignore
   for (let chunkIndex = 0; chunkIndex < header.numChunks; chunkIndex++) {
     const chunkParser = new Parser()
       .endianess('little')
-      // @ts-ignore
       .seek(offset)
       .int32le('bufferSize')
       .array('buffer', { type: 'doublele', length: 'bufferSize' })
-      // @ts-ignore
       .saveOffset('chunkOffset')
-    const chunk = chunkParser.parse(buffer)
+    const chunk = chunkParser.parse(buffer) as ChunkData
     offset = chunk.chunkOffset // New offset including the chunk
     // Add particles from chunk
     for (
@@ -85,8 +113,10 @@ const parseFrame = (buffer: Buffer, offset: number = 0) => {
     }
   }
 
-  let xy, xz, yz
-  if (header.isTriclinic) {
+  let xy = 0
+  let xz = 0
+  let yz = 0
+  if (header.isTriclinic && header.triclinic) {
     xy = header.triclinic.xy
     xz = header.triclinic.xz
     yz = header.triclinic.yz

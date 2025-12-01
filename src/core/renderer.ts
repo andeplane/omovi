@@ -6,12 +6,12 @@ import { antialiasFragment, antialiasVertex } from './shaders/antialias'
 
 interface SceneInfo {
   scene: THREE.Scene
-  uniforms: any
+  uniforms: { [name: string]: THREE.IUniform }
 }
 
 function setupRenderingPass(options: {
-  uniforms: any
-  defines: any
+  uniforms: { [name: string]: THREE.IUniform }
+  defines: { [key: string]: string | number | boolean }
   vertexShader: string
   fragmentShader: string
 }): { scene: THREE.Scene; material: THREE.Material } {
@@ -51,9 +51,9 @@ export default class OMOVIRenderer {
   private ssaoFinalTarget: THREE.WebGLRenderTarget
   private GUIScene: THREE.Scene
   private rttScene: THREE.Scene
-  private rttUniforms: any
+  private rttUniforms: { [name: string]: THREE.IUniform }
   private antiAliasScene: THREE.Scene
-  private antiAliasUniforms: any
+  private antiAliasUniforms: { [name: string]: THREE.IUniform }
   private n8aoPass: N8AOPass | null = null
   constructor(options: { alpha: boolean; ssao: boolean }) {
     const { alpha, ssao } = options

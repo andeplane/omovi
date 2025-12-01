@@ -293,17 +293,16 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     event.preventDefault()
 
     let delta = 0
-    // @ts-ignore event.wheelDelta is only part of WebKit / Opera / Explorer 9
-    if (event.wheelDelta) {
-      // @ts-ignore event.wheelDelta is only part of WebKit / Opera / Explorer 9
-      delta = -event.wheelDelta / 40
-    } else if (event.detail) {
+    const wheelEvent = event as WheelEvent & { wheelDelta?: number; detail?: number }
+    if (wheelEvent.wheelDelta) {
+      delta = -wheelEvent.wheelDelta / 40
+    } else if (wheelEvent.detail) {
       // Firefox
-      delta = event.detail
-    } else if (event.deltaY) {
+      delta = wheelEvent.detail
+    } else if (wheelEvent.deltaY) {
       // Firefox / Explorer + event target is SVG.
       const factor = isFirefox ? 1 : 40
-      delta = event.deltaY / factor
+      delta = wheelEvent.deltaY / factor
     }
 
     const { domElement } = this
@@ -314,8 +313,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
 
     const dollyIn = delta < 0
     const deltaDistance =
-      // @ts-ignore
-      this.camera.isPerspectiveCamera
+      this.camera instanceof THREE.PerspectiveCamera
         ? this.getDollyDeltaDistance(dollyIn, Math.abs(delta))
         : Math.sign(delta) * this.orthographicCameraDollyFactor
     this.dolly(x, y, deltaDistance)
@@ -652,11 +650,8 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     )
 
     // half of the fov is center to top of screen
-    // @ts-ignore
-    if (camera.isPerspectiveCamera) {
-      targetDistance *= Math.tan(
-        (((camera as PerspectiveCamera).fov / 2) * Math.PI) / 180
-      )
+    if (camera instanceof THREE.PerspectiveCamera) {
+      targetDistance *= Math.tan(((camera.fov / 2) * Math.PI) / 180)
     }
 
     // we actually don't use screenWidth, since perspective camera is fixed to screen height
@@ -702,7 +697,6 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     const ratio = distFromCameraToCursor / distFromCameraToScreenCenter
     const distToTarget = reusableVector3.setFromSpherical(sphericalEnd).length()
 
-    // @ts-ignore
     reusableCamera.copy(camera)
     reusableCamera.position.setFromSpherical(sphericalEnd).add(targetEnd)
     reusableCamera.lookAt(targetEnd)
@@ -741,11 +735,9 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
 
   private dolly = (x: number, y: number, deltaDistance: number) => {
     const { camera } = this
-    // @ts-ignore
-    if (camera.isOrthographicCamera) {
+    if (camera instanceof THREE.OrthographicCamera) {
       this.dollyOrthographicCamera(x, y, deltaDistance)
-      // @ts-ignore
-    } else if (camera.isPerspectiveCamera) {
+    } else if (camera instanceof THREE.PerspectiveCamera) {
       this.dollyPerspectiveCamera(x, y, deltaDistance)
     }
   }

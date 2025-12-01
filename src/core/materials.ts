@@ -14,14 +14,13 @@ class Material extends THREE.MeshPhongMaterial {
   materialType: string
   uniforms: Uniforms
   extensions: Extensions
-  defines: { [key: string]: any }
+  defines: { [key: string]: string | number | boolean }
 
   constructor(
     materialType: string,
     parameters?: THREE.MeshPhongMaterialParameters
   ) {
     super(parameters)
-    // @ts-ignore
     this.materialType = materialType
     this.uniforms = {}
     this.extensions = {}
