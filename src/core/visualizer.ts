@@ -643,11 +643,13 @@ export default class Visualizer {
   private calculateSystemBounds = () => {
     const box = new THREE.Box3()
     let hasAnyPositions = false
+    const position = new THREE.Vector3()
 
     // Add all particle positions
     for (const particles of this.particlesObjects) {
+      const positions = particles.positions
       for (let i = 0; i < particles.count; i++) {
-        const position = particles.getPosition(i)
+        position.fromArray(positions, i * 3)
         box.expandByPoint(position)
         hasAnyPositions = true
       }
@@ -655,16 +657,13 @@ export default class Visualizer {
 
     // Add all bond endpoint positions
     for (const bonds of this.bondsObjects) {
+      const positions1 = bonds.positions1
+      const positions2 = bonds.positions2
       for (let i = 0; i < bonds.count; i++) {
-        const position1 = bonds.getPosition1(i)
-        box.expandByPoint(position1)
-        // Access positions2 directly since there's no getPosition2 method
-        const position2 = new THREE.Vector3(
-          bonds.positions2[3 * i + 0],
-          bonds.positions2[3 * i + 1],
-          bonds.positions2[3 * i + 2]
-        )
-        box.expandByPoint(position2)
+        position.fromArray(positions1, i * 3)
+        box.expandByPoint(position)
+        position.fromArray(positions2, i * 3)
+        box.expandByPoint(position)
         hasAnyPositions = true
       }
     }
