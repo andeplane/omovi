@@ -172,8 +172,7 @@ export default class Visualizer {
     )
     // Initialize selection texture to all unselected (black with full alpha)
     // Direct data manipulation for performance - avoid triggering _onChange per pixel
-    const selectionData = this.selectionTexture.getTexture().image
-      .data as Uint8Array
+    const selectionData = this.selectionTexture.getData()
     for (let i = 0; i < selectionData.length; i += 4) {
       selectionData[i] = 0 // R
       selectionData[i + 1] = 0 // G
@@ -592,15 +591,14 @@ export default class Visualizer {
    */
   clearSelection = () => {
     // Direct data manipulation for performance - avoid O(n) setRGBA calls
-    const texture = this.selectionTexture.getTexture()
-    const data = texture.image.data as Uint8Array
+    const data = this.selectionTexture.getData()
     for (let i = 0; i < data.length; i += 4) {
       data[i] = 0 // R
       data[i + 1] = 0 // G
       data[i + 2] = 0 // B
       data[i + 3] = 255 // A
     }
-    texture.needsUpdate = true
+    this.selectionTexture.getTexture().needsUpdate = true
     this.selectedCount = 0 // Reset counter
     this.forceRender = true
   }

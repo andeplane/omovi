@@ -95,6 +95,7 @@ export default class DataTexture {
   height: number
   private _onChange: () => void
   private _texture: THREE.DataTexture
+  private _data: Uint8Array
   public maxParticleIndex: number
 
   constructor(
@@ -111,25 +112,26 @@ export default class DataTexture {
     )
     this.width = width
     this.height = height
-    const now = performance.now()
-    const data = new Uint8Array(4 * width * height)
+    this._data = new Uint8Array(4 * width * height)
     if (type === 'rgba') {
-      for (let i = 0; i < data.length; i++) {
-        data[i] = 255
-      }
+      this._data.fill(255)
     } else {
       for (let i = 0; i < maxParticleIndex; i++) {
         // Pack as RGBA
         const value = 0.33
         const { r, g, b, a } = DataTexture.rgbaFromValue(value, false)
-        data[4 * i + 0] = r
-        data[4 * i + 1] = g
-        data[4 * i + 2] = b
-        data[4 * i + 3] = a
+        this._data[4 * i + 0] = r
+        this._data[4 * i + 1] = g
+        this._data[4 * i + 2] = b
+        this._data[4 * i + 3] = a
       }
     }
-    const stop = performance.now()
-    this._texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat)
+    this._texture = new THREE.DataTexture(
+      this._data,
+      width,
+      height,
+      THREE.RGBAFormat
+    )
     this._texture.needsUpdate = true
   }
 
@@ -143,12 +145,13 @@ export default class DataTexture {
     b: number
     a: number
   } {
-    let index = 4 * particleIndex
-    const r = this._texture.image.data[index++]
-    const g = this._texture.image.data[index++]
-    const b = this._texture.image.data[index++]
-    const a = this._texture.image.data[index++]
-    return { r, g, b, a }
+    const index = 4 * particleIndex
+    return {
+      r: this._data[index],
+      g: this._data[index + 1],
+      b: this._data[index + 2],
+      a: this._data[index + 3]
+    }
   }
 
   setRGBA(
@@ -158,11 +161,11 @@ export default class DataTexture {
     b: number,
     a: number = 255
   ) {
-    let index = 4 * particleIndex
-    this._texture.image.data[index++] = r
-    this._texture.image.data[index++] = g
-    this._texture.image.data[index++] = b
-    this._texture.image.data[index++] = a
+    const index = 4 * particleIndex
+    this._data[index] = r
+    this._data[index + 1] = g
+    this._data[index + 2] = b
+    this._data[index + 3] = a
     this._texture.needsUpdate = true
     this._onChange()
   }
@@ -191,7 +194,11 @@ export default class DataTexture {
     this.setRGBA(particleIndex, r, g, b, a)
   }
 
-  getTexture(): THREE.Texture {
+  getTexture(): THREE.DataTexture {
     return this._texture
+  }
+
+  getData(): Uint8Array {
+    return this._data
   }
 }
