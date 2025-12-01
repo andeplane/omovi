@@ -95,6 +95,7 @@ export default class DataTexture {
   height: number
   private _onChange: () => void
   private _texture: THREE.DataTexture
+  private _data: Uint8Array
   public maxParticleIndex: number
 
   constructor(
@@ -111,25 +112,23 @@ export default class DataTexture {
     )
     this.width = width
     this.height = height
-    const now = performance.now()
-    const data = new Uint8Array(4 * width * height)
+    this._data = new Uint8Array(4 * width * height)
     if (type === 'rgba') {
-      for (let i = 0; i < data.length; i++) {
-        data[i] = 255
+      for (let i = 0; i < this._data.length; i++) {
+        this._data[i] = 255
       }
     } else {
       for (let i = 0; i < maxParticleIndex; i++) {
         // Pack as RGBA
         const value = 0.33
         const { r, g, b, a } = DataTexture.rgbaFromValue(value, false)
-        data[4 * i + 0] = r
-        data[4 * i + 1] = g
-        data[4 * i + 2] = b
-        data[4 * i + 3] = a
+        this._data[4 * i + 0] = r
+        this._data[4 * i + 1] = g
+        this._data[4 * i + 2] = b
+        this._data[4 * i + 3] = a
       }
     }
-    const stop = performance.now()
-    this._texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat)
+    this._texture = new THREE.DataTexture(this._data, width, height, THREE.RGBAFormat)
     this._texture.needsUpdate = true
   }
 
@@ -144,7 +143,7 @@ export default class DataTexture {
     a: number
   } {
     let index = 4 * particleIndex
-    const data = this._texture.image as unknown as Uint8Array
+    const data = this._data
     const r = data[index++]
     const g = data[index++]
     const b = data[index++]
@@ -160,7 +159,7 @@ export default class DataTexture {
     a: number = 255
   ) {
     let index = 4 * particleIndex
-    const data = this._texture.image as unknown as Uint8Array
+    const data = this._data
     data[index++] = r
     data[index++] = g
     data[index++] = b
@@ -193,7 +192,11 @@ export default class DataTexture {
     this.setRGBA(particleIndex, r, g, b, a)
   }
 
-  getTexture(): THREE.Texture {
+  getTexture(): THREE.DataTexture {
     return this._texture
+  }
+
+  getData(): Uint8Array {
+    return this._data
   }
 }
