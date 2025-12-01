@@ -36,10 +36,9 @@ class Bonds {
     y2: number,
     z2: number,
     radius: number
-  ) {
+  ): boolean {
     if (this.count === this.capacity) {
-      console.log("Warning, can't add particle because arrays are full")
-      return
+      return false
     }
 
     const index = this.count
@@ -55,6 +54,7 @@ class Bonds {
     this.indices[index] = index
 
     this.count += 1
+    return true
   }
 
   getRadius = (index: number) => {

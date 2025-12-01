@@ -45,7 +45,6 @@ const parseXyz = (data: string): SimulationData => {
       const numParticles = parseInt(lines[i], 10)
 
       if (isNaN(numParticles)) {
-        console.log('Warning, got NaN as numParticles')
         break
       }
 
