@@ -43,7 +43,8 @@ function getPinchInfo(domElement: HTMLElement, touches: TouchList) {
 }
 
 const defaultPointerRotationSpeed = Math.PI / 360 // half degree per pixel
-const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 10
+// Keyboard rotation speed in radians per second (scaled for 60fps baseline)
+const defaultKeyboardRotationSpeed = defaultPointerRotationSpeed * 10 * 60
 
 export interface CameraUpdateEvent {
   cameraChange: {
@@ -172,7 +173,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     const actualFPS = Math.min(1 / deltaTime, targetFPS)
     this.targetFPSOverActualFPS = targetFPS / actualFPS
 
-    handleKeyboard()
+    handleKeyboard(deltaTime)
 
     if (this._accumulatedMouseMove.lengthSq() > 0) {
       this.rotate(this._accumulatedMouseMove.x, this._accumulatedMouseMove.y)
@@ -531,7 +532,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     document.addEventListener('touchend', onTouchEnd)
   }
 
-  private handleKeyboard = () => {
+  private handleKeyboard = (deltaTime: number) => {
     if (!this.enabled || !this.enableKeyboardNavigation || !this.isFocused) {
       return
     }
@@ -543,12 +544,14 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
       keyboardSpeedFactor
     } = this
 
-    // rotate
+    // rotate - multiply by deltaTime to make frame-rate independent
     const azimuthAngle =
       this.keyboardRotationSpeedAzimuth *
+      deltaTime *
       (Number(keyboard.isPressed('left')) - Number(keyboard.isPressed('right')))
     let polarAngle =
       this.keyboardRotationSpeedPolar *
+      deltaTime *
       (Number(keyboard.isPressed('up')) - Number(keyboard.isPressed('down')))
     if (azimuthAngle !== 0 || polarAngle !== 0) {
       const { sphericalEnd } = this
