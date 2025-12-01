@@ -79,7 +79,10 @@ export class PostProcessingManager {
     this.scene = scene
     this.camera = camera
     this.beautyRenderTarget = beautyRenderTarget || null
-    this.settings = this.mergeSettings(DEFAULT_POST_PROCESSING_SETTINGS, settings)
+    this.settings = this.mergeSettings(
+      DEFAULT_POST_PROCESSING_SETTINGS,
+      settings
+    )
 
     // Create effect composer
     this.composer = new EffectComposer(renderer)
@@ -121,14 +124,14 @@ export class PostProcessingManager {
 
     // N8AO Pass
     this.n8aoPass = new N8AOPass(this.scene, this.camera, width, height)
-    
+
     // If we have a beauty render target, configure N8AO to use it
     // This prevents double-rendering of the scene
     if (this.beautyRenderTarget) {
       this.n8aoPass.beautyRenderTarget = this.beautyRenderTarget
       this.n8aoPass.configuration.autoRenderBeauty = false
     }
-    
+
     this.n8aoPass.configuration.aoRadius = this.settings.ssao.radius
     this.n8aoPass.configuration.intensity = this.settings.ssao.intensity
     this.n8aoPass.configuration.distanceFalloff = 1.0

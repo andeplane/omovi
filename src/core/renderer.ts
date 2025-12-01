@@ -56,7 +56,7 @@ export default class OMOVIRenderer {
   private rttUniforms: { [name: string]: THREE.IUniform }
   private antiAliasScene: THREE.Scene
   private antiAliasUniforms: { [name: string]: THREE.IUniform }
-  
+
   // Post-processing manager
   private postProcessingManager: PostProcessingManager | null = null
   private postProcessingScene: THREE.Scene | null = null
@@ -213,24 +213,28 @@ export default class OMOVIRenderer {
     this.onBeforeModelRender()
 
     // Use PostProcessingManager if available and has active effects
-    if (this.postProcessingManager && this.postProcessingManager.hasActiveEffects()) {
+    if (
+      this.postProcessingManager &&
+      this.postProcessingManager.hasActiveEffects()
+    ) {
       // Update camera in case it changed
       if (camera instanceof THREE.PerspectiveCamera) {
         this.postProcessingManager.setCamera(camera)
       }
-      
+
       // ALWAYS render scene to modelTarget first
       // This ensures consistent lighting/material behavior
       this.renderer.setRenderTarget(this.modelTarget)
       this.renderer.render(scene, camera)
       this.onBeforeSelectRender()
-      
+
       // Then apply post-processing
       if (target) {
         // For screenshots, render post-processing, then copy result to target
         this.postProcessingManager.render()
         const originalTexture = this.rttUniforms.tBase.value
-        this.rttUniforms.tBase.value = this.postProcessingManager.getOutputTexture()
+        this.rttUniforms.tBase.value =
+          this.postProcessingManager.getOutputTexture()
         this.renderer.setRenderTarget(target)
         this.renderer.render(this.rttScene, quadCamera)
         this.rttUniforms.tBase.value = originalTexture
@@ -301,7 +305,9 @@ export default class OMOVIRenderer {
    *
    * @param settings - Partial settings to update
    */
-  updatePostProcessingSettings(settings: Partial<PostProcessingSettings>): void {
+  updatePostProcessingSettings(
+    settings: Partial<PostProcessingSettings>
+  ): void {
     if (settings.ssao?.enabled !== undefined) {
       this.renderSsao = settings.ssao.enabled
     }
