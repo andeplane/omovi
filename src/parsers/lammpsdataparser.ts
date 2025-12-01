@@ -181,15 +181,10 @@ const parseLAMMPSData = (data: string) => {
   let xy = 0
   let xz = 0
   let yz = 0
-  if (lines[lineNumber + 1].includes('xy xz yz')) {
-    lineNumber = findNext(
-      lines,
-      lineNumber + 1,
-      ' xy xz yz',
-      (line: string) => {
-        ;[xy, xz, yz] = line.split(' ').map(parseFloat)
-      }
-    )
+  if (lineNumber < lines.length && lines[lineNumber].includes('xy xz yz')) {
+    lineNumber = findNext(lines, lineNumber, ' xy xz yz', (line: string) => {
+      ;[xy, xz, yz] = line.split(' ').map(parseFloat)
+    })
   }
 
   // Ignore other fields as Masses and Pair Coeffs etc

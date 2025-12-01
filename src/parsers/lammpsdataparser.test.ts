@@ -153,7 +153,6 @@ Atoms # atomic
 Atoms # atomic
 
 1 1 0.0 0.0 0.0
-
 2 1 1.0 1.0 1.0
 `
       const result = parseLAMMPSData(data)
@@ -261,4 +260,3 @@ Atoms # atomic
     })
   })
 })
-
