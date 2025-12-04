@@ -1035,4 +1035,34 @@ export default class Visualizer {
   public isOrthographic = (): boolean => {
     return this.isOrthographicMode
   }
+
+  /**
+   * Enable or disable camera controls.
+   *
+   * @param enabled - Whether camera controls should be enabled
+   *
+   * @example
+   * ```typescript
+   * visualizer.setControlsEnabled(false) // Disable camera controls
+   * visualizer.setControlsEnabled(true)  // Enable camera controls
+   * ```
+   */
+  public setControlsEnabled = (enabled: boolean): void => {
+    this.controls.enabled = enabled
+  }
+
+  /**
+   * Enable or disable particle picking.
+   *
+   * @param enabled - Whether particle picking should be enabled
+   *
+   * @example
+   * ```typescript
+   * visualizer.setPickingEnabled(false) // Disable particle picking
+   * visualizer.setPickingEnabled(true)  // Enable particle picking
+   * ```
+   */
+  public setPickingEnabled = (enabled: boolean): void => {
+    this.inputHandler.setEnabled(enabled)
+  }
 }

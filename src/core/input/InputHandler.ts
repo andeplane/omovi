@@ -37,6 +37,7 @@ export class InputHandler {
   private mouseDownPosition?: { x: number; y: number }
   private mouseDownShiftKey: boolean = false
   private readonly clickDistanceThreshold = CLICK_DISTANCE_THRESHOLD
+  private enabled: boolean = true
 
   /**
    * Create a new InputHandler.
@@ -101,6 +102,15 @@ export class InputHandler {
   }
 
   /**
+   * Enable or disable particle picking.
+   *
+   * @param enabled - Whether picking should be enabled
+   */
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled
+  }
+
+  /**
    * Clean up event listeners.
    */
   dispose(): void {
@@ -111,12 +121,15 @@ export class InputHandler {
   }
 
   private handleMouseDown = (event: MouseEvent) => {
+    if (!this.enabled) {
+      return
+    }
     this.mouseDownPosition = { x: event.clientX, y: event.clientY }
     this.mouseDownShiftKey = event.shiftKey
   }
 
   private handleMouseUp = (event: MouseEvent) => {
-    if (!this.mouseDownPosition) {
+    if (!this.enabled || !this.mouseDownPosition) {
       return
     }
 
@@ -138,6 +151,9 @@ export class InputHandler {
   }
 
   private handleTouchStart = (event: TouchEvent) => {
+    if (!this.enabled) {
+      return
+    }
     if (event.touches.length > 0) {
       const touch = event.touches[0]
       this.mouseDownPosition = { x: touch.clientX, y: touch.clientY }
@@ -147,7 +163,7 @@ export class InputHandler {
   }
 
   private handleTouchEnd = (event: TouchEvent) => {
-    if (!this.mouseDownPosition) {
+    if (!this.enabled || !this.mouseDownPosition) {
       return
     }
 
