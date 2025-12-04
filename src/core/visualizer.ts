@@ -374,6 +374,10 @@ export default class Visualizer {
     // Recalculate bounds and update light position when objects are added
     this.calculateSystemBounds()
     this.updatePointLightPosition()
+    // Update camera planes based on system bounds (fallback if simulation box not available)
+    if (this.systemBounds) {
+      this.updateCameraPlanes(this.systemBounds)
+    }
   }
 
   /**
@@ -408,6 +412,10 @@ export default class Visualizer {
       // Recalculate bounds and update light position when objects are removed
       this.calculateSystemBounds()
       this.updatePointLightPosition()
+      // Update camera planes based on system bounds (fallback if simulation box not available)
+      if (this.systemBounds) {
+        this.updateCameraPlanes(this.systemBounds)
+      }
 
       return
     }
@@ -925,5 +933,58 @@ export default class Visualizer {
     this.updatePostProcessingSettings({
       ssao: { ...currentSettings.ssao, enabled }
     })
+  }
+
+  /**
+   * Update camera near and far clipping planes based on a bounding box.
+   * This ensures the entire simulation box is visible from any camera angle.
+   *
+   * @param boundingBox - THREE.Box3 representing the bounding box to encompass
+   *
+   * @example
+   * ```typescript
+   * const box = new THREE.Box3()
+   * box.expandByPoint(new THREE.Vector3(0, 0, 0))
+   * box.expandByPoint(new THREE.Vector3(100, 100, 100))
+   * visualizer.updateCameraPlanes(box)
+   * ```
+   */
+  public updateCameraPlanes = (boundingBox: THREE.Box3): void => {
+    if (!boundingBox || boundingBox.isEmpty()) {
+      return
+    }
+
+    // Calculate the diagonal length of the bounding box
+    const size = boundingBox.getSize(new THREE.Vector3())
+    const diagonal = size.length()
+
+    // Handle edge case: very small or zero-sized box
+    if (diagonal < 1e-6) {
+      return
+    }
+
+    // Calculate near plane: small fraction of diagonal with minimum value
+    // This ensures we can see close objects without z-fighting
+    const nearPlane = Math.max(diagonal * 0.001, DEFAULT_CAMERA_NEAR)
+
+    // Calculate far plane: multiple of diagonal to account for:
+    // 1. Camera might be far from the box
+    // 2. Need to see the entire box from any angle
+    // 3. Account for perspective projection
+    // Use 3x diagonal as a safe multiplier, with a maximum to prevent precision issues
+    const farPlane = Math.min(diagonal * 3, DEFAULT_CAMERA_FAR)
+
+    // Only update if values are valid and different
+    if (
+      isFinite(nearPlane) &&
+      isFinite(farPlane) &&
+      nearPlane > 0 &&
+      farPlane > nearPlane &&
+      (this.camera.near !== nearPlane || this.camera.far !== farPlane)
+    ) {
+      this.camera.near = nearPlane
+      this.camera.far = farPlane
+      this.camera.updateProjectionMatrix()
+    }
   }
 }
