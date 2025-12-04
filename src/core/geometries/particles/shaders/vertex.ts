@@ -90,9 +90,9 @@ void main() {
 
 	vec3 view;
 	if (isOrthographic) {
-		// In orthographic mode, view direction is constant (camera's forward direction)
-		// Camera looks down -Z in view space, so forward direction is (0, 0, -1)
-		view = normalize((inverseModelMatrix * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+		// In orthographic mode, all billboards face the camera's forward direction
+		// Extract from modelViewMatrix: third column of rotation part, negated
+		view = -vec3(modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2]);
 	} else {
 		// In perspective mode, view direction points from particle to camera
 		vec3 objectToCameraModelSpace = (inverseModelMatrix * vec4(particlePosition - cameraPosition, 1.0)).xyz;
