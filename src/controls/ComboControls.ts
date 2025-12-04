@@ -508,6 +508,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     let previousPinchInfo = getPinchInfo(domElement, initialEvent.touches)
     const initialPinchInfo = getPinchInfo(domElement, initialEvent.touches)
     const initialRadius = this.spherical.radius
+    const isOrthographic = this.camera instanceof THREE.OrthographicCamera
 
     const onTouchMove = (event: TouchEvent) => {
       if (event.touches.length !== 2) {
@@ -516,12 +517,41 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
       const pinchInfo = getPinchInfo(domElement, event.touches)
       // dolly
       const distanceFactor = initialPinchInfo.distance / pinchInfo.distance
-      // Min distance / 5 because on phones it is reasonable to get quite close to the target,
-      // but we don't want to get too close since zooming slows down very close to target.
-      this.sphericalEnd.radius = Math.max(
-        distanceFactor * initialRadius,
-        this.minDistance / 5
-      )
+
+      if (isOrthographic) {
+        // For orthographic cameras, use dolly() method with zoom delta
+        // Convert pinch center to normalized coordinates (x, y in [-1, 1] range)
+        const x =
+          (pinchInfo.center.x / domElement.clientWidth) * 2 - 1
+        const y =
+          (pinchInfo.center.y / domElement.clientHeight) * -2 + 1
+
+        // Calculate incremental zoom delta from previous frame
+        // Pinch in (fingers closer) should zoom out (make smaller) - positive delta
+        // Pinch out (fingers apart) should zoom in (make bigger) - negative delta
+        const previousDistance = previousPinchInfo.distance
+        const currentDistance = pinchInfo.distance
+        const distanceRatio = previousDistance / currentDistance
+
+        // Convert distance ratio to zoom delta
+        // distanceRatio > 1 means fingers moved closer (pinch in) → zoom out (positive delta)
+        // distanceRatio < 1 means fingers moved apart (pinch out) → zoom in (negative delta)
+        // Use logarithmic scale for smooth zoom: log(ratio) gives proportional change
+        const zoomChange = Math.log(distanceRatio)
+        // Scale the change to match the sensitivity of wheel events
+        // Positive delta = zoom out (smaller), negative delta = zoom in (bigger)
+        const deltaDistance = zoomChange * this.orthographicCameraDollyFactor * 20
+
+        this.dolly(x, y, deltaDistance)
+      } else {
+        // For perspective cameras, keep existing behavior
+        // Min distance / 5 because on phones it is reasonable to get quite close to the target,
+        // but we don't want to get too close since zooming slows down very close to target.
+        this.sphericalEnd.radius = Math.max(
+          distanceFactor * initialRadius,
+          this.minDistance / 5
+        )
+      }
 
       // pan
       const deltaCenter = pinchInfo.center.clone().sub(previousPinchInfo.center)
