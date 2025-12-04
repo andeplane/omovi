@@ -251,6 +251,23 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     this.triggerCameraChangeEvent()
   }
 
+  /**
+   * Set the camera used by the controls.
+   * Useful when switching between perspective and orthographic cameras.
+   *
+   * @param camera - The new camera to control
+   */
+  public setCamera = (camera: PerspectiveCamera | OrthographicCamera) => {
+    // Preserve current state
+    const currentState = this.getState()
+
+    this.camera = camera
+    this.reusableCamera = camera.clone() as PerspectiveCamera | OrthographicCamera
+
+    // Restore state to the new camera
+    this.setState(currentState.position, currentState.target)
+  }
+
   public triggerCameraChangeEvent = () => {
     const { camera, target } = this
     this.dispatchEvent({

@@ -88,8 +88,16 @@ void main() {
 
     #ifdef USE_INSTANCING
 
-	vec3 objectToCameraModelSpace = (inverseModelMatrix*vec4(particlePosition - cameraPosition, 1.0)).xyz;
-    vec3 view = normalize(objectToCameraModelSpace);
+	vec3 view;
+	if (isOrthographic) {
+		// In orthographic mode, view direction is constant (camera's forward direction)
+		// Camera looks down -Z in view space, so forward direction is (0, 0, -1)
+		view = normalize((inverseModelMatrix * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+	} else {
+		// In perspective mode, view direction points from particle to camera
+		vec3 objectToCameraModelSpace = (inverseModelMatrix * vec4(particlePosition - cameraPosition, 1.0)).xyz;
+		view = normalize(objectToCameraModelSpace);
+	}
     vec3 right = normalize(makePerpendicular(view));
     vec3 up = cross(right, view);
 	

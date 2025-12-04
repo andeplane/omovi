@@ -62,9 +62,20 @@ void main() {
 	mat3 basis = mat3(U.xyz, V.xyz, axis.xyz);
     vec3 surfacePoint = vec3(U.w, V.w, axis.w);
     vec3 rayTarget = surfacePoint;
-	vec3 rayDirection = normalize(rayTarget); // rayOrigin is (0,0,0) in camera space
+	vec3 rayDirection;
+	vec3 rayOrigin;
+	
+	if (isOrthographic) {
+		// Orthographic: parallel rays along -Z axis, origin at fragment position
+		rayDirection = vec3(0.0, 0.0, -1.0);
+		rayOrigin = rayTarget;
+	} else {
+		// Perspective: rays diverge from camera at origin (0,0,0)
+		rayDirection = normalize(rayTarget);
+		rayOrigin = vec3(0.0, 0.0, 0.0);
+	}
 
-	vec3 diff = rayTarget - v_position2.xyz;
+	vec3 diff = rayOrigin - v_position2.xyz;
     vec3 E = diff * basis;
     float L = height;
     vec3 D = rayDirection * basis;
@@ -101,7 +112,7 @@ void main() {
     float dist = dist1;
     float intersectionPointZ = E.z + dist*D.z;
     // Intersection point in camera space
-    vec3 p = rayTarget + dist*rayDirection;
+    vec3 p = rayOrigin + dist*rayDirection;
     bool isInner = false;
 
     if (intersectionPointZ <= 0.0 ||
@@ -112,7 +123,7 @@ void main() {
       isInner = true;
       dist = dist2;
       intersectionPointZ = E.z + dist*D.z;
-      p = rayTarget + dist*rayDirection;
+      p = rayOrigin + dist*rayDirection;
 
       if (intersectionPointZ <= 0.0 ||
         intersectionPointZ >= L
