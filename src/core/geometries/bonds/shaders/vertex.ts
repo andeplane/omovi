@@ -73,8 +73,9 @@ void main() {
 	
 	vec3 objectToCameraModelSpace;
 	if (isOrthographic) {
-		// In orthographic mode, view direction is constant (camera's forward direction)
-		objectToCameraModelSpace = normalize((inverseModelMatrix * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+		// In orthographic mode, direction points toward camera (opposite of camera's look direction)
+		// Extract from modelViewMatrix row 2 (the -forward direction in view matrix)
+		objectToCameraModelSpace = normalize(vec3(modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2]));
 	} else {
 		// In perspective mode, view direction points from center to camera
 		objectToCameraModelSpace = (inverseModelMatrix * vec4(cameraPosition - center, 1.0)).xyz;
