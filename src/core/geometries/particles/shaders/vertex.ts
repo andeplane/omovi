@@ -88,8 +88,16 @@ void main() {
 
     #ifdef USE_INSTANCING
 
-	vec3 objectToCameraModelSpace = (inverseModelMatrix*vec4(particlePosition - cameraPosition, 1.0)).xyz;
-    vec3 view = normalize(objectToCameraModelSpace);
+	vec3 view;
+	if (isOrthographic) {
+		// In orthographic mode, all billboards face the camera's forward direction
+		// Extract from modelViewMatrix: third column of rotation part, negated
+		view = -vec3(modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2]);
+	} else {
+		// In perspective mode, view direction points from particle to camera
+		vec3 objectToCameraModelSpace = (inverseModelMatrix * vec4(particlePosition - cameraPosition, 1.0)).xyz;
+		view = normalize(objectToCameraModelSpace);
+	}
     vec3 right = normalize(makePerpendicular(view));
     vec3 up = cross(right, view);
 	

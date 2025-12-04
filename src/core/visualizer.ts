@@ -55,12 +55,19 @@ const makePerpendicular = (v: THREE.Vector3, t: THREE.Vector3) => {
 }
 
 const adjustCamera = (
-  camera: THREE.PerspectiveCamera,
+  camera: THREE.PerspectiveCamera | THREE.OrthographicCamera,
   width: number,
   height: number
 ) => {
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = width / height
+  } else if (camera instanceof THREE.OrthographicCamera) {
+    // Maintain aspect ratio for orthographic camera
+    const aspect = width / height
+    const frustumHeight = camera.top - camera.bottom
+    const frustumHalfWidth = (frustumHeight * aspect) / 2
+    camera.left = -frustumHalfWidth
+    camera.right = frustumHalfWidth
   }
   camera.updateProjectionMatrix()
 }
@@ -122,7 +129,10 @@ export default class Visualizer {
   public materials: { [key: string]: Material }
   private cachedMeshes: { [key: string]: THREE.Mesh }
   private setRadiusCalled: boolean
-  private camera: THREE.PerspectiveCamera
+  private perspectiveCamera: THREE.PerspectiveCamera
+  private orthographicCamera: THREE.OrthographicCamera
+  private camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
+  private isOrthographicMode: boolean = false
   private controls: ComboControls
   private clock: THREE.Clock
   private domElement?: HTMLElement
@@ -217,13 +227,31 @@ export default class Visualizer {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b)
     })
 
-    this.camera = new THREE.PerspectiveCamera(
+    // Create perspective camera (default)
+    this.perspectiveCamera = new THREE.PerspectiveCamera(
       DEFAULT_CAMERA_FOV,
       640 / 480,
       DEFAULT_CAMERA_NEAR,
       DEFAULT_CAMERA_FAR
     )
-    this.setupCamera(this.camera)
+    this.setupCamera(this.perspectiveCamera)
+
+    // Create orthographic camera with a reasonable default frustum size
+    // The frustum will be adjusted based on scene content
+    const frustumSize = 20
+    const aspect = 640 / 480
+    this.orthographicCamera = new THREE.OrthographicCamera(
+      (-frustumSize * aspect) / 2,
+      (frustumSize * aspect) / 2,
+      frustumSize / 2,
+      -frustumSize / 2,
+      DEFAULT_CAMERA_NEAR,
+      DEFAULT_CAMERA_FAR
+    )
+    this.setupCamera(this.orthographicCamera)
+
+    // Start with perspective camera
+    this.camera = this.perspectiveCamera
     this.controls = new ComboControls(this.camera, this.canvas)
     this.controls.addEventListener('cameraChange', (event) => {
       const { position, target } = event.camera
@@ -423,13 +451,17 @@ export default class Visualizer {
     canvas.style.maxHeight = '100%'
   }
 
-  setupCamera = (camera: THREE.PerspectiveCamera) => {
+  setupCamera = (
+    camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
+  ) => {
     camera.position.set(10, 10, 10)
     camera.lookAt(new THREE.Vector3(0, 0, 0))
   }
 
-  updateUniforms = (camera: THREE.PerspectiveCamera) => {
-    this.object.matrixWorld.copy(this.object.matrixWorld).invert()
+  updateUniforms = (
+    camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
+  ) => {
+    inverseModelMatrix.copy(this.object.matrixWorld).invert()
     modelViewMatrix
       .copy(camera.matrixWorldInverse)
       .multiply(this.object.matrixWorld)
@@ -442,6 +474,9 @@ export default class Visualizer {
       }
       if (material.uniforms.inverseNormalMatrix != null) {
         material.uniforms.inverseNormalMatrix.value.copy(inverseNormalMatrix)
+      }
+      if (material.uniforms.isOrthographic != null) {
+        material.uniforms.isOrthographic.value = this.isOrthographicMode
       }
     })
   }
@@ -869,7 +904,12 @@ export default class Visualizer {
   public initPostProcessing = (
     settings?: Partial<PostProcessingSettings>
   ): void => {
-    this.renderer.initPostProcessing(this.scene, this.camera, settings)
+    // Post-processing (SSAO) requires perspective camera
+    this.renderer.initPostProcessing(
+      this.scene,
+      this.perspectiveCamera,
+      settings
+    )
     this.forceRender = true
   }
 
@@ -925,5 +965,74 @@ export default class Visualizer {
     this.updatePostProcessingSettings({
       ssao: { ...currentSettings.ssao, enabled }
     })
+  }
+
+  /**
+   * Enable or disable orthographic projection mode.
+   * In orthographic mode, objects appear the same size regardless of distance.
+   *
+   * @param enabled - Whether to enable orthographic projection
+   *
+   * @example
+   * ```typescript
+   * visualizer.setOrthographic(true)  // Switch to orthographic
+   * visualizer.setOrthographic(false) // Switch back to perspective
+   * ```
+   */
+  public setOrthographic = (enabled: boolean): void => {
+    if (this.isOrthographicMode === enabled) {
+      return // No change needed
+    }
+
+    this.isOrthographicMode = enabled
+
+    // Get current camera state
+    const currentPosition = this.camera.position.clone()
+    const currentTarget = this.controls.getState().target.clone()
+
+    // Switch to the appropriate camera
+    if (enabled) {
+      // Copy position from perspective camera to orthographic
+      this.orthographicCamera.position.copy(currentPosition)
+      this.orthographicCamera.lookAt(currentTarget)
+
+      // Adjust orthographic frustum based on distance to target
+      const distance = currentPosition.distanceTo(currentTarget)
+      const frustumSize = distance * 0.5 // Scale factor for orthographic view
+      const rendererSize = this.renderer.getSize()
+      const aspect = rendererSize.width / rendererSize.height
+
+      this.orthographicCamera.left = (-frustumSize * aspect) / 2
+      this.orthographicCamera.right = (frustumSize * aspect) / 2
+      this.orthographicCamera.top = frustumSize / 2
+      this.orthographicCamera.bottom = -frustumSize / 2
+      this.orthographicCamera.updateProjectionMatrix()
+
+      this.camera = this.orthographicCamera
+    } else {
+      // Copy position from orthographic camera to perspective
+      this.perspectiveCamera.position.copy(currentPosition)
+      this.perspectiveCamera.lookAt(currentTarget)
+      this.perspectiveCamera.updateProjectionMatrix()
+
+      this.camera = this.perspectiveCamera
+    }
+
+    // Update controls to use the new camera
+    this.controls.setCamera(this.camera)
+
+    // Update input handler camera reference
+    this.inputHandler.setCamera(this.camera)
+
+    this.forceRender = true
+  }
+
+  /**
+   * Check if orthographic projection mode is enabled.
+   *
+   * @returns True if orthographic mode is active
+   */
+  public isOrthographic = (): boolean => {
+    return this.isOrthographicMode
   }
 }

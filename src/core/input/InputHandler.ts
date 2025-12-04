@@ -22,7 +22,7 @@ export interface ParticleClickEvent {
 export class InputHandler {
   private canvas: HTMLCanvasElement
   private pickingHandler: PickingHandler
-  private camera: THREE.PerspectiveCamera
+  private camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
   private scene: THREE.Scene
   private particlesObjects: Particles[]
   private bondsObjects: Bonds[]
@@ -54,7 +54,7 @@ export class InputHandler {
   constructor(
     canvas: HTMLCanvasElement,
     pickingHandler: PickingHandler,
-    camera: THREE.PerspectiveCamera,
+    camera: THREE.PerspectiveCamera | THREE.OrthographicCamera,
     scene: THREE.Scene,
     particlesObjects: Particles[],
     bondsObjects: Bonds[],
@@ -89,6 +89,15 @@ export class InputHandler {
    */
   setCurrentParticles(particles: Particles): void {
     this.currentParticles = particles
+  }
+
+  /**
+   * Set the camera used for picking calculations.
+   *
+   * @param camera - The new camera to use
+   */
+  setCamera(camera: THREE.PerspectiveCamera | THREE.OrthographicCamera): void {
+    this.camera = camera
   }
 
   /**

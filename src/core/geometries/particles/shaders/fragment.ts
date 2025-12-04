@@ -80,9 +80,20 @@ void main() {
 	#include <normal_fragment_maps>
 
 	vec3 rayTarget = vSurfacePoint;
-	vec3 rayDirection = normalize(rayTarget); // rayOrigin is (0,0,0) in camera space
+	vec3 rayDirection;
+	vec3 rayOrigin;
+	
+	if (isOrthographic) {
+		// Orthographic: parallel rays along -Z axis, origin at fragment position
+		rayDirection = vec3(0.0, 0.0, -1.0);
+		rayOrigin = rayTarget;
+	} else {
+		// Perspective: rays diverge from camera at origin (0,0,0)
+		rayDirection = normalize(rayTarget);
+		rayOrigin = vec3(0.0, 0.0, 0.0);
+	}
 
-	vec3 diff = rayTarget - vCenter.xyz;
+	vec3 diff = rayOrigin - vCenter.xyz;
     vec3 E = diff;
     vec3 D = rayDirection;
 
@@ -108,7 +119,7 @@ void main() {
 
     float dist = dist1;
     float intersectionPointZ = E.z + dist*D.z;
-	vec3 p = rayTarget + dist*rayDirection;
+	vec3 p = rayOrigin + dist*rayDirection;
 
 	// Find normal vector in local space
     normal = normalize(vec3(p - vCenter.xyz));

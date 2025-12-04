@@ -71,7 +71,15 @@ void main() {
 	height = length(position2-position1);
     vec3 newPosition = position;
 	
-    vec3 objectToCameraModelSpace = (inverseModelMatrix*vec4(cameraPosition - center, 1.0)).xyz;
+	vec3 objectToCameraModelSpace;
+	if (isOrthographic) {
+		// In orthographic mode, direction points toward camera (opposite of camera's look direction)
+		// Extract from modelViewMatrix row 2 (the -forward direction in view matrix)
+		objectToCameraModelSpace = normalize(vec3(modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2]));
+	} else {
+		// In perspective mode, view direction points from center to camera
+		objectToCameraModelSpace = (inverseModelMatrix * vec4(cameraPosition - center, 1.0)).xyz;
+	}
 	
     vec3 lDir = normalize(position1-position2);
 	float dirSign = 1.0;
