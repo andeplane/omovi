@@ -84,7 +84,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
   public dispose: () => void
   public minZoom: number = 0
   public maxZoom: number = Infinity
-  public orthographicCameraDollyFactor: number = 0.3
+  public orthographicCameraDollyFactor: number = 0.03
 
   private temporarilyDisableDamping: boolean = false
   private camera: PerspectiveCamera | OrthographicCamera
@@ -592,14 +592,19 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
         ? false
         : undefined
     if (moveForward !== undefined) {
-      this.dolly(
-        0,
-        0,
-        this.getDollyDeltaDistance(
+      let deltaDistance: number
+      if (this.camera instanceof THREE.OrthographicCamera) {
+        // For orthographic, use a fixed small zoom factor similar to scroll wheel
+        deltaDistance = moveForward
+          ? -this.orthographicCameraDollyFactor * speedFactor
+          : this.orthographicCameraDollyFactor * speedFactor
+      } else {
+        deltaDistance = this.getDollyDeltaDistance(
           moveForward,
           keyboardDollySpeed * speedFactor
         )
-      )
+      }
+      this.dolly(0, 0, deltaDistance)
       this.firstPersonMode = true
     }
 
@@ -690,7 +695,10 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     deltaDistance: number
   ) => {
     const camera = this.camera as OrthographicCamera
-    camera.zoom *= 1 - deltaDistance
+    // deltaDistance should already be normalized (small value like 0.01-0.1)
+    // Clamp to reasonable range to prevent extreme zoom changes
+    const clampedDelta = ThreeMath.clamp(deltaDistance, -0.1, 0.1)
+    camera.zoom *= 1 - clampedDelta
     camera.zoom = ThreeMath.clamp(camera.zoom, this.minZoom, this.maxZoom)
     camera.updateProjectionMatrix()
   }
