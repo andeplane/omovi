@@ -508,6 +508,10 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     let previousPinchInfo = getPinchInfo(domElement, initialEvent.touches)
     const initialPinchInfo = getPinchInfo(domElement, initialEvent.touches)
     const initialRadius = this.spherical.radius
+    const isOrthographic = this.camera instanceof THREE.OrthographicCamera
+    const initialZoom = isOrthographic
+      ? (this.camera as OrthographicCamera).zoom
+      : undefined
 
     const onTouchMove = (event: TouchEvent) => {
       if (event.touches.length !== 2) {
@@ -516,12 +520,25 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
       const pinchInfo = getPinchInfo(domElement, event.touches)
       // dolly
       const distanceFactor = initialPinchInfo.distance / pinchInfo.distance
-      // Min distance / 5 because on phones it is reasonable to get quite close to the target,
-      // but we don't want to get too close since zooming slows down very close to target.
-      this.sphericalEnd.radius = Math.max(
-        distanceFactor * initialRadius,
-        this.minDistance / 5
-      )
+
+      if (isOrthographic && initialZoom !== undefined) {
+        // For orthographic cameras, use exponential zoom based on total distance change
+        // Similar to perspective mode: zoom = initialZoom / distanceFactor
+        // distanceFactor > 1 (fingers moved closer) → zoom decreases (zoom out)
+        // distanceFactor < 1 (fingers moved apart) → zoom increases (zoom in)
+        const camera = this.camera as OrthographicCamera
+        camera.zoom = initialZoom / distanceFactor
+        camera.zoom = ThreeMath.clamp(camera.zoom, this.minZoom, this.maxZoom)
+        camera.updateProjectionMatrix()
+      } else {
+        // For perspective cameras, keep existing behavior
+        // Min distance / 5 because on phones it is reasonable to get quite close to the target,
+        // but we don't want to get too close since zooming slows down very close to target.
+        this.sphericalEnd.radius = Math.max(
+          distanceFactor * initialRadius,
+          this.minDistance / 5
+        )
+      }
 
       // pan
       const deltaCenter = pinchInfo.center.clone().sub(previousPinchInfo.center)
