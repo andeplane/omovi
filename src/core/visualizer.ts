@@ -163,8 +163,7 @@ export default class Visualizer {
     onParticleClick
   }: VisualizerProps = {}) {
     this.renderer = new OMOVIRenderer({
-      alpha: false,
-      ssao: true
+      alpha: false
     })
     this.idle = false
     this.setRadiusCalled = false
