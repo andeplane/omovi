@@ -262,7 +262,9 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     const currentState = this.getState()
 
     this.camera = camera
-    this.reusableCamera = camera.clone() as PerspectiveCamera | OrthographicCamera
+    this.reusableCamera = camera.clone() as
+      | PerspectiveCamera
+      | OrthographicCamera
 
     // Restore state to the new camera
     this.setState(currentState.position, currentState.target)

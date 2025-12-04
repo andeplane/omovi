@@ -905,7 +905,11 @@ export default class Visualizer {
     settings?: Partial<PostProcessingSettings>
   ): void => {
     // Post-processing (SSAO) requires perspective camera
-    this.renderer.initPostProcessing(this.scene, this.perspectiveCamera, settings)
+    this.renderer.initPostProcessing(
+      this.scene,
+      this.perspectiveCamera,
+      settings
+    )
     this.forceRender = true
   }
 
