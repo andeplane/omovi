@@ -718,11 +718,17 @@ export default class Visualizer {
   }
 
   animate = () => {
+    const isXRPresenting = this.renderer.getRawRenderer().xr.isPresenting
+
     if (!this.idle) {
       this.memoryStats.update()
       this.cpuStats.begin()
-      this.resizeIfNeeded()
-      this.controls.update(this.clock.getDelta())
+
+      // Skip resize and controls in XR mode - XR system handles these
+      if (!isXRPresenting) {
+        this.resizeIfNeeded()
+        this.controls.update(this.clock.getDelta())
+      }
 
       this.updateUniforms(this.camera)
 
