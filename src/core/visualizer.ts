@@ -28,6 +28,7 @@ import {
   DEFAULT_CAMERA_NEAR,
   DEFAULT_CAMERA_FAR
 } from './constants'
+import { XRHandController } from './XRHandController'
 import { SelectionManager } from './selection/SelectionManager'
 import {
   InputHandler,
@@ -167,6 +168,8 @@ export default class Visualizer {
   private _v2 = new THREE.Vector3()
   // XR camera rig for positioning the user in VR/AR
   private cameraRig?: THREE.Group
+  // XR hand controller for gesture-based navigation
+  private xrHandController?: XRHandController
 
   constructor({
     domElement,
@@ -328,7 +331,7 @@ export default class Visualizer {
     // document.body.appendChild(
     //   VRButton.createButton(this.renderer.getRawRenderer())
     // )
-    this.renderer.getRawRenderer().setAnimationLoop(this.animate)
+    this.renderer.getRawRenderer().setAnimationLoop(this.animate.bind(this))
   }
 
   /**
@@ -719,7 +722,7 @@ export default class Visualizer {
     }
   }
 
-  animate = () => {
+  animate = (_time?: number, frame?: XRFrame) => {
     const isXRPresenting = this.renderer.getRawRenderer().xr.isPresenting
 
     if (!this.idle) {
@@ -731,6 +734,14 @@ export default class Visualizer {
         this.resizeIfNeeded()
         this.controls.update(this.clock.getDelta())
         this.updateUniforms(this.camera)
+      } else {
+        // Update hand tracking for XR gesture controls
+        if (this.xrHandController && frame) {
+          const referenceSpace = this.renderer.getRawRenderer().xr.getReferenceSpace()
+          if (referenceSpace) {
+            this.xrHandController.update(frame, referenceSpace)
+          }
+        }
       }
 
       // If debug picking is enabled, render with picking material instead
@@ -1112,10 +1123,53 @@ export default class Visualizer {
       this.cameraRig.add(this.perspectiveCamera)
       this.perspectiveCamera.position.set(0, 0, 0)
       this.perspectiveCamera.rotation.set(0, 0, 0)
+
+      // Initialize hand controller for gesture-based navigation
+      this.xrHandController = new XRHandController(rawRenderer, {
+        onPinchMove: (event) => {
+          // Single hand pinch + drag = rotate the SIMULATION BOX (not camera)
+          if (!this.xrHandController?.isBothHandsPinching()) {
+            // Rotate the object (simulation box) around world axes
+            const rotateSpeed = 3.0
+            // Horizontal drag = rotate around Y axis
+            this.object.rotateOnWorldAxis(
+              new THREE.Vector3(0, 1, 0),
+              event.delta.x * rotateSpeed
+            )
+            // Vertical drag = rotate around X axis
+            this.object.rotateOnWorldAxis(
+              new THREE.Vector3(1, 0, 0),
+              event.delta.y * rotateSpeed
+            )
+          }
+        },
+        onZoom: (event) => {
+          // Two hand pinch = zoom (move rig toward/away from scene)
+          if (this.cameraRig) {
+            // Get direction from rig to scene center (origin)
+            const direction = new THREE.Vector3()
+              .subVectors(new THREE.Vector3(0, 0, 0), this.cameraRig.position)
+              .normalize()
+
+            // Move rig based on scale change
+            // scale > 1 = hands moving apart = zoom IN (move closer) - INVERTED
+            // scale < 1 = hands moving together = zoom OUT (move away) - INVERTED
+            const zoomSpeed = 5.0  // Much faster
+            const zoomAmount = (event.scale - 1) * zoomSpeed  // Inverted direction
+            this.cameraRig.position.addScaledVector(direction, zoomAmount)
+          }
+        }
+      })
     })
 
     // Clean up rig when VR ends - restore camera to scene
     rawRenderer.xr.addEventListener('sessionend', () => {
+      // Clean up hand controller
+      if (this.xrHandController) {
+        this.xrHandController.dispose()
+        this.xrHandController = undefined
+      }
+
       if (this.cameraRig) {
         // Remove camera from rig and add back to scene
         this.cameraRig.remove(this.perspectiveCamera)
@@ -1131,6 +1185,9 @@ export default class Visualizer {
       }
     })
 
-    return VRButton.createButton(rawRenderer)
+    // Request hand tracking as an optional feature for gesture controls
+    return VRButton.createButton(rawRenderer, {
+      optionalFeatures: ['hand-tracking']
+    })
   }
 }
