@@ -268,6 +268,13 @@ export default class Visualizer {
     this.object = new THREE.Object3D()
     this.scene.add(this.object)
 
+    // DEBUG: Add a test cube to verify XR rendering works
+    const testGeometry = new THREE.BoxGeometry(5, 5, 5)
+    const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    const testCube = new THREE.Mesh(testGeometry, testMaterial)
+    testCube.position.set(0, 0, 0) // At origin where particles usually are
+    this.scene.add(testCube)
+
     this.cpuStats = new Stats()
     this.memoryStats = new Stats()
     this.cpuStats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -728,9 +735,8 @@ export default class Visualizer {
       if (!isXRPresenting) {
         this.resizeIfNeeded()
         this.controls.update(this.clock.getDelta())
+        this.updateUniforms(this.camera)
       }
-
-      this.updateUniforms(this.camera)
 
       // If debug picking is enabled, render with picking material instead
       if (this.debugPickingRender) {
