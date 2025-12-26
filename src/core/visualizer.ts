@@ -759,13 +759,16 @@ export default class Visualizer {
       } else {
         // Check if we need outline post-processing
         const needsOutline = this.hasSelection()
+        const isXRPresenting = this.renderer.getRawRenderer().xr.isPresenting
 
         // Always render with SSAO first
         this.renderer.render(this.scene, this.camera)
 
         // If selection active, do outline pass on top
+        // Skip outline rendering in XR mode as 2D post-processing doesn't work with stereo rendering
         if (
           needsOutline &&
+          !isXRPresenting &&
           this.outlineRenderTarget &&
           this.outlineMaterial &&
           this.outlineScene &&
