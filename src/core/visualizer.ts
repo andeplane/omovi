@@ -165,6 +165,8 @@ export default class Visualizer {
   // Reusable Vector3 instances for calculations to reduce allocations
   private _v1 = new THREE.Vector3()
   private _v2 = new THREE.Vector3()
+  // XR camera rig for positioning the user in VR/AR
+  private cameraRig?: THREE.Group
 
   constructor({
     domElement,
@@ -267,13 +269,6 @@ export default class Visualizer {
     this.clock = new THREE.Clock()
     this.object = new THREE.Object3D()
     this.scene.add(this.object)
-
-    // DEBUG: Add a test cube to verify XR rendering works
-    const testGeometry = new THREE.BoxGeometry(5, 5, 5)
-    const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    const testCube = new THREE.Mesh(testGeometry, testMaterial)
-    testCube.position.set(0, 0, 0) // At origin where particles usually are
-    this.scene.add(testCube)
 
     this.cpuStats = new Stats()
     this.memoryStats = new Stats()
@@ -1095,6 +1090,47 @@ export default class Visualizer {
   public enableXR = (): HTMLElement => {
     const rawRenderer = this.renderer.getRawRenderer()
     rawRenderer.xr.enabled = true
+
+    // Set up XR session event to position camera rig when VR actually starts
+    rawRenderer.xr.addEventListener('sessionstart', () => {
+      // Get current camera state at the moment VR starts
+      const cameraState = this.controls.getState()
+      console.log('XR Session started - position:', cameraState.position, 'target:', cameraState.target)
+
+      // Create camera rig and position it where the camera currently is
+      this.cameraRig = new THREE.Group()
+      this.cameraRig.position.copy(cameraState.position)
+
+      // Make the rig look toward the target (so the user faces the scene)
+      this.cameraRig.lookAt(cameraState.target)
+      // Rotate 180 degrees because XR camera faces opposite direction
+      this.cameraRig.rotateY(Math.PI)
+
+      // Add rig to scene, then add camera to rig
+      // Camera's local position becomes (0,0,0) relative to rig
+      this.scene.add(this.cameraRig)
+      this.cameraRig.add(this.perspectiveCamera)
+      this.perspectiveCamera.position.set(0, 0, 0)
+      this.perspectiveCamera.rotation.set(0, 0, 0)
+    })
+
+    // Clean up rig when VR ends - restore camera to scene
+    rawRenderer.xr.addEventListener('sessionend', () => {
+      if (this.cameraRig) {
+        // Remove camera from rig and add back to scene
+        this.cameraRig.remove(this.perspectiveCamera)
+        this.scene.add(this.perspectiveCamera)
+
+        // Restore camera position from controls
+        const cameraState = this.controls.getState()
+        this.perspectiveCamera.position.copy(cameraState.position)
+        this.perspectiveCamera.lookAt(cameraState.target)
+
+        this.scene.remove(this.cameraRig)
+        this.cameraRig = undefined
+      }
+    })
+
     return VRButton.createButton(rawRenderer)
   }
 }
