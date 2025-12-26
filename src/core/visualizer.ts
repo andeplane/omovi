@@ -1065,4 +1065,22 @@ export default class Visualizer {
   public setPickingEnabled = (enabled: boolean): void => {
     this.inputHandler.setEnabled(enabled)
   }
+
+  /**
+   * Enable WebXR (VR/AR) mode and create a VR button.
+   * When XR is enabled, post-processing is automatically disabled during XR sessions.
+   *
+   * @returns HTMLElement - The VR button to append to your DOM
+   *
+   * @example
+   * ```typescript
+   * const vrButton = visualizer.enableXR()
+   * document.body.appendChild(vrButton)
+   * ```
+   */
+  public enableXR = (): HTMLElement => {
+    const rawRenderer = this.renderer.getRawRenderer()
+    rawRenderer.xr.enabled = true
+    return VRButton.createButton(rawRenderer)
+  }
 }

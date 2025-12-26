@@ -210,6 +210,15 @@ export default class OMOVIRenderer {
   ) {
     this.onBeforeModelRender()
 
+    // In XR mode, render directly without intermediate targets or post-processing
+    // WebXR handles stereo rendering internally and requires direct framebuffer access
+    if (this.renderer.xr.isPresenting) {
+      this.renderer.setRenderTarget(null)
+      this.renderer.render(scene, camera)
+      this.onAfterRender()
+      return
+    }
+
     // Use PostProcessingManager if available and has active effects
     if (
       this.postProcessingManager &&
