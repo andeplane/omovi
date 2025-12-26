@@ -759,13 +759,16 @@ export default class Visualizer {
       } else {
         // Check if we need outline post-processing
         const needsOutline = this.hasSelection()
+        const isXRPresenting = this.renderer.getRawRenderer().xr.isPresenting
 
         // Always render with SSAO first
         this.renderer.render(this.scene, this.camera)
 
         // If selection active, do outline pass on top
+        // Skip outline rendering in XR mode as 2D post-processing doesn't work with stereo rendering
         if (
           needsOutline &&
+          !isXRPresenting &&
           this.outlineRenderTarget &&
           this.outlineMaterial &&
           this.outlineScene &&
@@ -1064,5 +1067,23 @@ export default class Visualizer {
    */
   public setPickingEnabled = (enabled: boolean): void => {
     this.inputHandler.setEnabled(enabled)
+  }
+
+  /**
+   * Enable WebXR (VR/AR) mode and create a VR button.
+   * When XR is enabled, post-processing is automatically disabled during XR sessions.
+   *
+   * @returns HTMLElement - The VR button to append to your DOM
+   *
+   * @example
+   * ```typescript
+   * const vrButton = visualizer.enableXR()
+   * document.body.appendChild(vrButton)
+   * ```
+   */
+  public enableXR = (): HTMLElement => {
+    const rawRenderer = this.renderer.getRawRenderer()
+    rawRenderer.xr.enabled = true
+    return VRButton.createButton(rawRenderer)
   }
 }
