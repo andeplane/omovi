@@ -1108,14 +1108,24 @@ export default class Visualizer {
       const cameraState = this.controls.getState()
       console.log('XR Session started - position:', cameraState.position, 'target:', cameraState.target)
 
+      // XR-specific spherical coordinates - target NEVER moves
+      const xrTarget = cameraState.target.clone()
+      const xrSpherical = new THREE.Spherical()
+      const offset = cameraState.position.clone().sub(xrTarget)
+      xrSpherical.setFromVector3(offset)
+
+      // Helper to update rig from spherical coordinates
+      const updateRigFromSpherical = () => {
+        if (!this.cameraRig) return
+        const position = new THREE.Vector3().setFromSpherical(xrSpherical).add(xrTarget)
+        this.cameraRig.position.copy(position)
+        this.cameraRig.lookAt(xrTarget)
+        this.cameraRig.rotateY(Math.PI)
+      }
+
       // Create camera rig and position it where the camera currently is
       this.cameraRig = new THREE.Group()
-      this.cameraRig.position.copy(cameraState.position)
-
-      // Make the rig look toward the target (so the user faces the scene)
-      this.cameraRig.lookAt(cameraState.target)
-      // Rotate 180 degrees because XR camera faces opposite direction
-      this.cameraRig.rotateY(Math.PI)
+      updateRigFromSpherical()
 
       // Add rig to scene, then add camera to rig
       // Camera's local position becomes (0,0,0) relative to rig
@@ -1126,37 +1136,40 @@ export default class Visualizer {
 
       // Initialize hand controller for gesture-based navigation
       this.xrHandController = new XRHandController(rawRenderer, {
+        onPinchStart: () => {
+          // No-op for now
+        },
         onPinchMove: (event) => {
-          // Single hand pinch + drag = rotate the SIMULATION BOX (not camera)
-          if (!this.xrHandController?.isBothHandsPinching()) {
-            // Rotate the object (simulation box) around world axes
-            const rotateSpeed = 3.0
-            // Horizontal drag = rotate around Y axis
-            this.object.rotateOnWorldAxis(
-              new THREE.Vector3(0, 1, 0),
-              event.delta.x * rotateSpeed
-            )
-            // Vertical drag = rotate around X axis
-            this.object.rotateOnWorldAxis(
-              new THREE.Vector3(1, 0, 0),
-              event.delta.y * rotateSpeed
-            )
+          // Single hand pinch + drag = orbit around fixed target
+          if (this.cameraRig && !this.xrHandController?.isBothHandsPinching()) {
+            const rotateScale = 2.6
+
+            // Adjust spherical angles
+            xrSpherical.theta -= event.delta.x * rotateScale
+            xrSpherical.phi += event.delta.y * rotateScale  // Fixed: was -= now +=
+            // Clamp phi to avoid flipping at poles
+            xrSpherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, xrSpherical.phi))
+
+            updateRigFromSpherical()
           }
         },
+        onPinchEnd: () => {
+          // No-op for now
+        },
         onZoom: (event) => {
-          // Two hand pinch = zoom (move rig toward/away from scene)
+          // Two hand pinch = zoom only (radius change)
           if (this.cameraRig) {
-            // Get direction from rig to scene center (origin)
-            const direction = new THREE.Vector3()
-              .subVectors(new THREE.Vector3(0, 0, 0), this.cameraRig.position)
-              .normalize()
+            // Use same calculation as old code for consistent zoom speed
+            const zoomSteps = (1 - event.scale) * 50
+            const dollyIn = zoomSteps < 0
+            const deltaDistance = this.controls.getDollyDeltaDistance(dollyIn, Math.abs(zoomSteps))
 
-            // Move rig based on scale change
-            // scale > 1 = hands moving apart = zoom IN (move closer) - INVERTED
-            // scale < 1 = hands moving together = zoom OUT (move away) - INVERTED
-            const zoomSpeed = 5.0  // Much faster
-            const zoomAmount = (event.scale - 1) * zoomSpeed  // Inverted direction
-            this.cameraRig.position.addScaledVector(direction, zoomAmount)
+            // Apply to spherical radius instead of controls
+            xrSpherical.radius += deltaDistance
+            // Clamp radius to reasonable bounds
+            xrSpherical.radius = Math.max(1, Math.min(1000, xrSpherical.radius))
+
+            updateRigFromSpherical()
           }
         }
       })
