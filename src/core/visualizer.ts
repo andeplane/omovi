@@ -1169,8 +1169,8 @@ export default class Visualizer {
             const dollyIn = zoomSteps < 0
             const deltaDistance = this.controls.getDollyDeltaDistance(dollyIn, Math.abs(zoomSteps))
 
-            // Apply to spherical radius instead of controls
-            xrSpherical.radius += deltaDistance
+            // Apply to spherical radius instead of controls (50% slower for smoother control)
+            xrSpherical.radius += deltaDistance * 0.5
             // Clamp radius to reasonable bounds
             xrSpherical.radius = Math.max(1, Math.min(1000, xrSpherical.radius))
 
