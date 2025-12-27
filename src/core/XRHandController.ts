@@ -22,8 +22,6 @@ interface HandPinchState {
 
 /**
  * Event data for pinch gestures.
- * Note: position and delta vectors are mutable and reused between frames.
- * Clone them if you need to store values across frames.
  */
 export interface PinchEvent {
   hand: 'left' | 'right'
@@ -33,8 +31,6 @@ export interface PinchEvent {
 
 /**
  * Event data for two-hand zoom gestures.
- * Note: centerPosition vector is mutable and reused between frames.
- * Clone it if you need to store values across frames.
  */
 export interface ZoomEvent {
   scale: number
@@ -75,14 +71,13 @@ export class XRHandController {
   private previousHandDistance: number = 0
   private isTwoHandZooming: boolean = false
 
-  // Reusable vectors to avoid allocations
+  // Reusable vectors to avoid allocations in hot path
   private _thumbPos = new THREE.Vector3()
   private _indexPos = new THREE.Vector3()
   private _delta = new THREE.Vector3()
   private _center = new THREE.Vector3()
   private _leftPinchPos = new THREE.Vector3()
   private _rightPinchPos = new THREE.Vector3()
-  private _zeroVector = new THREE.Vector3()
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -185,11 +180,10 @@ export class XRHandController {
       handState.pinchPosition.copy(position)
       handState.previousPinchPosition.copy(position)
 
-      // Note: position and delta are mutable - clone if you need to store them
       this.callbacks.onPinchStart?.({
         hand: handedness,
-        position: position,
-        delta: this._zeroVector
+        position: position.clone(),
+        delta: new THREE.Vector3()
       })
     } else if (isPinching && handState.isPinching) {
       // Pinch continuing - calculate delta
@@ -198,21 +192,19 @@ export class XRHandController {
       handState.previousPinchPosition.copy(handState.pinchPosition)
       handState.pinchPosition.copy(position)
 
-      // Note: position and delta are mutable - clone if you need to store them
       this.callbacks.onPinchMove?.({
         hand: handedness,
-        position: position,
-        delta: this._delta
+        position: position.clone(),
+        delta: this._delta.clone()
       })
     } else if (!isPinching && handState.isPinching) {
       // Pinch ended
       handState.isPinching = false
 
-      // Note: position and delta are mutable - clone if you need to store them
       this.callbacks.onPinchEnd?.({
         hand: handedness,
-        position: handState.pinchPosition,
-        delta: this._zeroVector
+        position: handState.pinchPosition.clone(),
+        delta: new THREE.Vector3()
       })
     }
   }
@@ -240,10 +232,9 @@ export class XRHandController {
           .addVectors(leftHandData.position, rightHandData.position)
           .multiplyScalar(0.5)
 
-        // Note: centerPosition is mutable - clone if you need to store it
         this.callbacks.onZoom?.({
           scale,
-          centerPosition: this._center
+          centerPosition: this._center.clone()
         })
       }
 
