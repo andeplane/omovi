@@ -26,8 +26,15 @@ import {
   CLICK_DISTANCE_THRESHOLD,
   DEFAULT_CAMERA_FOV,
   DEFAULT_CAMERA_NEAR,
-  DEFAULT_CAMERA_FAR
+  DEFAULT_CAMERA_FAR,
+  XR_ROTATE_SCALE,
+  XR_ZOOM_STEPS_MULTIPLIER,
+  XR_ZOOM_DELTA_SCALE,
+  XR_MIN_RADIUS,
+  XR_MAX_RADIUS,
+  XR_PHI_EPSILON
 } from './constants'
+import { XRHandController } from './XRHandController'
 import { SelectionManager } from './selection/SelectionManager'
 import {
   InputHandler,
@@ -165,6 +172,10 @@ export default class Visualizer {
   // Reusable Vector3 instances for calculations to reduce allocations
   private _v1 = new THREE.Vector3()
   private _v2 = new THREE.Vector3()
+  // XR camera rig for positioning the user in VR/AR
+  private cameraRig?: THREE.Group
+  // XR hand controller for gesture-based navigation
+  private xrHandController?: XRHandController
 
   constructor({
     domElement,
@@ -679,7 +690,10 @@ export default class Visualizer {
   }
 
   private updatePointLightPosition = () => {
-    const cameraPosition = this.camera.position
+    // In XR mode, camera.position is local (0,0,0) - use rig position instead
+    const cameraPosition = this.cameraRig
+      ? this.cameraRig.position
+      : this.camera.position
 
     // Calculate point light position based on system bounds
     if (
@@ -717,14 +731,29 @@ export default class Visualizer {
     }
   }
 
-  animate = () => {
+  animate = (_time?: number, frame?: XRFrame) => {
+    const isXRPresenting = this.renderer.getRawRenderer().xr.isPresenting
+
     if (!this.idle) {
       this.memoryStats.update()
       this.cpuStats.begin()
-      this.resizeIfNeeded()
-      this.controls.update(this.clock.getDelta())
 
-      this.updateUniforms(this.camera)
+      // Skip resize and controls in XR mode - XR system handles these
+      if (!isXRPresenting) {
+        this.resizeIfNeeded()
+        this.controls.update(this.clock.getDelta())
+        this.updateUniforms(this.camera)
+      } else {
+        // Update hand tracking for XR gesture controls
+        if (this.xrHandController && frame) {
+          const referenceSpace = this.renderer
+            .getRawRenderer()
+            .xr.getReferenceSpace()
+          if (referenceSpace) {
+            this.xrHandController.update(frame, referenceSpace)
+          }
+        }
+      }
 
       // If debug picking is enabled, render with picking material instead
       if (this.debugPickingRender) {
@@ -759,7 +788,6 @@ export default class Visualizer {
       } else {
         // Check if we need outline post-processing
         const needsOutline = this.hasSelection()
-        const isXRPresenting = this.renderer.getRawRenderer().xr.isPresenting
 
         // Always render with SSAO first
         this.renderer.render(this.scene, this.camera)
@@ -1084,6 +1112,144 @@ export default class Visualizer {
   public enableXR = (): HTMLElement => {
     const rawRenderer = this.renderer.getRawRenderer()
     rawRenderer.xr.enabled = true
-    return VRButton.createButton(rawRenderer)
+
+    // Set up XR session event to position camera rig when VR actually starts
+    rawRenderer.xr.addEventListener('sessionstart', () => {
+      // Get current camera state at the moment VR starts
+      const cameraState = this.controls.getState()
+
+      // XR-specific spherical coordinates - target NEVER moves
+      const xrTarget = cameraState.target.clone()
+      const xrSpherical = new THREE.Spherical()
+      const offset = cameraState.position.clone().sub(xrTarget)
+      xrSpherical.setFromVector3(offset)
+
+      // Helper to update rig from spherical coordinates
+      const updateRigFromSpherical = () => {
+        if (!this.cameraRig) return
+        const position = new THREE.Vector3()
+          .setFromSpherical(xrSpherical)
+          .add(xrTarget)
+        this.cameraRig.position.copy(position)
+        this.cameraRig.lookAt(xrTarget)
+        // Align rig's forward direction with the target (Three.js cameras look down -Z by default)
+        this.cameraRig.rotateY(Math.PI)
+        // Update light to follow camera in XR mode
+        this.updatePointLightPosition()
+      }
+
+      // Create camera rig and position it where the camera currently is
+      this.cameraRig = new THREE.Group()
+      updateRigFromSpherical()
+
+      // Add rig to scene, then add camera to rig
+      // Camera's local position becomes (0,0,0) relative to rig
+      this.scene.add(this.cameraRig)
+      this.cameraRig.add(this.perspectiveCamera)
+      this.perspectiveCamera.position.set(0, 0, 0)
+      this.perspectiveCamera.rotation.set(0, 0, 0)
+
+      // Initialize hand controller for gesture-based navigation
+      this.xrHandController = new XRHandController(rawRenderer, {
+        onPinchStart: () => {
+          // No-op for now
+        },
+        onPinchMove: (event) => {
+          // Single hand pinch + drag = orbit around fixed target
+          if (this.cameraRig && !this.xrHandController?.isBothHandsPinching()) {
+            // Adjust spherical angles
+            xrSpherical.theta -= event.delta.x * XR_ROTATE_SCALE
+            xrSpherical.phi += event.delta.y * XR_ROTATE_SCALE
+            // Clamp phi to avoid flipping at poles
+            xrSpherical.phi = Math.max(
+              XR_PHI_EPSILON,
+              Math.min(Math.PI - XR_PHI_EPSILON, xrSpherical.phi)
+            )
+
+            updateRigFromSpherical()
+          }
+        },
+        onPinchEnd: () => {
+          // No-op for now
+        },
+        onZoom: (event) => {
+          // Two hand pinch = zoom only (radius change)
+          if (this.cameraRig) {
+            // Use same calculation as old code for consistent zoom speed
+            const zoomSteps = (1 - event.scale) * XR_ZOOM_STEPS_MULTIPLIER
+            const dollyIn = zoomSteps < 0
+            const deltaDistance = this.controls.getDollyDeltaDistance(
+              dollyIn,
+              Math.abs(zoomSteps)
+            )
+
+            // Apply to spherical radius instead of controls (slower for smoother control)
+            xrSpherical.radius += deltaDistance * XR_ZOOM_DELTA_SCALE
+            // Clamp radius to reasonable bounds
+            xrSpherical.radius = Math.max(
+              XR_MIN_RADIUS,
+              Math.min(XR_MAX_RADIUS, xrSpherical.radius)
+            )
+
+            updateRigFromSpherical()
+          }
+        }
+      })
+    })
+
+    // Clean up rig when VR ends - restore camera to scene
+    rawRenderer.xr.addEventListener('sessionend', () => {
+      // Clean up hand controller
+      if (this.xrHandController) {
+        this.xrHandController.dispose()
+        this.xrHandController = undefined
+      }
+
+      if (this.cameraRig) {
+        // Get the rig's world position (where camera actually is after XR movement)
+        // Camera is at (0,0,0) relative to rig, so rig's world position = camera's world position
+        this.cameraRig.updateMatrixWorld(true)
+        const rigWorldPosition = new THREE.Vector3()
+        this.cameraRig.getWorldPosition(rigWorldPosition)
+
+        // Get target from controls (should be unchanged during XR)
+        const cameraState = this.controls.getState()
+
+        // Remove camera from rig and add back to scene
+        this.cameraRig.remove(this.perspectiveCamera)
+        this.scene.add(this.perspectiveCamera)
+
+        // Set camera to rig's actual world position (not stale controls state)
+        this.perspectiveCamera.position.copy(rigWorldPosition)
+        this.perspectiveCamera.lookAt(cameraState.target)
+
+        // Update controls state to match actual camera position
+        this.controls.setState(rigWorldPosition, cameraState.target)
+
+        // Force matrix update after reparenting camera
+        this.perspectiveCamera.updateMatrixWorld(true)
+
+        this.scene.remove(this.cameraRig)
+        this.cameraRig = undefined
+      }
+
+      // Reset render target to canvas (XR may have changed it)
+      rawRenderer.setRenderTarget(null)
+
+      // Force camera aspect ratio and render target sizes to match canvas
+      // XR mode may have changed these to match the headset display
+      const rendererSize = this.renderer.getSize()
+      adjustCamera(this.camera, rendererSize.width, rendererSize.height)
+      this.camera.updateProjectionMatrix()
+
+      // Update light position to follow camera (was following rig in XR mode)
+      // Camera world matrix is now up-to-date after reparenting
+      this.updatePointLightPosition()
+    })
+
+    // Request hand tracking as an optional feature for gesture controls
+    return VRButton.createButton(rawRenderer, {
+      optionalFeatures: ['hand-tracking']
+    })
   }
 }

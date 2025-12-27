@@ -380,7 +380,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     event.preventDefault()
   }
 
-  private rotate = (deltaX: number, deltaY: number) => {
+  public rotate = (deltaX: number, deltaY: number) => {
     if (deltaX === 0 && deltaY === 0) {
       return
     }
@@ -785,7 +785,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     targetEnd.add(targetOffset)
   }
 
-  private dolly = (x: number, y: number, deltaDistance: number) => {
+  public dolly = (x: number, y: number, deltaDistance: number) => {
     const { camera } = this
     if (camera instanceof THREE.OrthographicCamera) {
       this.dollyOrthographicCamera(x, y, deltaDistance)
@@ -794,7 +794,7 @@ export class ComboControls extends EventDispatcher<CameraUpdateEvent> {
     }
   }
 
-  private getDollyDeltaDistance = (dollyIn: boolean, steps: number = 1) => {
+  public getDollyDeltaDistance = (dollyIn: boolean, steps: number = 1) => {
     const { sphericalEnd, dollyFactor } = this
     const zoomFactor = dollyFactor ** steps
     const factor = dollyIn ? zoomFactor : 1 / zoomFactor
