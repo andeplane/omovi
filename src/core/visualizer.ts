@@ -26,7 +26,13 @@ import {
   CLICK_DISTANCE_THRESHOLD,
   DEFAULT_CAMERA_FOV,
   DEFAULT_CAMERA_NEAR,
-  DEFAULT_CAMERA_FAR
+  DEFAULT_CAMERA_FAR,
+  XR_ROTATE_SCALE,
+  XR_ZOOM_STEPS_MULTIPLIER,
+  XR_ZOOM_DELTA_SCALE,
+  XR_MIN_RADIUS,
+  XR_MAX_RADIUS,
+  XR_PHI_EPSILON
 } from './constants'
 import { XRHandController } from './XRHandController'
 import { SelectionManager } from './selection/SelectionManager'
@@ -740,7 +746,9 @@ export default class Visualizer {
       } else {
         // Update hand tracking for XR gesture controls
         if (this.xrHandController && frame) {
-          const referenceSpace = this.renderer.getRawRenderer().xr.getReferenceSpace()
+          const referenceSpace = this.renderer
+            .getRawRenderer()
+            .xr.getReferenceSpace()
           if (referenceSpace) {
             this.xrHandController.update(frame, referenceSpace)
           }
@@ -1109,7 +1117,6 @@ export default class Visualizer {
     rawRenderer.xr.addEventListener('sessionstart', () => {
       // Get current camera state at the moment VR starts
       const cameraState = this.controls.getState()
-      console.log('XR Session started - position:', cameraState.position, 'target:', cameraState.target)
 
       // XR-specific spherical coordinates - target NEVER moves
       const xrTarget = cameraState.target.clone()
@@ -1120,7 +1127,9 @@ export default class Visualizer {
       // Helper to update rig from spherical coordinates
       const updateRigFromSpherical = () => {
         if (!this.cameraRig) return
-        const position = new THREE.Vector3().setFromSpherical(xrSpherical).add(xrTarget)
+        const position = new THREE.Vector3()
+          .setFromSpherical(xrSpherical)
+          .add(xrTarget)
         this.cameraRig.position.copy(position)
         this.cameraRig.lookAt(xrTarget)
         this.cameraRig.rotateY(Math.PI)
@@ -1147,13 +1156,14 @@ export default class Visualizer {
         onPinchMove: (event) => {
           // Single hand pinch + drag = orbit around fixed target
           if (this.cameraRig && !this.xrHandController?.isBothHandsPinching()) {
-            const rotateScale = 2.6
-
             // Adjust spherical angles
-            xrSpherical.theta -= event.delta.x * rotateScale
-            xrSpherical.phi += event.delta.y * rotateScale  // Fixed: was -= now +=
+            xrSpherical.theta -= event.delta.x * XR_ROTATE_SCALE
+            xrSpherical.phi += event.delta.y * XR_ROTATE_SCALE
             // Clamp phi to avoid flipping at poles
-            xrSpherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, xrSpherical.phi))
+            xrSpherical.phi = Math.max(
+              XR_PHI_EPSILON,
+              Math.min(Math.PI - XR_PHI_EPSILON, xrSpherical.phi)
+            )
 
             updateRigFromSpherical()
           }
@@ -1165,14 +1175,20 @@ export default class Visualizer {
           // Two hand pinch = zoom only (radius change)
           if (this.cameraRig) {
             // Use same calculation as old code for consistent zoom speed
-            const zoomSteps = (1 - event.scale) * 50
+            const zoomSteps = (1 - event.scale) * XR_ZOOM_STEPS_MULTIPLIER
             const dollyIn = zoomSteps < 0
-            const deltaDistance = this.controls.getDollyDeltaDistance(dollyIn, Math.abs(zoomSteps))
+            const deltaDistance = this.controls.getDollyDeltaDistance(
+              dollyIn,
+              Math.abs(zoomSteps)
+            )
 
-            // Apply to spherical radius instead of controls (50% slower for smoother control)
-            xrSpherical.radius += deltaDistance * 0.5
+            // Apply to spherical radius instead of controls (slower for smoother control)
+            xrSpherical.radius += deltaDistance * XR_ZOOM_DELTA_SCALE
             // Clamp radius to reasonable bounds
-            xrSpherical.radius = Math.max(1, Math.min(1000, xrSpherical.radius))
+            xrSpherical.radius = Math.max(
+              XR_MIN_RADIUS,
+              Math.min(XR_MAX_RADIUS, xrSpherical.radius)
+            )
 
             updateRigFromSpherical()
           }

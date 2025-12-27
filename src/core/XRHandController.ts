@@ -21,7 +21,9 @@ interface HandPinchState {
 }
 
 /**
- * Event data for pinch gestures
+ * Event data for pinch gestures.
+ * Note: position and delta vectors are mutable and reused between frames.
+ * Clone them if you need to store values across frames.
  */
 export interface PinchEvent {
   hand: 'left' | 'right'
@@ -30,7 +32,9 @@ export interface PinchEvent {
 }
 
 /**
- * Event data for two-hand zoom gestures
+ * Event data for two-hand zoom gestures.
+ * Note: centerPosition vector is mutable and reused between frames.
+ * Clone it if you need to store values across frames.
  */
 export interface ZoomEvent {
   scale: number
@@ -76,11 +80,14 @@ export class XRHandController {
   private _indexPos = new THREE.Vector3()
   private _delta = new THREE.Vector3()
   private _center = new THREE.Vector3()
+  private _leftPinchPos = new THREE.Vector3()
+  private _rightPinchPos = new THREE.Vector3()
+  private _zeroVector = new THREE.Vector3()
 
-  // Debug flag
-  private _hasLoggedInputSources = false
-
-  constructor(renderer: THREE.WebGLRenderer, callbacks: XRHandControllerCallbacks = {}) {
+  constructor(
+    renderer: THREE.WebGLRenderer,
+    callbacks: XRHandControllerCallbacks = {}
+  ) {
     this.renderer = renderer
     this.callbacks = callbacks
   }
@@ -94,17 +101,10 @@ export class XRHandController {
     const session = frame.session
     const inputSources = session.inputSources
 
-    // Debug: log input sources on first call
-    if (!this._hasLoggedInputSources) {
-      console.log('XR Input Sources:', inputSources.length)
-      for (const source of inputSources) {
-        console.log('  - handedness:', source.handedness, 'hand:', !!source.hand, 'targetRayMode:', source.targetRayMode)
-      }
-      this._hasLoggedInputSources = true
-    }
-
-    let leftHandData: { isPinching: boolean; position: THREE.Vector3 } | null = null
-    let rightHandData: { isPinching: boolean; position: THREE.Vector3 } | null = null
+    let leftHandData: { isPinching: boolean; position: THREE.Vector3 } | null =
+      null
+    let rightHandData: { isPinching: boolean; position: THREE.Vector3 } | null =
+      null
 
     // Process each input source (hand)
     for (const inputSource of inputSources) {
@@ -140,17 +140,29 @@ export class XRHandController {
       const pinchDistance = this._thumbPos.distanceTo(this._indexPos)
       const isPinching = pinchDistance < PINCH_THRESHOLD
 
-      // Calculate pinch position (midpoint between thumb and index)
-      const pinchPosition = new THREE.Vector3()
-        .addVectors(this._thumbPos, this._indexPos)
-        .multiplyScalar(0.5)
-
+      // Calculate pinch position (midpoint between thumb and index) using pre-allocated vectors
       if (handedness === 'left') {
-        leftHandData = { isPinching, position: pinchPosition }
-        this.processHandPinch('left', this.leftHand, isPinching, pinchPosition)
+        this._leftPinchPos
+          .addVectors(this._thumbPos, this._indexPos)
+          .multiplyScalar(0.5)
+        leftHandData = { isPinching, position: this._leftPinchPos }
+        this.processHandPinch(
+          'left',
+          this.leftHand,
+          isPinching,
+          this._leftPinchPos
+        )
       } else if (handedness === 'right') {
-        rightHandData = { isPinching, position: pinchPosition }
-        this.processHandPinch('right', this.rightHand, isPinching, pinchPosition)
+        this._rightPinchPos
+          .addVectors(this._thumbPos, this._indexPos)
+          .multiplyScalar(0.5)
+        rightHandData = { isPinching, position: this._rightPinchPos }
+        this.processHandPinch(
+          'right',
+          this.rightHand,
+          isPinching,
+          this._rightPinchPos
+        )
       }
     }
 
@@ -173,10 +185,11 @@ export class XRHandController {
       handState.pinchPosition.copy(position)
       handState.previousPinchPosition.copy(position)
 
+      // Note: position and delta are mutable - clone if you need to store them
       this.callbacks.onPinchStart?.({
         hand: handedness,
-        position: position.clone(),
-        delta: new THREE.Vector3()
+        position: position,
+        delta: this._zeroVector
       })
     } else if (isPinching && handState.isPinching) {
       // Pinch continuing - calculate delta
@@ -185,19 +198,21 @@ export class XRHandController {
       handState.previousPinchPosition.copy(handState.pinchPosition)
       handState.pinchPosition.copy(position)
 
+      // Note: position and delta are mutable - clone if you need to store them
       this.callbacks.onPinchMove?.({
         hand: handedness,
-        position: position.clone(),
-        delta: this._delta.clone()
+        position: position,
+        delta: this._delta
       })
     } else if (!isPinching && handState.isPinching) {
       // Pinch ended
       handState.isPinching = false
 
+      // Note: position and delta are mutable - clone if you need to store them
       this.callbacks.onPinchEnd?.({
         hand: handedness,
-        position: handState.pinchPosition.clone(),
-        delta: new THREE.Vector3()
+        position: handState.pinchPosition,
+        delta: this._zeroVector
       })
     }
   }
@@ -209,11 +224,12 @@ export class XRHandController {
     leftHandData: { isPinching: boolean; position: THREE.Vector3 } | null,
     rightHandData: { isPinching: boolean; position: THREE.Vector3 } | null
   ): void {
-    const bothPinching =
-      leftHandData?.isPinching && rightHandData?.isPinching
+    const bothPinching = leftHandData?.isPinching && rightHandData?.isPinching
 
     if (bothPinching && leftHandData && rightHandData) {
-      const currentDistance = leftHandData.position.distanceTo(rightHandData.position)
+      const currentDistance = leftHandData.position.distanceTo(
+        rightHandData.position
+      )
 
       if (this.isTwoHandZooming) {
         // Calculate scale factor
@@ -224,9 +240,10 @@ export class XRHandController {
           .addVectors(leftHandData.position, rightHandData.position)
           .multiplyScalar(0.5)
 
+        // Note: centerPosition is mutable - clone if you need to store it
         this.callbacks.onZoom?.({
           scale,
-          centerPosition: this._center.clone()
+          centerPosition: this._center
         })
       }
 
@@ -264,4 +281,3 @@ export class XRHandController {
 }
 
 export default XRHandController
-
