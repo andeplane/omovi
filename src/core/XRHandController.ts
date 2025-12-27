@@ -17,7 +17,6 @@ const PINCH_THRESHOLD = 0.025
 interface HandPinchState {
   isPinching: boolean
   pinchPosition: THREE.Vector3
-  previousPinchPosition: THREE.Vector3
 }
 
 /**
@@ -58,13 +57,11 @@ export class XRHandController {
   // Hand state tracking
   private leftHand: HandPinchState = {
     isPinching: false,
-    pinchPosition: new THREE.Vector3(),
-    previousPinchPosition: new THREE.Vector3()
+    pinchPosition: new THREE.Vector3()
   }
   private rightHand: HandPinchState = {
     isPinching: false,
-    pinchPosition: new THREE.Vector3(),
-    previousPinchPosition: new THREE.Vector3()
+    pinchPosition: new THREE.Vector3()
   }
 
   // Two-hand zoom tracking
@@ -178,7 +175,6 @@ export class XRHandController {
       // Pinch started
       handState.isPinching = true
       handState.pinchPosition.copy(position)
-      handState.previousPinchPosition.copy(position)
 
       this.callbacks.onPinchStart?.({
         hand: handedness,
@@ -186,10 +182,9 @@ export class XRHandController {
         delta: new THREE.Vector3()
       })
     } else if (isPinching && handState.isPinching) {
-      // Pinch continuing - calculate delta
-      this._delta.subVectors(position, handState.previousPinchPosition)
+      // Pinch continuing - calculate delta from previous frame's position
+      this._delta.subVectors(position, handState.pinchPosition)
 
-      handState.previousPinchPosition.copy(handState.pinchPosition)
       handState.pinchPosition.copy(position)
 
       this.callbacks.onPinchMove?.({

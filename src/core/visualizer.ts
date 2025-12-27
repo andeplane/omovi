@@ -337,7 +337,7 @@ export default class Visualizer {
     // document.body.appendChild(
     //   VRButton.createButton(this.renderer.getRawRenderer())
     // )
-    this.renderer.getRawRenderer().setAnimationLoop(this.animate.bind(this))
+    this.renderer.getRawRenderer().setAnimationLoop(this.animate)
   }
 
   /**
@@ -1132,6 +1132,7 @@ export default class Visualizer {
           .add(xrTarget)
         this.cameraRig.position.copy(position)
         this.cameraRig.lookAt(xrTarget)
+        // Align rig's forward direction with the target (Three.js cameras look down -Z by default)
         this.cameraRig.rotateY(Math.PI)
         // Update light to follow camera in XR mode
         this.updatePointLightPosition()
