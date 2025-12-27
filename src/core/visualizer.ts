@@ -1226,6 +1226,9 @@ export default class Visualizer {
       const rendererSize = this.renderer.getSize()
       adjustCamera(this.camera, rendererSize.width, rendererSize.height)
       this.camera.updateProjectionMatrix()
+
+      // Update light position to follow camera (was following rig in XR mode)
+      this.updatePointLightPosition()
     })
 
     // Request hand tracking as an optional feature for gesture controls
