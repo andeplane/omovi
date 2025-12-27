@@ -1205,14 +1205,28 @@ export default class Visualizer {
       }
 
       if (this.cameraRig) {
+        // Get the rig's world position (where camera actually is after XR movement)
+        // Camera is at (0,0,0) relative to rig, so rig's world position = camera's world position
+        this.cameraRig.updateMatrixWorld(true)
+        const rigWorldPosition = new THREE.Vector3()
+        this.cameraRig.getWorldPosition(rigWorldPosition)
+
+        // Get target from controls (should be unchanged during XR)
+        const cameraState = this.controls.getState()
+
         // Remove camera from rig and add back to scene
         this.cameraRig.remove(this.perspectiveCamera)
         this.scene.add(this.perspectiveCamera)
 
-        // Restore camera position from controls
-        const cameraState = this.controls.getState()
-        this.perspectiveCamera.position.copy(cameraState.position)
+        // Set camera to rig's actual world position (not stale controls state)
+        this.perspectiveCamera.position.copy(rigWorldPosition)
         this.perspectiveCamera.lookAt(cameraState.target)
+
+        // Update controls state to match actual camera position
+        this.controls.setState(rigWorldPosition, cameraState.target)
+
+        // Force matrix update after reparenting camera
+        this.perspectiveCamera.updateMatrixWorld(true)
 
         this.scene.remove(this.cameraRig)
         this.cameraRig = undefined
@@ -1228,6 +1242,7 @@ export default class Visualizer {
       this.camera.updateProjectionMatrix()
 
       // Update light position to follow camera (was following rig in XR mode)
+      // Camera world matrix is now up-to-date after reparenting
       this.updatePointLightPosition()
     })
 
