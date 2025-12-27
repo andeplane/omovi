@@ -684,7 +684,10 @@ export default class Visualizer {
   }
 
   private updatePointLightPosition = () => {
-    const cameraPosition = this.camera.position
+    // In XR mode, camera.position is local (0,0,0) - use rig position instead
+    const cameraPosition = this.cameraRig
+      ? this.cameraRig.position
+      : this.camera.position
 
     // Calculate point light position based on system bounds
     if (
@@ -1121,6 +1124,8 @@ export default class Visualizer {
         this.cameraRig.position.copy(position)
         this.cameraRig.lookAt(xrTarget)
         this.cameraRig.rotateY(Math.PI)
+        // Update light to follow camera in XR mode
+        this.updatePointLightPosition()
       }
 
       // Create camera rig and position it where the camera currently is
