@@ -1217,6 +1217,15 @@ export default class Visualizer {
         this.scene.remove(this.cameraRig)
         this.cameraRig = undefined
       }
+
+      // Reset render target to canvas (XR may have changed it)
+      rawRenderer.setRenderTarget(null)
+
+      // Force camera aspect ratio and render target sizes to match canvas
+      // XR mode may have changed these to match the headset display
+      const rendererSize = this.renderer.getSize()
+      adjustCamera(this.camera, rendererSize.width, rendererSize.height)
+      this.camera.updateProjectionMatrix()
     })
 
     // Request hand tracking as an optional feature for gesture controls
