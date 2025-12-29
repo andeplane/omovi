@@ -12,34 +12,22 @@ import Bonds from './geometries/bonds/bonds'
 import { Color } from './types'
 import OMOVIRenderer from './renderer'
 import { PostProcessingSettings } from './PostProcessingManager'
-import { VRButton } from '../utils/VRButton'
 import { PickingHandler, PickResult } from './picking'
 import {
-  outlineVertexShader,
-  outlineFragmentShader
-} from './post-processing/outlineShader'
-import {
   DEFAULT_SELECTION_COLOR,
-  OUTLINE_ALPHA_DIVISOR,
   MAX_PARTICLE_INDEX,
   MAX_TEXTURE_SIZE,
-  CLICK_DISTANCE_THRESHOLD,
   DEFAULT_CAMERA_FOV,
   DEFAULT_CAMERA_NEAR,
-  DEFAULT_CAMERA_FAR,
-  XR_ROTATE_SCALE,
-  XR_ZOOM_STEPS_MULTIPLIER,
-  XR_ZOOM_DELTA_SCALE,
-  XR_MIN_RADIUS,
-  XR_MAX_RADIUS,
-  XR_PHI_EPSILON
+  DEFAULT_CAMERA_FAR
 } from './constants'
-import { XRHandController } from './XRHandController'
 import { SelectionManager } from './selection/SelectionManager'
 import {
   InputHandler,
   ParticleClickEvent as InputParticleClickEvent
 } from './input/InputHandler'
+import { XRSessionManager } from './XRSessionManager'
+import { OutlinePostProcessor } from './OutlinePostProcessor'
 
 import Stats from 'stats.js'
 
@@ -126,44 +114,40 @@ interface VisualizerProps {
  * ```
  */
 export default class Visualizer {
-  private canvas: HTMLCanvasElement
-  public scene: THREE.Scene
-  public forceRender: boolean
-  public renderer: OMOVIRenderer
-  public ambientLight: THREE.AmbientLight
-  public idle: boolean
-  public pointLight: THREE.PointLight
-  public materials: { [key: string]: Material }
-  private cachedMeshes: { [key: string]: THREE.Mesh }
-  private setRadiusCalled: boolean
-  private perspectiveCamera: THREE.PerspectiveCamera
-  private orthographicCamera: THREE.OrthographicCamera
-  private camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
+  private canvas!: HTMLCanvasElement
+  public scene!: THREE.Scene
+  public forceRender!: boolean
+  public renderer!: OMOVIRenderer
+  public ambientLight!: THREE.AmbientLight
+  public idle!: boolean
+  public pointLight!: THREE.PointLight
+  public materials!: { [key: string]: Material }
+  private cachedMeshes!: { [key: string]: THREE.Mesh }
+  private setRadiusCalled!: boolean
+  private perspectiveCamera!: THREE.PerspectiveCamera
+  private orthographicCamera!: THREE.OrthographicCamera
+  private camera!: THREE.PerspectiveCamera | THREE.OrthographicCamera
   private isOrthographicMode: boolean = false
-  private controls: ComboControls
-  private clock: THREE.Clock
+  private controls!: ComboControls
+  private clock!: THREE.Clock
   private domElement?: HTMLElement
-  private object: THREE.Object3D
-  private cpuStats: Stats
-  private memoryStats: Stats
-  private colorTexture: DataTexture
-  private radiusTexture: DataTexture
-  private selectionTexture: DataTexture
-  private selectionManager: SelectionManager
+  private object!: THREE.Object3D
+  private cpuStats!: Stats
+  private memoryStats!: Stats
+  private colorTexture!: DataTexture
+  private radiusTexture!: DataTexture
+  private selectionTexture!: DataTexture
+  private selectionManager!: SelectionManager
   private atomIdToParticleInfo: Map<
     number,
     { particles: Particles; arrayIndex: number }
   > = new Map() // O(1) lookup for picking
-  private pickingHandler: PickingHandler
-  private inputHandler: InputHandler
+  private pickingHandler!: PickingHandler
+  private inputHandler!: InputHandler
   private currentParticles?: Particles
   public debugPickingRender: boolean = false // Set to true to see picking visualization
-  private selectionColor: THREE.Color
-  private outlineRenderTarget?: THREE.WebGLRenderTarget
-  private outlineMaterial?: THREE.ShaderMaterial
-  private outlineScene?: THREE.Scene
-  private outlineCamera?: THREE.OrthographicCamera
-  private outlineQuad?: THREE.Mesh
+  private selectionColor!: THREE.Color
+  private outlinePostProcessor?: OutlinePostProcessor
   private systemBounds?: THREE.Box3
   private systemCenter?: THREE.Vector3
   private systemDiagonal?: number
@@ -172,10 +156,8 @@ export default class Visualizer {
   // Reusable Vector3 instances for calculations to reduce allocations
   private _v1 = new THREE.Vector3()
   private _v2 = new THREE.Vector3()
-  // XR camera rig for positioning the user in VR/AR
-  private cameraRig?: THREE.Group
-  // XR hand controller for gesture-based navigation
-  private xrHandController?: XRHandController
+  // XR session manager for VR/AR mode
+  private xrSessionManager?: XRSessionManager
 
   constructor({
     domElement,
@@ -183,9 +165,8 @@ export default class Visualizer {
     onCameraChanged,
     onParticleClick
   }: VisualizerProps = {}) {
-    this.renderer = new OMOVIRenderer({
-      alpha: false
-    })
+    // Initialize renderer
+    this.renderer = new OMOVIRenderer({ alpha: false })
     this.idle = false
     this.setRadiusCalled = false
     this.canvas = this.renderer.getRawRenderer().domElement
@@ -195,16 +176,53 @@ export default class Visualizer {
     }
     this.setupCanvas(this.canvas)
 
+    // Initialize scene
     this.scene = new THREE.Scene()
     this.forceRender = false
     this.cachedMeshes = {}
+    this.clock = new THREE.Clock()
+    this.object = new THREE.Object3D()
+    this.scene.add(this.object)
 
+    // Setup components
+    this.setupLighting()
+    this.setupTextures(initialColors)
+    this.setupCameras(onCameraChanged)
+    this.setupMaterials()
+    this.setupStats()
+
+    // Initialize handlers
+    this.pickingHandler = new PickingHandler(
+      this.renderer.getRawRenderer(),
+      this.radiusTexture
+    )
+    this.inputHandler = new InputHandler(
+      this.canvas,
+      this.pickingHandler,
+      this.camera,
+      this.scene,
+      this.particlesObjects,
+      this.bondsObjects,
+      this.renderer,
+      this.atomIdToParticleInfo,
+      onParticleClick
+    )
+
+    // Initialize post-processing and start animation loop
+    this.initializeOutlinePostProcessing()
+    this.animate()
+    this.renderer.getRawRenderer().setAnimationLoop(this.animate)
+  }
+
+  private setupLighting = () => {
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
     // Point light with modern lighting (candela units, physically correct)
     this.pointLight = new THREE.PointLight(0xffffff, 20.0, 200, 0.8)
     this.scene.add(this.ambientLight)
     this.scene.add(this.pointLight)
+  }
 
+  private setupTextures = (initialColors?: Color[]) => {
     this.colorTexture = new DataTexture(
       'colorTexture',
       MAX_PARTICLE_INDEX,
@@ -229,15 +247,21 @@ export default class Visualizer {
         this.forceRender = true
       }
     )
+
     // Initialize selection manager
     this.selectionManager = new SelectionManager(this.selectionTexture, () => {
       this.forceRender = true
     })
 
+    // Apply initial colors if provided
     initialColors?.forEach((color, index) => {
       this.colorTexture.setRGBA(index, color.r, color.g, color.b)
     })
+  }
 
+  private setupCameras = (
+    onCameraChanged?: (position: THREE.Vector3, target: THREE.Vector3) => void
+  ) => {
     // Create perspective camera (default)
     this.perspectiveCamera = new THREE.PerspectiveCamera(
       DEFAULT_CAMERA_FOV,
@@ -248,7 +272,6 @@ export default class Visualizer {
     this.setupCamera(this.perspectiveCamera)
 
     // Create orthographic camera with a reasonable default frustum size
-    // The frustum will be adjusted based on scene content
     const frustumSize = 20
     const aspect = 640 / 480
     this.orthographicCamera = new THREE.OrthographicCamera(
@@ -266,30 +289,12 @@ export default class Visualizer {
     this.controls = new ComboControls(this.camera, this.canvas)
     this.controls.addEventListener('cameraChange', (event) => {
       const { position, target } = event.camera
-
-      // Update light position
       this.updatePointLightPosition()
-
-      if (onCameraChanged) {
-        onCameraChanged(position, target)
-      }
+      onCameraChanged?.(position, target)
     })
+  }
 
-    this.clock = new THREE.Clock()
-    this.object = new THREE.Object3D()
-    this.scene.add(this.object)
-
-    this.cpuStats = new Stats()
-    this.memoryStats = new Stats()
-    this.cpuStats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
-    this.memoryStats.showPanel(2) // 0: fps, 1: ms, 2: mb, 3+: custom
-    // document.body.appendChild(this.cpuStats.dom)
-    // this.cpuStats.domElement.style.cssText =
-    //   'position:absolute;top:0px;right:80px;'
-    // this.memoryStats.domElement.style.cssText =
-    //   'position:absolute;top:0px;right:0px;'
-    // document.body.appendChild(this.memoryStats.dom)
-
+  private setupMaterials = () => {
     this.materials = {}
     this.selectionColor = DEFAULT_SELECTION_COLOR
     this.materials['particles'] = createMaterial(
@@ -308,36 +313,13 @@ export default class Visualizer {
       this.colorTexture,
       this.radiusTexture
     )
+  }
 
-    // Initialize picking handler
-    this.pickingHandler = new PickingHandler(
-      this.renderer.getRawRenderer(),
-      this.radiusTexture
-    )
-
-    // Initialize input handler for particle picking
-    this.inputHandler = new InputHandler(
-      this.canvas,
-      this.pickingHandler,
-      this.camera,
-      this.scene,
-      this.particlesObjects,
-      this.bondsObjects,
-      this.renderer,
-      this.atomIdToParticleInfo,
-      onParticleClick
-    )
-
-    // Initialize outline post-processing
-    this.initializeOutlinePostProcessing()
-
-    this.animate()
-
-    // this.renderer.getRawRenderer().xr.enabled = true
-    // document.body.appendChild(
-    //   VRButton.createButton(this.renderer.getRawRenderer())
-    // )
-    this.renderer.getRawRenderer().setAnimationLoop(this.animate)
+  private setupStats = () => {
+    this.cpuStats = new Stats()
+    this.memoryStats = new Stats()
+    this.cpuStats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+    this.memoryStats.showPanel(2) // 0: fps, 1: ms, 2: mb, 3+: custom
   }
 
   /**
@@ -499,6 +481,8 @@ export default class Visualizer {
   dispose = () => {
     this.inputHandler.dispose()
     this.pickingHandler.dispose()
+    this.xrSessionManager?.dispose()
+    this.outlinePostProcessor?.dispose()
     if (this.domElement) {
       this.domElement.removeChild(this.canvas)
     }
@@ -616,33 +600,7 @@ export default class Visualizer {
 
   private initializeOutlinePostProcessing = () => {
     const size = this.renderer.getRawRenderer().getSize(new THREE.Vector2())
-
-    // Create render target for intermediate rendering
-    this.outlineRenderTarget = new THREE.WebGLRenderTarget(size.x, size.y, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-      type: THREE.UnsignedByteType
-    })
-
-    // Create outline material
-    this.outlineMaterial = new THREE.ShaderMaterial({
-      vertexShader: outlineVertexShader,
-      fragmentShader: outlineFragmentShader,
-      uniforms: {
-        tDiffuse: { value: this.outlineRenderTarget.texture },
-        resolution: { value: new THREE.Vector2(size.x, size.y) },
-        outlineOffset: { value: 1.5 }, // 1-2 pixel offset for thin outline
-        outlineAlphaDivisor: { value: OUTLINE_ALPHA_DIVISOR }
-      }
-    })
-
-    // Create fullscreen quad for post-processing
-    this.outlineScene = new THREE.Scene()
-    this.outlineCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
-    const geometry = new THREE.PlaneGeometry(2, 2)
-    this.outlineQuad = new THREE.Mesh(geometry, this.outlineMaterial)
-    this.outlineScene.add(this.outlineQuad)
+    this.outlinePostProcessor = new OutlinePostProcessor(size.x, size.y)
   }
 
   private hasSelection = (): boolean => {
@@ -691,9 +649,8 @@ export default class Visualizer {
 
   private updatePointLightPosition = () => {
     // In XR mode, camera.position is local (0,0,0) - use rig position instead
-    const cameraPosition = this.cameraRig
-      ? this.cameraRig.position
-      : this.camera.position
+    const rigPosition = this.xrSessionManager?.getCameraRigPosition()
+    const cameraPosition = rigPosition ?? this.camera.position
 
     // Calculate point light position based on system bounds
     if (
@@ -745,12 +702,12 @@ export default class Visualizer {
         this.updateUniforms(this.camera)
       } else {
         // Update hand tracking for XR gesture controls
-        if (this.xrHandController && frame) {
+        if (this.xrSessionManager && frame) {
           const referenceSpace = this.renderer
             .getRawRenderer()
             .xr.getReferenceSpace()
           if (referenceSpace) {
-            this.xrHandController.update(frame, referenceSpace)
+            this.xrSessionManager.update(frame, referenceSpace)
           }
         }
       }
@@ -794,37 +751,12 @@ export default class Visualizer {
 
         // If selection active, do outline pass on top
         // Skip outline rendering in XR mode as 2D post-processing doesn't work with stereo rendering
-        if (
-          needsOutline &&
-          !isXRPresenting &&
-          this.outlineRenderTarget &&
-          this.outlineMaterial &&
-          this.outlineScene &&
-          this.outlineCamera
-        ) {
-          const rawRenderer = this.renderer.getRawRenderer()
-
-          // Render selection mask to intermediate target (raw renderer, no SSAO needed)
-          rawRenderer.setRenderTarget(this.outlineRenderTarget)
-          rawRenderer.clear()
-          rawRenderer.render(this.scene, this.camera)
-
-          // Apply outline-only pass on top
-          rawRenderer.setRenderTarget(null)
-
-          // Configure material for blending on top
-          this.outlineMaterial.transparent = true
-          this.outlineMaterial.depthTest = false
-          this.outlineMaterial.depthWrite = false
-
-          // Disable auto-clear so we don't erase the SSAO render
-          const autoClear = rawRenderer.autoClear
-          rawRenderer.autoClear = false
-
-          rawRenderer.render(this.outlineScene, this.outlineCamera)
-
-          // Restore auto-clear
-          rawRenderer.autoClear = autoClear
+        if (needsOutline && !isXRPresenting && this.outlinePostProcessor) {
+          this.outlinePostProcessor.render(
+            this.scene,
+            this.camera,
+            this.renderer.getRawRenderer()
+          )
         }
       }
 
@@ -881,11 +813,8 @@ export default class Visualizer {
 
     adjustCamera(this.camera, width, height)
 
-    // Resize outline render target if it exists
-    if (this.outlineRenderTarget && this.outlineMaterial) {
-      this.outlineRenderTarget.setSize(width, height)
-      this.outlineMaterial.uniforms.resolution.value.set(width, height)
-    }
+    // Resize outline post-processor if it exists
+    this.outlinePostProcessor?.resize(width, height)
 
     return true
   }
@@ -1110,146 +1039,20 @@ export default class Visualizer {
    * ```
    */
   public enableXR = (): HTMLElement => {
-    const rawRenderer = this.renderer.getRawRenderer()
-    rawRenderer.xr.enabled = true
-
-    // Set up XR session event to position camera rig when VR actually starts
-    rawRenderer.xr.addEventListener('sessionstart', () => {
-      // Get current camera state at the moment VR starts
-      const cameraState = this.controls.getState()
-
-      // XR-specific spherical coordinates - target NEVER moves
-      const xrTarget = cameraState.target.clone()
-      const xrSpherical = new THREE.Spherical()
-      const offset = cameraState.position.clone().sub(xrTarget)
-      xrSpherical.setFromVector3(offset)
-
-      // Helper to update rig from spherical coordinates
-      const updateRigFromSpherical = () => {
-        if (!this.cameraRig) return
-        const position = new THREE.Vector3()
-          .setFromSpherical(xrSpherical)
-          .add(xrTarget)
-        this.cameraRig.position.copy(position)
-        this.cameraRig.lookAt(xrTarget)
-        // Align rig's forward direction with the target (Three.js cameras look down -Z by default)
-        this.cameraRig.rotateY(Math.PI)
-        // Update light to follow camera in XR mode
-        this.updatePointLightPosition()
-      }
-
-      // Create camera rig and position it where the camera currently is
-      this.cameraRig = new THREE.Group()
-      updateRigFromSpherical()
-
-      // Add rig to scene, then add camera to rig
-      // Camera's local position becomes (0,0,0) relative to rig
-      this.scene.add(this.cameraRig)
-      this.cameraRig.add(this.perspectiveCamera)
-      this.perspectiveCamera.position.set(0, 0, 0)
-      this.perspectiveCamera.rotation.set(0, 0, 0)
-
-      // Initialize hand controller for gesture-based navigation
-      this.xrHandController = new XRHandController(rawRenderer, {
-        onPinchStart: () => {
-          // No-op for now
-        },
-        onPinchMove: (event) => {
-          // Single hand pinch + drag = orbit around fixed target
-          if (this.cameraRig && !this.xrHandController?.isBothHandsPinching()) {
-            // Adjust spherical angles
-            xrSpherical.theta -= event.delta.x * XR_ROTATE_SCALE
-            xrSpherical.phi += event.delta.y * XR_ROTATE_SCALE
-            // Clamp phi to avoid flipping at poles
-            xrSpherical.phi = Math.max(
-              XR_PHI_EPSILON,
-              Math.min(Math.PI - XR_PHI_EPSILON, xrSpherical.phi)
-            )
-
-            updateRigFromSpherical()
-          }
-        },
-        onPinchEnd: () => {
-          // No-op for now
-        },
-        onZoom: (event) => {
-          // Two hand pinch = zoom only (radius change)
-          if (this.cameraRig) {
-            // Use same calculation as old code for consistent zoom speed
-            const zoomSteps = (1 - event.scale) * XR_ZOOM_STEPS_MULTIPLIER
-            const dollyIn = zoomSteps < 0
-            const deltaDistance = this.controls.getDollyDeltaDistance(
-              dollyIn,
-              Math.abs(zoomSteps)
-            )
-
-            // Apply to spherical radius instead of controls (slower for smoother control)
-            xrSpherical.radius += deltaDistance * XR_ZOOM_DELTA_SCALE
-            // Clamp radius to reasonable bounds
-            xrSpherical.radius = Math.max(
-              XR_MIN_RADIUS,
-              Math.min(XR_MAX_RADIUS, xrSpherical.radius)
-            )
-
-            updateRigFromSpherical()
-          }
-        }
+    // Create XR session manager if not already created
+    if (!this.xrSessionManager) {
+      this.xrSessionManager = new XRSessionManager({
+        renderer: this.renderer.getRawRenderer(),
+        controls: this.controls,
+        scene: this.scene,
+        perspectiveCamera: this.perspectiveCamera,
+        getActiveCamera: () => this.camera,
+        getRendererSize: () => this.renderer.getSize(),
+        onLightUpdate: () => this.updatePointLightPosition(),
+        adjustCamera: adjustCamera
       })
-    })
+    }
 
-    // Clean up rig when VR ends - restore camera to scene
-    rawRenderer.xr.addEventListener('sessionend', () => {
-      // Clean up hand controller
-      if (this.xrHandController) {
-        this.xrHandController.dispose()
-        this.xrHandController = undefined
-      }
-
-      if (this.cameraRig) {
-        // Get the rig's world position (where camera actually is after XR movement)
-        // Camera is at (0,0,0) relative to rig, so rig's world position = camera's world position
-        this.cameraRig.updateMatrixWorld(true)
-        const rigWorldPosition = new THREE.Vector3()
-        this.cameraRig.getWorldPosition(rigWorldPosition)
-
-        // Get target from controls (should be unchanged during XR)
-        const cameraState = this.controls.getState()
-
-        // Remove camera from rig and add back to scene
-        this.cameraRig.remove(this.perspectiveCamera)
-        this.scene.add(this.perspectiveCamera)
-
-        // Set camera to rig's actual world position (not stale controls state)
-        this.perspectiveCamera.position.copy(rigWorldPosition)
-        this.perspectiveCamera.lookAt(cameraState.target)
-
-        // Update controls state to match actual camera position
-        this.controls.setState(rigWorldPosition, cameraState.target)
-
-        // Force matrix update after reparenting camera
-        this.perspectiveCamera.updateMatrixWorld(true)
-
-        this.scene.remove(this.cameraRig)
-        this.cameraRig = undefined
-      }
-
-      // Reset render target to canvas (XR may have changed it)
-      rawRenderer.setRenderTarget(null)
-
-      // Force camera aspect ratio and render target sizes to match canvas
-      // XR mode may have changed these to match the headset display
-      const rendererSize = this.renderer.getSize()
-      adjustCamera(this.camera, rendererSize.width, rendererSize.height)
-      this.camera.updateProjectionMatrix()
-
-      // Update light position to follow camera (was following rig in XR mode)
-      // Camera world matrix is now up-to-date after reparenting
-      this.updatePointLightPosition()
-    })
-
-    // Request hand tracking as an optional feature for gesture controls
-    return VRButton.createButton(rawRenderer, {
-      optionalFeatures: ['hand-tracking']
-    })
+    return this.xrSessionManager.enable()
   }
 }
