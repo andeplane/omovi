@@ -56,7 +56,9 @@ export class XRSessionManager {
   private controls: ComboControls
   private scene: THREE.Scene
   private perspectiveCamera: THREE.PerspectiveCamera
-  private getActiveCamera: () => THREE.PerspectiveCamera | THREE.OrthographicCamera
+  private getActiveCamera: () =>
+    | THREE.PerspectiveCamera
+    | THREE.OrthographicCamera
   private getRendererSize: () => { width: number; height: number }
   private onLightUpdate: () => void
   private adjustCamera: AdjustCameraCallback
@@ -287,4 +289,3 @@ export class XRSessionManager {
     this.onLightUpdate()
   }
 }
-

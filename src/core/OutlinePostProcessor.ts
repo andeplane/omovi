@@ -30,7 +30,7 @@ export class OutlinePostProcessor {
       type: THREE.UnsignedByteType
     })
 
-    // Create outline material
+    // Create outline material with blending properties set once
     this.material = new THREE.ShaderMaterial({
       vertexShader: outlineVertexShader,
       fragmentShader: outlineFragmentShader,
@@ -39,7 +39,10 @@ export class OutlinePostProcessor {
         resolution: { value: new THREE.Vector2(width, height) },
         outlineOffset: { value: 1.5 }, // 1-2 pixel offset for thin outline
         outlineAlphaDivisor: { value: OUTLINE_ALPHA_DIVISOR }
-      }
+      },
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
     })
 
     // Create fullscreen quad for post-processing
@@ -78,11 +81,6 @@ export class OutlinePostProcessor {
     // Apply outline-only pass on top
     renderer.setRenderTarget(null)
 
-    // Configure material for blending on top
-    this.material.transparent = true
-    this.material.depthTest = false
-    this.material.depthWrite = false
-
     // Disable auto-clear so we don't erase the main render
     const autoClear = renderer.autoClear
     renderer.autoClear = false
@@ -102,4 +100,3 @@ export class OutlinePostProcessor {
     this.quad.geometry.dispose()
   }
 }
-
