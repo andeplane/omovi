@@ -46,7 +46,6 @@ class Material extends THREE.MeshPhongMaterial {
   }
 }
 
-const materialMap: { [key: string]: Material } = {}
 let _fragDepthSupported: boolean | undefined
 
 function fragDepthSupported() {
@@ -80,10 +79,9 @@ const createMaterial = (
   selectionTexture?: DataTexture,
   selectionColor?: THREE.Color
 ) => {
-  if (materialMap[type] != null) {
-    return materialMap[type]
-  }
-
+  // Each call returns a new material bound to the given textures. Caching by
+  // type would make every Visualizer share the first one's colours and radii.
+  // Shader programs are still shared: onBeforeCompile.toString() is keyed by type.
   const material = new Material(type, { color: 0xffffff })
   material.uniforms.inverseModelMatrix = { value: new THREE.Matrix4() }
   material.uniforms.inverseNormalMatrix = { value: new THREE.Matrix3() }
@@ -127,7 +125,6 @@ const createMaterial = (
   // https://github.com/mrdoob/three.js/issues/15948
   material.onBeforeCompile.toString = () => type
 
-  materialMap[type] = material
   return material
 }
 

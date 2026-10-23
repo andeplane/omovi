@@ -555,9 +555,9 @@ export default class Visualizer {
   }
 
   /**
-   * Set the color for a particle type.
+   * Set the color of a particle.
    *
-   * @param index - Particle type index
+   * @param index - Particle id, as passed to `Particles.add`
    * @param color - RGB color with values 0-255
    *
    * @example
@@ -570,9 +570,9 @@ export default class Visualizer {
   }
 
   /**
-   * Set the radius for a particle type.
+   * Set the radius of a particle.
    *
-   * @param index - Particle type index
+   * @param index - Particle id, as passed to `Particles.add`
    * @param radius - Particle radius in simulation units
    *
    * @example

@@ -41,11 +41,12 @@ particles.add(0.0, 1.0, 0.0, 2, 2)
 // Add to visualizer
 visualizer.add(particles)
 
-// Set colors by particle type
+// Colors and radii are set per particle id (the fourth argument of add)
+visualizer.setColor(0, { r: 255, g: 0, b: 0 })   // Red
 visualizer.setColor(1, { r: 255, g: 0, b: 0 })   // Red
 visualizer.setColor(2, { r: 0, g: 0, b: 255 })   // Blue
 
-// Set particle radii
+visualizer.setRadius(0, 0.5)
 visualizer.setRadius(1, 0.5)
 visualizer.setRadius(2, 0.3)
 ```
